@@ -1,7 +1,11 @@
 "use client";
 
 import { type ReactNode } from "react";
-import { usaLanterna } from "@/lib/usaLanterna";
+// Alias obrigatório, não estilo: a regra react-hooks identifica hooks pelo
+// NOME no ponto da chamada. Com `usaLanterna()` ela nem tenta — chamada
+// condicional passava lint, tsc e build e quebrava a página em runtime. O
+// export continua em português; só o identificador local vira `use*`.
+import { usaLanterna as useLanterna } from "@/lib/usaLanterna";
 import estilos from "./Lanterna.module.css";
 
 /**
@@ -20,7 +24,7 @@ import estilos from "./Lanterna.module.css";
  * agendado; o fallback visual é puramente CSS (ver Fundo202020.module.css).
  */
 export default function Lanterna({ children }: { children?: ReactNode }) {
-  const { ref, ativa } = usaLanterna();
+  const { ref, ativa } = useLanterna();
 
   return (
     <div

@@ -39,18 +39,53 @@ async function semearIdioma(page: Page, idioma: string) {
   }, idioma);
 }
 
+/**
+ * Duas medidas, porque uma só não denuncia nada.
+ *
+ * `document.documentElement.scrollHeight/scrollWidth` NÃO servem para esta
+ * regra. Com `html, body { overflow: hidden }` em globals.css o overflow do
+ * elemento raiz é propagado para a viewport, e o scrollHeight/scrollWidth do
+ * documentElement passa a ser sempre igual ao clientHeight/clientWidth —
+ * aconteça o que acontecer com o conteúdo. A revisão final provou isso com
+ * três mutações reais (logo gigante, `.palco` sem `overflow:hidden`, `.tela`
+ * com 1400px de altura): nenhuma delas fez essa comparação falhar uma única
+ * vez. Vinte testes "não tem scroll" estavam guardando a própria guarda.
+ *
+ * O que de fato morde:
+ *
+ *   1. `document.body.scrollHeight/scrollWidth` — o body é quem recorta, e um
+ *      elemento que recorta continua reportando a extensão REAL do conteúdo.
+ *      Nas mesmas três mutações ele mediu 1552 / 2060 / 1400. Isto pega
+ *      estouro de conteúdo mesmo quando o `overflow:hidden` o está escondendo.
+ *   2. tentar rolar de verdade — `scrollTo` no canto e ler `scrollX/scrollY`.
+ *      Isto pega o caso oposto: alguém remove o `html, body {overflow:hidden}`
+ *      e a página vira rolável. Volta ao topo logo em seguida para não deixar
+ *      o documento deslocado para as asserções seguintes.
+ */
 async function medirDocumento(page: Page) {
-  return page.evaluate(() => ({
-    scrollH: document.documentElement.scrollHeight,
-    clientH: document.documentElement.clientHeight,
-    scrollW: document.documentElement.scrollWidth,
-    clientW: document.documentElement.clientWidth,
-  }));
+  return page.evaluate(() => {
+    window.scrollTo(9999, 9999);
+    const rolou = { x: window.scrollX, y: window.scrollY };
+    window.scrollTo(0, 0);
+
+    return {
+      scrollH: document.body.scrollHeight,
+      clientH: document.documentElement.clientHeight,
+      scrollW: document.body.scrollWidth,
+      clientW: document.documentElement.clientWidth,
+      rolou,
+    };
+  });
 }
 
 function esperaSemScroll(medidas: Awaited<ReturnType<typeof medirDocumento>>) {
-  expect(medidas.scrollH).toBeLessThanOrEqual(medidas.clientH + 1);
-  expect(medidas.scrollW).toBeLessThanOrEqual(medidas.clientW + 1);
+  expect(medidas.scrollH, "conteúdo mais alto que a viewport").toBeLessThanOrEqual(
+    medidas.clientH + 1,
+  );
+  expect(medidas.scrollW, "conteúdo mais largo que a viewport").toBeLessThanOrEqual(
+    medidas.clientW + 1,
+  );
+  expect(medidas.rolou, "o documento rolou de verdade").toEqual({ x: 0, y: 0 });
 }
 
 async function esperaNadaCortado(page: Page, width: number, height: number) {

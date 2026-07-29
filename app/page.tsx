@@ -3,7 +3,13 @@
 import { useEffect, useState } from "react";
 import MotionD from "@/components/motion/MotionD";
 import SeletorIdioma from "@/components/SeletorIdioma";
-import { usaMotionUmaVez } from "@/lib/usaMotionUmaVez";
+// O alias `as useMotionUmaVez` não é cosmético: a regra react-hooks só
+// reconhece uma chamada como hook pelo NOME no ponto da chamada. Com o nome
+// português o lint enxergava `usaMotionUmaVez()` como função comum e deixava
+// passar chamada condicional — verificado: uma chamada dentro de `if` passava
+// lint, tsc e build, e derrubava a página em runtime. O export segue em
+// português (convenção do projeto); só o identificador local muda.
+import { usaMotionUmaVez as useMotionUmaVez } from "@/lib/usaMotionUmaVez";
 import { COORDENADAS, COPY, INSTAGRAM, LOCAL, titulo, type Idioma } from "@/lib/copy";
 
 const CHAVE_IDIOMA = "202:idioma";
@@ -11,7 +17,7 @@ const CHAVE_IDIOMA = "202:idioma";
 export default function Home() {
   const [idioma, setIdioma] = useState<Idioma>("pt");
   const t = COPY[idioma];
-  const jaRodou = usaMotionUmaVez();
+  const jaRodou = useMotionUmaVez();
 
   // restaura a escolha anterior; nunca detecta o idioma do navegador
   useEffect(() => {
@@ -36,7 +42,7 @@ export default function Home() {
   }
 
   return (
-    <div className="tela">
+    <main className="tela">
       {/* Único dono do <title>: app/layout.tsx deliberadamente não declara
           metadata.title (ver comentário lá). O React 19 hoista este elemento
           para o <head> de onde quer que ele esteja na árvore — é o jeito
@@ -66,18 +72,26 @@ export default function Home() {
       <footer className="base">
         {/* A frase inteira é UM ímã, as duas linhas juntas. Aqui ele não é
             dica de clique (não há para onde ir) — é ênfase: a luz para em
-            cima da frase. Decisão explícita do Lucas. */}
-        <p className="oneliner" data-ima="oneliner">
+            cima da frase. Decisão explícita do Lucas.
+
+            É <h1> e não <p>: é a única frase da página que descreve o que a
+            202 faz, então é o título dela para leitor de tela e para busca —
+            a página vinha com zero heading. Os <span> por linha continuam:
+            os testes (unitário e e2e) casam texto linha a linha. Nada muda
+            visualmente — `.oneliner` já define família, peso e tamanho, e o
+            reset `* { margin: 0 }` no topo de globals.css já zerava a margem
+            que o h1 traria por padrão. */}
+        <h1 className="oneliner" data-ima="oneliner">
           <span>{t.onelinerLinhas[0]}</span>
           <br />
           <span>{t.onelinerLinhas[1]}</span>
-        </p>
+        </h1>
         <p className="label coordenadas">
           <span>{COORDENADAS}</span>
           <br />
           <span>{LOCAL}</span>
         </p>
       </footer>
-    </div>
+    </main>
   );
 }
