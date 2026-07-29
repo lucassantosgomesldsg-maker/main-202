@@ -91,7 +91,7 @@ Estes textos são finais. Não parafrasear.
 |---|---|---|
 | `oneliner` | Potencializamos talentos e construímos o futuro. | We amplify talent. We build the future. |
 | `contato` | CONTATO | CONTACT |
-| `coordenadas` | 23°12'37"S  45°52'35"W | *(idêntico)* |
+| `coordenadas` | 23°12'37"S 45°52'35"W | *(idêntico)* |
 | `local` | SÃO JOSÉ DOS CAMPOS, BR | *(idêntico)* |
 
 **As coordenadas são as do ITA**, não as do centro de São José dos Campos — a origem
