@@ -28,6 +28,14 @@ export const QUADRO_MS = 1000 / 60;
 /** Teto do fator de quadro — evita um salto gigante ao voltar do segundo plano. */
 export const FATOR_MAXIMO = 3;
 
+/**
+ * Ganho da forma fechada da velocidade na perseguição (dedução completa no
+ * comentário dentro de `passo`). Exige PESO ≠ SEGUIMENTO — se alguém igualar
+ * as duas constantes isto vira Infinity, e o teste
+ * "PESO e SEGUIMENTO precisam continuar diferentes" quebra antes da tela.
+ */
+const GANHO_VELOCIDADE = (SEGUIMENTO * PESO) / (PESO - SEGUIMENTO);
+
 export type EstadoLanterna = {
   x: number;
   y: number;
@@ -103,20 +111,45 @@ export function passo(
     }
   } else {
     // ── Perseguindo ─────────────────────────────────────────────────────
+    const restanteAlvo = Math.pow(1 - SEGUIMENTO, f); // β^f: distância que sobra
+    const restanteFiltro = Math.pow(1 - PESO, f); // α^f: memória do filtro
+
     // Interpolação exponencial rumo ao cursor. Como k < 1 para qualquer
     // f <= FATOR_MAXIMO (1 - 0.82³ = 0.449), a luz nunca ultrapassa o alvo.
-    const k = 1 - Math.pow(1 - SEGUIMENTO, f);
+    const k = 1 - restanteAlvo;
     const distanciaX = estado.alvoX - estado.x;
     const distanciaY = estado.alvoY - estado.y;
 
     x = estado.x + distanciaX * k;
     y = estado.y + distanciaY * k;
 
-    // Velocidade por média móvel exponencial, em px por quadro de 60 fps —
-    // é ela que vira a inércia no instante em que o mouse parar.
-    const peso = 1 - Math.pow(1 - PESO, f);
-    vx = estado.vx * (1 - peso) + distanciaX * SEGUIMENTO * peso;
-    vy = estado.vy * (1 - peso) + distanciaY * SEGUIMENTO * peso;
+    // Velocidade por média móvel exponencial dos deslocamentos, em px por
+    // quadro de 60 fps — é ela que vira a inércia quando o mouse parar.
+    //
+    // A forma ingênua (`v*(1-peso) + distância*SEGUIMENTO*peso`, com
+    // `peso = 1-(1-PESO)^f`) NÃO é componível: ela trata a distância como
+    // constante durante o quadro, mas a distância decai enquanto a luz anda.
+    // Dois quadros de fator 1 davam vx = 58,21 e um quadro de fator 2 dava
+    // 64,69 — 11% de diferença, e num arrasto real a velocidade de escape
+    // saía 5,5% maior a 144 Hz que a 60 Hz. Como é a velocidade de escape que
+    // dimensiona o deslize inteiro, a luz era arremessada ~30px mais longe
+    // num monitor rápido. O deslize tinha a forma certa e o tamanho errado.
+    //
+    // A correção: exigir composicionalidade e resolver para a única família
+    // que a satisfaz. Com `v' = v*α^f + d*G(f)` e `d' = d*β^f`, compor dois
+    // quadros dá `v'' = v*α^(f1+f2) + d*[G(f1)α^f2 + β^f1 G(f2)]`, então é
+    // preciso `G(f1+f2) = G(f1)α^f2 + β^f1 G(f2)` — cuja solução geral é
+    // `G(f) = C(β^f - α^f)`, com C livre. E C livre é a sorte aqui: dá para
+    // escolhê-lo de modo que f = 1 reproduza *literalmente* a fórmula do
+    // brief, `G(1) = SEGUIMENTO*PESO`. Como `β - α = PESO - SEGUIMENTO`:
+    //
+    //     C = SEGUIMENTO*PESO / (PESO - SEGUIMENTO)
+    //
+    // Resultado: componível ao nível do ponto flutuante E idêntica ao brief a
+    // 60 fps — o comportamento que o Lucas já viu não muda em nada.
+    const ganho = GANHO_VELOCIDADE * (restanteAlvo - restanteFiltro);
+    vx = estado.vx * restanteFiltro + distanciaX * ganho;
+    vy = estado.vy * restanteFiltro + distanciaY * ganho;
   }
 
   // A luz pode encostar na borda e sair um pouco, nunca sumir de vez.
@@ -143,8 +176,6 @@ function consulta(pergunta: string): boolean {
   return window.matchMedia(pergunta).matches;
 }
 
-/** Quanto a luz precisa andar para valer uma renderização do React. */
-const PUBLICAR_A_CADA_PX = 1;
 
 /**
  * Liga a lanterna ao DOM.
@@ -158,9 +189,13 @@ const PUBLICAR_A_CADA_PX = 1;
  * de `mousemove` só anota a posição crua do cursor e o instante. Em ponteiro
  * grosso nenhum listener é registrado e nenhum quadro é agendado.
  *
- * `x`/`y`/`ativa` são estado do React, publicados no máximo a cada
- * PUBLICAR_A_CADA_PX de deslocamento — quem manda na posição desenhada são as
- * variáveis CSS, escritas todo quadro sem passar pelo React.
+ * `x`/`y` são **a posição onde a luz parou** — publicados como estado do React
+ * quando ela assenta, e não a cada quadro. A posição viva, quadro a quadro,
+ * são as variáveis CSS: renderizar 60 vezes por segundo um par de números que
+ * nada lê seria pagar caro por nada. Assim um gesto inteiro custa no máximo
+ * duas renderizações (o primeiro movimento e o repouso), e quem quiser saber
+ * "onde a luz ficou" — destacar o que está sob o foco, por exemplo — tem a
+ * resposta sem instrumentar nada.
  *
  * A implementação se chama `useLanterna` só para o eslint: a regra
  * react-hooks/rules-of-hooks só reconhece hook com prefixo `use`, e sem esse
@@ -202,8 +237,8 @@ function useLanterna(): PosicaoLanterna {
     const publicar = (ativa: boolean) => {
       if (
         publicado.ativa === ativa &&
-        Math.hypot(estado.x - publicado.x, estado.y - publicado.y) <
-          PUBLICAR_A_CADA_PX
+        publicado.x === estado.x &&
+        publicado.y === estado.y
       ) {
         return;
       }
@@ -240,14 +275,15 @@ function useLanterna(): PosicaoLanterna {
 
       alvo.style.setProperty("--lanterna-x", `${estado.x.toFixed(2)}px`);
       alvo.style.setProperty("--lanterna-y", `${estado.y.toFixed(2)}px`);
-      publicar(temCursor);
 
       const aindaParado = t - estado.ultimoMovimento > PARADA_MS;
       const deslizando = Math.hypot(estado.vx, estado.vy) > 0;
       if (!aindaParado || (deslizando && !semInercia)) {
         quadroId = requestAnimationFrame(quadro);
       } else {
+        // A luz assentou: é agora que vale publicar onde ela ficou.
         quadroId = 0;
+        publicar(temCursor);
       }
     };
 
@@ -261,7 +297,10 @@ function useLanterna(): PosicaoLanterna {
       // Só anotação: nenhuma leitura de layout, nenhuma escrita de estilo aqui.
       cursorX = ev.clientX;
       cursorY = ev.clientY;
-      temCursor = true;
+      if (!temCursor) {
+        temCursor = true;
+        publicar(true); // uma vez por montagem: a lanterna saiu do repouso
+      }
       estado = { ...estado, ultimoMovimento: performance.now() };
       acordar();
     };

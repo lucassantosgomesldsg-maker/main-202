@@ -1,7 +1,12 @@
 /* MotionD.module.css — candidato D: a malha acende, depois a logo.
  *
- * Linha do tempo (a guarda em MotionD.tsx confere o total contra
- * DURACAO_MAXIMA_MS em ./tipos; aqui documentamos os estágios):
+ * ATENÇÃO: nenhum tempo desta folha é um número literal. As durações vêm de
+ * `ATOS` em MotionD.tsx, entregues como --d-malha / --d-logo / --d-ponto, e os
+ * inícios (--t-logo, --t-ponto) são DERIVADOS delas lá. Mexer numa duração
+ * empurra o resto da coreografia junto, em vez de deixar dois números iguais
+ * se desencontrarem em silêncio.
+ *
+ * Com os valores de hoje (900 / 700 / 400) a linha do tempo fica:
  *
  *   0ms    → 900ms   malha `202` cresce do centro (clip-path circle 0%→150%)
  *   900ms  → 1520ms  logo aberta do meio para os lados (clip-path inset)
@@ -9,8 +14,8 @@
  *   900ms  → 1600ms  a logo inteira assenta de scale(0.94) a scale(1)
  *   1600ms → 2000ms  ponto verde acende — sempre o último
  *
- * Ato 1 e ato 2 NÃO se sobrepõem: a logo não começa antes dos 900ms, que é a
- * regra dura da coreografia. Fim real: 2000ms.
+ * Ato 1 e ato 2 NÃO se sobrepõem: --t-logo *é* --d-malha, por construção.
+ * Fim real: 2000ms, conferido contra DURACAO_MAXIMA_MS em MotionD.tsx.
  */
 
 .palco {
@@ -61,32 +66,41 @@
 
 /* ── Ato 1: a malha (0 → 900ms) ─────────────────────────────────────────── */
 .palco[data-estatico="false"] .fundo {
-  animation: malha-abrir 900ms cubic-bezier(0.4, 0, 0.2, 1) both;
+  animation: malha-abrir var(--d-malha) cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 
-/* ── Ato 2: a logo (900 → 1600ms) ───────────────────────────────────────── */
+/* ── Ato 2: a logo ──────────────────────────────────────────────────────── */
+/* `--t-logo` é literalmente a duração da malha, calculada em MotionD.tsx.
+   Nenhum tempo desta folha é um número solto: mudar ATOS.malha lá empurra
+   tudo aqui junto, e a regra "a logo não começa antes da malha terminar"
+   não tem como se perder no caminho. */
 .palco[data-estatico="false"] .logo {
-  animation: logo-assentar 700ms cubic-bezier(0.16, 1, 0.3, 1) 900ms both;
+  animation: logo-assentar var(--d-logo) cubic-bezier(0.16, 1, 0.3, 1)
+    var(--t-logo) both;
 }
 
+/* A abertura fecha 80ms antes do assentamento, para a logo terminar de
+   crescer já inteira. */
 .palco[data-estatico="false"] .logo :global([data-glifos]) {
-  animation: logo-abrir 620ms cubic-bezier(0.4, 0, 0.2, 1) 900ms both;
+  animation: logo-abrir calc(var(--d-logo) - 80ms) cubic-bezier(0.4, 0, 0.2, 1)
+    var(--t-logo) both;
 }
 
 /* Os glifos acendem na ordem em que a abertura passa por eles: o do meio
    (indice 1) primeiro, os das pontas (0 e 2) depois — o mesmo "do centro
    para fora" do ato 1, agora em brilho. */
 .palco[data-estatico="false"] .logo :global([data-glifo][data-indice="1"] path) {
-  animation: glifo-acender 420ms ease-out 940ms both;
+  animation: glifo-acender 420ms ease-out calc(var(--t-logo) + 40ms) both;
 }
 .palco[data-estatico="false"] .logo :global([data-glifo][data-indice="0"] path),
 .palco[data-estatico="false"] .logo :global([data-glifo][data-indice="2"] path) {
-  animation: glifo-acender 420ms ease-out 1080ms both;
+  animation: glifo-acender 420ms ease-out calc(var(--t-logo) + 180ms) both;
 }
 
-/* ── Ato 3: o ponto (1600 → 2000ms) ─────────────────────────────────────── */
+/* ── Ato 3: o ponto ─────────────────────────────────────────────────────── */
 .palco[data-estatico="false"] .logo :global([data-ponto]) {
-  animation: ponto-acender 400ms cubic-bezier(0.34, 1.56, 0.64, 1) 1600ms both;
+  animation: ponto-acender var(--d-ponto) cubic-bezier(0.34, 1.56, 0.64, 1)
+    var(--t-ponto) both;
 }
 
 /* Por que o passo intermediário em 88%, e não um simples 0%→150%:

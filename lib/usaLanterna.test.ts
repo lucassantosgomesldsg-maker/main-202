@@ -5,6 +5,8 @@ import {
   ATRITO,
   MARGEM_PX,
   PARADA_MS,
+  PESO,
+  QUADRO_MS,
   SEGUIMENTO,
   V_MINIMA,
   type EstadoLanterna,
@@ -159,7 +161,11 @@ describe("passo — deslizando por inércia", () => {
     expect(retomado.x).toBeLessThan(e.x);
   });
 
-  it("a inércia independe da taxa de quadros", () => {
+  // ATENÇÃO: este teste cobre SÓ o ramo do atrito. Com ultimoMovimento = 0 e
+  // `agora` fixo, `passo` nunca sai de "deslizando" — ele não diz nada sobre a
+  // perseguição, que é onde a velocidade de escape nasce. A independência de
+  // taxa de quadros do ramo de perseguição está no describe seguinte.
+  it("o deslizamento em si independe da taxa de quadros", () => {
     // Mesmos 500 ms de deslizamento, a 60 fps e a 120 fps.
     const inicial = deslizando(10, 6);
 
@@ -175,6 +181,137 @@ describe("passo — deslizando por inércia", () => {
     expect(a120.x).toBeCloseTo(a60.x, 5);
     expect(a120.y).toBeCloseTo(a60.y, 5);
     expect(velocidade(a120)).toBeCloseTo(velocidade(a60), 5);
+  });
+});
+
+/**
+ * A parte que mais importa e a que menos se vê: a velocidade de ESCAPE — a
+ * que a luz leva para o deslizamento — nasce toda no ramo de perseguição. Se
+ * ela depender da taxa de quadros, o deslize tem a forma certa e o tamanho
+ * errado, e um monitor de 144 Hz joga a luz mais longe que um de 60 Hz.
+ *
+ * O critério aqui é composicionalidade: dividir um quadro em pedaços tem que
+ * dar exatamente o mesmo resultado que dar o quadro inteiro de uma vez —
+ * para x/y E para vx/vy.
+ */
+describe("passo — independência de taxa de quadros na perseguição", () => {
+  const perseguindoRapido = (): EstadoLanterna => ({
+    ...estadoInicial(0, 0),
+    x: 100,
+    y: 80,
+    vx: 3,
+    vy: -2,
+    alvoX: 900,
+    alvoY: 700,
+    ultimoMovimento: 1000,
+  });
+
+  /** Aplica uma sequência de fatores a partir do mesmo estado. */
+  const aplicar = (fatores: number[]) =>
+    fatores.reduce((e, f) => passo(e, 1000, f, LIMITES), perseguindoRapido());
+
+  it("dois quadros de fator 1 chegam ao mesmo estado que um de fator 2", () => {
+    const dividido = aplicar([1, 1]);
+    const inteiro = aplicar([2]);
+
+    expect(inteiro.x).toBeCloseTo(dividido.x, 10);
+    expect(inteiro.y).toBeCloseTo(dividido.y, 10);
+    // Estes dois são os que quebravam: a posição já compunha, a velocidade não.
+    expect(inteiro.vx).toBeCloseTo(dividido.vx, 10);
+    expect(inteiro.vy).toBeCloseTo(dividido.vy, 10);
+  });
+
+  it("quatro quadros de fator 0,5 chegam ao mesmo estado que um de fator 2", () => {
+    const dividido = aplicar([0.5, 0.5, 0.5, 0.5]);
+    const inteiro = aplicar([2]);
+
+    expect(inteiro.x).toBeCloseTo(dividido.x, 10);
+    expect(inteiro.vx).toBeCloseTo(dividido.vx, 10);
+    expect(inteiro.vy).toBeCloseTo(dividido.vy, 10);
+  });
+
+  it("uma divisão irregular também compõe (0,3 + 0,7 + 1 = 2)", () => {
+    // Quadros reais nunca chegam em tamanhos redondos — é este o caso de uso.
+    const dividido = aplicar([0.3, 0.7, 1]);
+    const inteiro = aplicar([2]);
+
+    expect(inteiro.x).toBeCloseTo(dividido.x, 10);
+    expect(inteiro.vx).toBeCloseTo(dividido.vx, 10);
+    expect(inteiro.vy).toBeCloseTo(dividido.vy, 10);
+  });
+
+  it("com fator 1 a fórmula continua sendo literalmente a do brief", () => {
+    // A independência de taxa de quadros não pode custar o comportamento a
+    // 60 fps: aqui a conta tem que bater com `v = v*(1-PESO) + d*SEGUIMENTO*PESO`.
+    const antes = perseguindoRapido();
+    const depois = passo(antes, 1000, 1, LIMITES);
+
+    const distanciaX = antes.alvoX - antes.x;
+    const distanciaY = antes.alvoY - antes.y;
+
+    expect(depois.x).toBeCloseTo(antes.x + distanciaX * SEGUIMENTO, 10);
+    expect(depois.vx).toBeCloseTo(
+      antes.vx * (1 - PESO) + distanciaX * SEGUIMENTO * PESO,
+      10
+    );
+    expect(depois.vy).toBeCloseTo(
+      antes.vy * (1 - PESO) + distanciaY * SEGUIMENTO * PESO,
+      10
+    );
+  });
+
+  /** Arrasto em velocidade constante, amostrado na taxa de quadros dada. */
+  function arrastar(fps: number, duracaoMs: number, pxPorMs: number) {
+    const dt = 1000 / fps;
+    const fator = dt / QUADRO_MS;
+    let estado = estadoInicial(0, 0);
+    for (let t = dt; t <= duracaoMs; t += dt) {
+      estado = passo(
+        { ...estado, alvoX: pxPorMs * t, alvoY: 0, ultimoMovimento: t },
+        t,
+        fator,
+        { largura: 1e6, altura: 1e6 }
+      );
+    }
+    return estado;
+  }
+
+  /** Solta o estado no deslizamento e mede o quanto a luz ainda anda. */
+  function deslizeTotal(estado: EstadoLanterna) {
+    let e: EstadoLanterna = { ...estado, ultimoMovimento: -1e6 };
+    const x0 = e.x;
+    for (let i = 0; i < 5000 && (e.vx !== 0 || e.vy !== 0); i++) {
+      e = passo(e, 0, 1, { largura: 1e6, altura: 1e6 });
+    }
+    return e.x - x0;
+  }
+
+  it("um arrasto constante entrega a mesma velocidade de escape a 60 e a 144 Hz", () => {
+    const a60 = arrastar(60, 500, 1.2);
+    const a144 = arrastar(144, 500, 1.2);
+
+    const diferenca = Math.abs(a144.vx - a60.vx) / a60.vx;
+    // Sobra só o erro de amostragem do alvo (o cursor é lido uma vez por
+    // quadro e tratado como parado dentro dele), que não dá para eliminar sem
+    // conhecer a velocidade do cursor. Antes da correção este número era ~5,5%.
+    expect(diferenca).toBeLessThan(0.01);
+  });
+
+  it("e portanto o mesmo deslize total depois que o cursor para", () => {
+    const d60 = deslizeTotal(arrastar(60, 500, 1.2));
+    const d144 = deslizeTotal(arrastar(144, 500, 1.2));
+
+    expect(Math.abs(d144 - d60) / d60).toBeLessThan(0.01);
+    // E em pixels, que é o que o visitante enxerga: antes eram ~30px de
+    // diferença no arremesso da luz entre um monitor e outro.
+    expect(Math.abs(d144 - d60)).toBeLessThan(3);
+  });
+
+  it("PESO e SEGUIMENTO precisam continuar diferentes", () => {
+    // A forma fechada da velocidade divide por (PESO - SEGUIMENTO). Se alguém
+    // igualar as duas constantes, o termo degenera — melhor quebrar aqui do
+    // que virar NaN na tela.
+    expect(PESO).not.toBe(SEGUIMENTO);
   });
 });
 
