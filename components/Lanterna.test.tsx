@@ -95,6 +95,23 @@ describe("Lanterna", () => {
     expect(el).toHaveAttribute("data-ativa", "true");
   });
 
+  it("publica a escala do ímã junto com a posição, e ela começa em 1", () => {
+    // O contrato com o CSS: o raio da máscara é --raio-lanterna vezes esta
+    // variável (ver Fundo202020.module.css). Sem alvo nenhum na página ela
+    // vale 1 — a luz do tamanho de sempre.
+    fingirMedia();
+    const { container } = render(<Lanterna />);
+    const el = container.querySelector("[data-lanterna]") as HTMLElement;
+
+    window.dispatchEvent(
+      new MouseEvent("mousemove", { clientX: 300, clientY: 200 })
+    );
+
+    return waitFor(() => {
+      expect(el.style.getPropertyValue("--escala-lanterna")).toBe("1.000");
+    });
+  });
+
   it("solta os listeners ao desmontar", () => {
     fingirMedia();
     const espia = vi.spyOn(window, "removeEventListener");

@@ -38,8 +38,12 @@ export default function Home() {
       <title>{titulo(idioma)}</title>
       <header className="topo">
         <SeletorIdioma idioma={idioma} aoTrocar={trocarIdioma} />
+        {/* data-ima: a lanterna gruda aqui. É só uma marca lida por
+            lib/usaLanterna — nada de pointer-events, nada de listener — então
+            o link continua clicável e focável exatamente como era. */}
         <a
           className="label contato"
+          data-ima="contato"
           href={INSTAGRAM}
           target="_blank"
           rel="noopener noreferrer"
@@ -53,7 +57,10 @@ export default function Home() {
       </div>
 
       <footer className="base">
-        <p className="oneliner">
+        {/* A frase inteira é UM ímã, as duas linhas juntas. Aqui ele não é
+            dica de clique (não há para onde ir) — é ênfase: a luz para em
+            cima da frase. Decisão explícita do Lucas. */}
+        <p className="oneliner" data-ima="oneliner">
           <span>{t.onelinerLinhas[0]}</span>
           <br />
           <span>{t.onelinerLinhas[1]}</span>

@@ -28,17 +28,25 @@
 
 .luz {
   color: var(--padrao-luz);
-  /* O buraco de luz. --lanterna-x/y vêm do <Lanterna> pai (herdadas), e são
-     escritas quadro a quadro dentro do requestAnimationFrame — mudar só a
-     posição de uma máscara não invalida layout nenhum. */
+  /* O buraco de luz. --lanterna-x/y e --escala-lanterna vêm do <Lanterna> pai
+     (herdadas), e são escritas quadro a quadro dentro do
+     requestAnimationFrame — mudar só a posição e o raio de uma máscara não
+     invalida layout nenhum.
+
+     O raio é o token vezes a escala do ímã: a lógica em lib/usaLanterna nunca
+     precisa saber quantos pixels tem o raio, só quantas vezes ele cresce. E o
+     círculo continua círculo ao capturar — cresce, não vira o retângulo do
+     alvo (é assim na referência, graffio.co). */
   -webkit-mask-image: radial-gradient(
-    circle var(--raio-lanterna) at var(--lanterna-x) var(--lanterna-y),
+    circle calc(var(--raio-lanterna) * var(--escala-lanterna)) at
+      var(--lanterna-x) var(--lanterna-y),
     #000 0%,
     rgba(0, 0, 0, 0.55) 45%,
     transparent 75%
   );
   mask-image: radial-gradient(
-    circle var(--raio-lanterna) at var(--lanterna-x) var(--lanterna-y),
+    circle calc(var(--raio-lanterna) * var(--escala-lanterna)) at
+      var(--lanterna-x) var(--lanterna-y),
     #000 0%,
     rgba(0, 0, 0, 0.55) 45%,
     transparent 75%

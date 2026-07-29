@@ -108,6 +108,150 @@ for (const vp of VIEWPORTS) {
   }
 }
 
+/**
+ * O ímã da lanterna (Task 11). A física em si é testada sem navegador em
+ * lib/usaLanterna.test.ts; o que só um navegador de verdade prova é o resto:
+ * que os retângulos medidos são os certos, que a luz encosta no centro do
+ * alvo, e — o que mais importa — que marcar um elemento com `data-ima` não
+ * roubou dele o clique nem o foco.
+ */
+test.describe("o ímã da lanterna", () => {
+  const ALVOS = [
+    { nome: "CONTATO", seletor: ".contato" },
+    { nome: "seletor de idioma", seletor: "[data-ima='idioma']" },
+    { nome: "oneliner", seletor: ".oneliner" },
+  ];
+
+  /** Onde a luz está e quanto ela cresceu, direto das variáveis CSS. */
+  async function luz(page: Page) {
+    return page.evaluate(() => {
+      const el = document.querySelector("[data-lanterna]") as HTMLElement;
+      return {
+        x: parseFloat(el.style.getPropertyValue("--lanterna-x")),
+        y: parseFloat(el.style.getPropertyValue("--lanterna-y")),
+        escala: parseFloat(el.style.getPropertyValue("--escala-lanterna")),
+      };
+    });
+  }
+
+  /**
+   * Centro do alvo em coordenadas da lanterna — que são as da caixa do
+   * elemento `[data-lanterna]`, não as da viewport. Na página real as duas
+   * coincidem, mas a conta fica explícita para o teste não passar por sorte.
+   */
+  async function centro(page: Page, seletor: string) {
+    const alvo = (await page.locator(seletor).boundingBox())!;
+    const caixa = (await page.locator("[data-lanterna]").boundingBox())!;
+    return {
+      x: alvo.x + alvo.width / 2 - caixa.x,
+      y: alvo.y + alvo.height / 2 - caixa.y,
+      pagina: { x: alvo.x + alvo.width / 2, y: alvo.y + alvo.height / 2 },
+    };
+  }
+
+  test.beforeEach(async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/");
+    await page.waitForTimeout(2100); // a entrada termina em 2000ms
+  });
+
+  for (const alvo of ALVOS) {
+    test(`gruda no ${alvo.nome}: vai ao centro e cresce 2x`, async ({ page }) => {
+      const c = await centro(page, alvo.seletor);
+      await page.mouse.move(c.pagina.x, c.pagina.y, { steps: 20 });
+      await page.waitForTimeout(500);
+
+      const depois = await luz(page);
+      expect(Math.abs(depois.x - c.x)).toBeLessThan(2);
+      expect(Math.abs(depois.y - c.y)).toBeLessThan(2);
+      expect(depois.escala).toBeGreaterThan(1.9);
+    });
+  }
+
+  test("mexer o cursor dentro do alvo não solta a luz", async ({ page }) => {
+    const c = await centro(page, ".contato");
+    await page.mouse.move(c.pagina.x, c.pagina.y, { steps: 20 });
+    await page.waitForTimeout(500);
+
+    for (const [dx, dy] of [[10, 4], [-12, -5], [8, -6]]) {
+      await page.mouse.move(c.pagina.x + dx, c.pagina.y + dy);
+      await page.waitForTimeout(120);
+      const depois = await luz(page);
+      expect(depois.escala).toBeGreaterThan(1.9);
+      expect(Math.abs(depois.x - c.x)).toBeLessThan(2);
+      expect(Math.abs(depois.y - c.y)).toBeLessThan(2);
+    }
+  });
+
+  test("puxar o cursor para longe solta a luz e devolve o raio", async ({ page }) => {
+    const c = await centro(page, ".contato");
+    await page.mouse.move(c.pagina.x, c.pagina.y, { steps: 20 });
+    await page.waitForTimeout(500);
+    expect((await luz(page)).escala).toBeGreaterThan(1.9);
+
+    // Puxada de verdade: passos pequenos, como uma mão, não um teleporte.
+    for (let i = 1; i <= 10; i++) {
+      await page.mouse.move(c.pagina.x - i * 40, c.pagina.y + i * 30);
+      await page.waitForTimeout(30);
+    }
+    await page.waitForTimeout(700);
+
+    const depois = await luz(page);
+    expect(depois.escala).toBeLessThan(1.05);
+    expect(Math.hypot(depois.x - c.x, depois.y - c.y)).toBeGreaterThan(100);
+  });
+
+  test("com o ímã ativo o botão EN continua clicável", async ({ page }) => {
+    const c = await centro(page, "[data-ima='idioma']");
+    await page.mouse.move(c.pagina.x, c.pagina.y, { steps: 20 });
+    await page.waitForTimeout(400);
+    expect((await luz(page)).escala).toBeGreaterThan(1.9);
+
+    // O clique é dado com a luz grudada em cima do seletor: se o ímã tivesse
+    // trazido junto qualquer coisa que recebe ponteiro, ele morreria aqui.
+    await page.getByRole("button", { name: "EN" }).click();
+    await expect(page.getByText("We amplify talent.")).toBeVisible();
+  });
+
+  test("com o ímã ativo o CONTATO continua focável pelo teclado", async ({ page }) => {
+    const c = await centro(page, ".contato");
+    await page.mouse.move(c.pagina.x, c.pagina.y, { steps: 20 });
+    await page.waitForTimeout(400);
+    expect((await luz(page)).escala).toBeGreaterThan(1.9);
+
+    const contato = page.locator(".contato");
+    for (let i = 0; i < 4 && !(await contato.evaluate((el) => el === document.activeElement)); i++) {
+      await page.keyboard.press("Tab");
+    }
+
+    await expect(contato).toBeFocused();
+    const anel = await contato.evaluate((el) => {
+      const s = getComputedStyle(el);
+      return { cor: s.outlineColor, estilo: s.outlineStyle, largura: s.outlineWidth };
+    });
+    expect(anel.cor).toBe("rgb(198, 255, 62)"); // --verde-sinal
+    expect(anel.estilo).toBe("solid");
+    expect(anel.largura).toBe("1px");
+  });
+
+  test("a troca de idioma remede o oneliner e o ímã acerta a caixa nova", async ({ page }) => {
+    // O oneliner tem larguras diferentes em PT e EN. Se a medição ficasse
+    // presa na de montagem, a luz grudaria no centro errado depois da troca.
+    await page.getByRole("button", { name: "EN" }).click();
+    await expect(page.getByText("We amplify talent.")).toBeVisible();
+    await page.waitForTimeout(200);
+
+    const c = await centro(page, ".oneliner");
+    await page.mouse.move(c.pagina.x, c.pagina.y, { steps: 20 });
+    await page.waitForTimeout(500);
+
+    const depois = await luz(page);
+    expect(Math.abs(depois.x - c.x)).toBeLessThan(2);
+    expect(depois.escala).toBeGreaterThan(1.9);
+    esperaSemScroll(await medirDocumento(page));
+  });
+});
+
 test.describe("com animações reduzidas", () => {
   test.use({ reducedMotion: "reduce" });
 

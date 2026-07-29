@@ -12,7 +12,11 @@ export default function SeletorIdioma({
   aoTrocar: (novo: Idioma) => void;
 }) {
   return (
-    <div className={`label ${estilos.seletor}`}>
+    // data-ima fica no par, não em cada botão: PT e EN são pequenos e
+    // colados, e dois ímãs disputando essa faixa de tela seria pior que um só
+    // (decisão do brief da Task 11). A marca é lida por lib/usaLanterna e não
+    // muda nada do comportamento dos botões.
+    <div className={`label ${estilos.seletor}`} data-ima="idioma">
       {IDIOMAS.map((opcao, i) => (
         <Fragment key={opcao}>
           {i > 0 && (

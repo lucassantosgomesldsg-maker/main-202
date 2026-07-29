@@ -9,15 +9,25 @@
   --verde-sinal: #c6ff3e;
   --padrao-202020: #101010;
 
+  /* Verde de fósforo de terminal antigo. NÃO é cor de marca e não deve virar
+     uma: o Verde Sinal (--verde-sinal, #c6ff3e) puxa para o amarelo-limão e
+     não lê como código. É exceção consciente do fundador, com token próprio
+     justamente para ninguém "corrigir" isto para o verde da marca depois.
+     Só existe debaixo da lanterna. */
+  --verde-codigo: #39ff14;
+
   /* A malha em duas camadas: a base fica no limite do perceptível sobre o
      preto, e a lanterna acende a camada de luz por cima dela. */
   --padrao-base: #0c0c0c;
-  --padrao-luz: #333333;
-  --raio-lanterna: 22rem;
+  --padrao-luz: var(--verde-codigo);
+  --raio-lanterna: 12rem;
   /* Posição de repouso, antes do primeiro movimento do mouse — e o valor
      definitivo em ponteiro grosso, onde nenhum JS escreve por cima. */
   --lanterna-x: 50%;
   --lanterna-y: 50%;
+  /* Multiplicador do raio, escrito quadro a quadro pelo ímã (lib/usaLanterna).
+     1 é a luz livre; ela cresce até --escala-lanterna 2 ao grudar num alvo. */
+  --escala-lanterna: 1;
 
   --tracking-label: 0.1em;
   --text-label: 0.75rem;
