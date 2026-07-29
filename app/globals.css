@@ -58,7 +58,16 @@ a:focus-visible, button:focus-visible {
   padding: var(--margem);
 }
 
+/* position + z-index de propósito: o palco do MotionD dentro de .centro é
+   position:absolute (z-index:0), sem ancestral posicionado próprio, então seu
+   container real acaba sendo .tela — a malha de fundo cobre a tela inteira,
+   igual à página de comparação. Sem elevar .topo/.base aqui, esses cantos
+   (não posicionados) pintariam ANTES de um descendente posicionado na mesma
+   pilha e ficariam por baixo da malha. Mesma correção que a página /motion já
+   fazia para o rótulo e o botão de cada seção. */
 .topo, .base {
+  position: relative;
+  z-index: 1;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
