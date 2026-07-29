@@ -1,9 +1,14 @@
+/* A largura subiu de clamp(11rem, 34vw, 30rem) para clamp(13rem, 46vw, 42rem)
+   na Task 6D — a logo passa a ocupar a tela como no jopecuro.com. A regra de
+   altura baixa acompanhou na mesma proporção: 7→8rem, 22→30vh, 14→20rem.
+   Condição dura: a página continua sem scroll em todos os viewports da Task 9
+   (1440x900, 1366x660, 820x1180, 390x844, 320x568) — medido, não estimado. */
 .raiz {
   display: flex;
   align-items: flex-end;
   gap: 0.03em;
-  width: clamp(11rem, 34vw, 30rem);
-  font-size: clamp(11rem, 34vw, 30rem); /* referência para o em do ponto */
+  width: clamp(13rem, 46vw, 42rem);
+  font-size: clamp(13rem, 46vw, 42rem); /* referência para o em do ponto */
 }
 
 .svg {
@@ -23,7 +28,7 @@
 
 @media (max-height: 600px) {
   .raiz {
-    width: clamp(7rem, 22vh, 14rem);
-    font-size: clamp(7rem, 22vh, 14rem);
+    width: clamp(8rem, 30vh, 20rem);
+    font-size: clamp(8rem, 30vh, 20rem);
   }
 }

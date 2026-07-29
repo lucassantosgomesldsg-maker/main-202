@@ -4,13 +4,17 @@ import { useEffect, useRef, useState, type ComponentType } from "react";
 import MotionA from "@/components/motion/MotionA";
 import MotionB from "@/components/motion/MotionB";
 import MotionC from "@/components/motion/MotionC";
+import MotionD from "@/components/motion/MotionD";
 import type { PropsMotion } from "@/components/motion/tipos";
 
+/** D vem primeiro de propósito: é o candidato novo, o que está sendo julgado.
+ *  A, B e C continuam na lista só como comparação. */
 const CANDIDATOS: {
   id: string;
   nome: string;
   Componente: ComponentType<PropsMotion>;
 }[] = [
+  { id: "D", nome: "Malha, logo e lanterna", Componente: MotionD },
   { id: "A", nome: "Linhas construtivas", Componente: MotionA },
   { id: "B", nome: "Revelação por glifo", Componente: MotionB },
   { id: "C", nome: "Traço desenhando", Componente: MotionC },
@@ -71,9 +75,11 @@ function Secao({
         borderBottom: "1px solid var(--cinza-linha)",
       }}
     >
+      {/* z-index acima do palco: o candidato D é fundo de tela cheia e, sem
+          isto, a malha cobriria o rótulo e o botão de tocar de novo. */}
       <p
         className="label"
-        style={{ position: "absolute", top: "2rem", left: "2rem" }}
+        style={{ position: "absolute", top: "2rem", left: "2rem", zIndex: 2 }}
       >
         {id} — {nome}
       </p>
@@ -85,6 +91,7 @@ function Secao({
           position: "absolute",
           top: "2rem",
           right: "2rem",
+          zIndex: 2,
           background: "none",
           border: "1px solid var(--cinza-linha)",
           padding: "0.8rem 1.5rem",

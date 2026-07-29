@@ -5,10 +5,56 @@
   overflow: hidden;
   pointer-events: none;
   user-select: none;
-  color: var(--padrao-202020);
+}
+
+/* As duas camadas precisam ser tipograficamente idênticas, senão a malha da
+   luz não cai em cima da malha da base e o texto aparece dobrado. Por isso a
+   métrica vive aqui, uma vez, e não em cada camada. */
+.base,
+.luz {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
   font-family: var(--fonte-mono), ui-monospace, monospace;
   font-size: 1.25rem;
   line-height: 1.35;
   letter-spacing: 0.08em;
   word-break: break-all;
+}
+
+.base {
+  color: var(--padrao-base);
+}
+
+.luz {
+  color: var(--padrao-luz);
+  /* O buraco de luz. --lanterna-x/y vêm do <Lanterna> pai (herdadas), e são
+     escritas quadro a quadro dentro do requestAnimationFrame — mudar só a
+     posição de uma máscara não invalida layout nenhum. */
+  -webkit-mask-image: radial-gradient(
+    circle var(--raio-lanterna) at var(--lanterna-x) var(--lanterna-y),
+    #000 0%,
+    rgba(0, 0, 0, 0.55) 45%,
+    transparent 75%
+  );
+  mask-image: radial-gradient(
+    circle var(--raio-lanterna) at var(--lanterna-x) var(--lanterna-y),
+    #000 0%,
+    rgba(0, 0, 0, 0.55) 45%,
+    transparent 75%
+  );
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+/* Ponteiro grosso: celular e tablet não têm cursor. Sem isto o visitante de
+   celular veria um fundo quase preto e vazio — então a lanterna some e a
+   malha inteira volta ao #101010 aprovado na fatia 1. */
+@media (pointer: coarse) {
+  .base {
+    color: var(--padrao-202020);
+  }
+  .luz {
+    display: none;
+  }
 }

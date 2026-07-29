@@ -1,0 +1,201 @@
+/* MotionD.module.css — candidato D: a malha acende, depois a logo.
+ *
+ * Linha do tempo (a guarda em MotionD.tsx confere o total contra
+ * DURACAO_MAXIMA_MS em ./tipos; aqui documentamos os estágios):
+ *
+ *   0ms    → 900ms   malha `202` cresce do centro (clip-path circle 0%→150%)
+ *   900ms  → 1520ms  logo aberta do meio para os lados (clip-path inset)
+ *   940ms  → 1500ms  glifos sobem de fill-opacity 0.35 a 1, do meio para fora
+ *   900ms  → 1600ms  a logo inteira assenta de scale(0.94) a scale(1)
+ *   1600ms → 2000ms  ponto verde acende — sempre o último
+ *
+ * Ato 1 e ato 2 NÃO se sobrepõem: a logo não começa antes dos 900ms, que é a
+ * regra dura da coreografia. Fim real: 2000ms.
+ */
+
+.palco {
+  /* Cobre a seção inteira (o ancestral posicionado mais próximo), para a
+     malha ser fundo de tela cheia e não um retângulo do tamanho da logo. */
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+/* Dois seletores de classe de propósito: precisa vencer o `position: fixed`
+   de .fundo em Fundo202020.module.css sem depender da ordem em que os dois
+   CSS modules entram no bundle. Aqui a malha é fundo desta seção, não da
+   viewport — e é isso que faz a lanterna acertar o cursor mesmo com a página
+   de comparação rolada. */
+.palco .fundo {
+  position: absolute;
+}
+
+.logo {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Estado de repouso (pré-animação) ────────────────────────────────────
+   Também é a base dos fallbacks: nada aqui depende de um keyframe ter
+   rodado. */
+.fundo {
+  clip-path: circle(0% at 50% 50%);
+}
+
+.logo :global([data-glifos]) {
+  /* Faixa de largura zero no centro: a logo abre daqui para os dois lados. */
+  clip-path: inset(0 50% 0 50%);
+}
+
+.logo :global([data-glifo] path) {
+  fill-opacity: 0.35;
+}
+
+.logo :global([data-ponto]) {
+  opacity: 0;
+  transform: scale(0.2);
+}
+
+/* ── Ato 1: a malha (0 → 900ms) ─────────────────────────────────────────── */
+.palco[data-estatico="false"] .fundo {
+  animation: malha-abrir 900ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* ── Ato 2: a logo (900 → 1600ms) ───────────────────────────────────────── */
+.palco[data-estatico="false"] .logo {
+  animation: logo-assentar 700ms cubic-bezier(0.16, 1, 0.3, 1) 900ms both;
+}
+
+.palco[data-estatico="false"] .logo :global([data-glifos]) {
+  animation: logo-abrir 620ms cubic-bezier(0.4, 0, 0.2, 1) 900ms both;
+}
+
+/* Os glifos acendem na ordem em que a abertura passa por eles: o do meio
+   (indice 1) primeiro, os das pontas (0 e 2) depois — o mesmo "do centro
+   para fora" do ato 1, agora em brilho. */
+.palco[data-estatico="false"] .logo :global([data-glifo][data-indice="1"] path) {
+  animation: glifo-acender 420ms ease-out 940ms both;
+}
+.palco[data-estatico="false"] .logo :global([data-glifo][data-indice="0"] path),
+.palco[data-estatico="false"] .logo :global([data-glifo][data-indice="2"] path) {
+  animation: glifo-acender 420ms ease-out 1080ms both;
+}
+
+/* ── Ato 3: o ponto (1600 → 2000ms) ─────────────────────────────────────── */
+.palco[data-estatico="false"] .logo :global([data-ponto]) {
+  animation: ponto-acender 400ms cubic-bezier(0.34, 1.56, 0.64, 1) 1600ms both;
+}
+
+/* Por que o passo intermediário em 88%, e não um simples 0%→150%:
+   num `circle()`, a porcentagem do raio se resolve contra
+   sqrt(largura² + altura²)/sqrt(2), enquanto a distância do centro ao canto é
+   sqrt(largura² + altura²)/2 — ou seja, a tela inteira já está coberta em
+   exatos 70,71%, em QUALQUER proporção de tela. Indo direto a 150%, mais da
+   metade do percurso acontece fora da tela: medido no navegador, a malha
+   cobria tudo em ~150ms e os 750ms restantes eram tela parada. Com a parada
+   em 71% aos 88% do tempo, a borda de luz continua visivelmente crescendo até
+   os 792ms, e o resto do caminho até 150% (invisível, só garantia de
+   cobertura) corre linear no fim. */
+@keyframes malha-abrir {
+  0% {
+    clip-path: circle(0% at 50% 50%);
+  }
+  88% {
+    clip-path: circle(71% at 50% 50%);
+    animation-timing-function: linear;
+  }
+  100% {
+    clip-path: circle(150% at 50% 50%);
+  }
+}
+
+/* Mesmo cuidado: a logo já está inteira em inset(0), que é 89,3% do caminho
+   até -6%. O -6% existe só porque o <svg> é overflow: visible e um inset(0)
+   exato cortaria o filete de tinta que passa da caixa — então ele fica no
+   trecho final, invisível. */
+@keyframes logo-abrir {
+  0% {
+    clip-path: inset(0 50% 0 50%);
+  }
+  90% {
+    clip-path: inset(0 0 0 0);
+    animation-timing-function: linear;
+  }
+  100% {
+    clip-path: inset(0 -6% 0 -6%);
+  }
+}
+
+@keyframes logo-assentar {
+  from {
+    transform: scale(0.94);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+@keyframes glifo-acender {
+  from {
+    fill-opacity: 0.35;
+  }
+  to {
+    fill-opacity: 1;
+  }
+}
+
+@keyframes ponto-acender {
+  0% {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+  55% {
+    opacity: 1;
+    transform: scale(1.25);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ── Estado final explícito (modo estático) ─────────────────────────────── */
+.palco[data-estatico="true"] .fundo {
+  clip-path: none;
+}
+.palco[data-estatico="true"] .logo {
+  transform: none;
+}
+.palco[data-estatico="true"] .logo :global([data-glifos]) {
+  clip-path: none;
+}
+.palco[data-estatico="true"] .logo :global([data-glifo] path) {
+  fill-opacity: 1;
+}
+.palco[data-estatico="true"] .logo :global([data-ponto]) {
+  opacity: 1;
+  transform: none;
+}
+
+/* ── prefers-reduced-motion ─────────────────────────────────────────────── */
+/* !important de propósito: sem ele a cadeia
+   `.palco[data-estatico="false"] .logo :global([data-glifo][data-indice="1"] path)`
+   venceria por especificidade e a animação rodaria mesmo com a preferência
+   ligada. A entrada fica no estado final; a lanterna continua seguindo o
+   cursor, só que sem inércia (ver lib/usaLanterna.ts). */
+@media (prefers-reduced-motion: reduce) {
+  .fundo,
+  .logo,
+  .logo :global([data-glifos]),
+  .logo :global([data-glifo] path),
+  .logo :global([data-ponto]) {
+    animation: none !important;
+    clip-path: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+    fill-opacity: 1 !important;
+  }
+}

@@ -9,6 +9,16 @@
   --verde-sinal: #c6ff3e;
   --padrao-202020: #101010;
 
+  /* A malha em duas camadas: a base fica no limite do perceptível sobre o
+     preto, e a lanterna acende a camada de luz por cima dela. */
+  --padrao-base: #0c0c0c;
+  --padrao-luz: #333333;
+  --raio-lanterna: 22rem;
+  /* Posição de repouso, antes do primeiro movimento do mouse — e o valor
+     definitivo em ponteiro grosso, onde nenhum JS escreve por cima. */
+  --lanterna-x: 50%;
+  --lanterna-y: 50%;
+
   --tracking-label: 0.1em;
   --text-label: 0.75rem;
   --margem: 3rem;

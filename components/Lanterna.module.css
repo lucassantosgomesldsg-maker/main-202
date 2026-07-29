@@ -1,0 +1,7 @@
+/* Só um sistema de coordenadas: cobre o pai, não pinta nada, não recebe
+   clique. Quem pinta é o filho, usando --lanterna-x/--lanterna-y. */
+.lanterna {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}

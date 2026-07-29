@@ -3,11 +3,13 @@ import { describe, it, expect } from "vitest";
 import MotionA from "./MotionA";
 import MotionB from "./MotionB";
 import MotionC from "./MotionC";
+import MotionD from "./MotionD";
 
 const CANDIDATOS = [
   ["A", MotionA],
   ["B", MotionB],
   ["C", MotionC],
+  ["D", MotionD],
 ] as const;
 
 describe.each(CANDIDATOS)("Motion%s", (_nome, Componente) => {
