@@ -35,9 +35,6 @@
 /* "2" inicial — índice 0. Contorno único, ~1326.6 unidades reais. */
 .raiz :global([data-glifo][data-indice="0"] path) {
   --comprimento: 1350;
-  animation:
-    tracoDesenho 882ms cubic-bezier(0.65, 0, 0.35, 1) 0ms both,
-    tracoPreenche 252ms ease-out 630ms both;
 }
 
 /* "0" central — índice 1. Dois contornos (anel externo + contra-forma),
@@ -45,14 +42,32 @@
    animação um pouco mais longa que a dos "2". */
 .raiz :global([data-glifo][data-indice="1"] path) {
   --comprimento: 1670;
-  animation:
-    tracoDesenho 1092ms cubic-bezier(0.65, 0, 0.35, 1) 140ms both,
-    tracoPreenche 312ms ease-out 920ms both;
 }
 
 /* "2" final — índice 2. Mesmo contorno do índice 0. */
 .raiz :global([data-glifo][data-indice="2"] path) {
   --comprimento: 1350;
+}
+
+/* A animação, só quando NÃO é estático — mesmo padrão de MotionA e MotionB.
+   Antes, nada aqui impedia estas regras de rodar em modo estático; o que
+   segurava tudo era só o !important no bloco [data-estatico="true"] lá
+   embaixo. Funcionava, mas era frágil — bastava alguém "limpar" aquele
+   !important no futuro para a animação voltar a rodar em modo estático sem
+   nenhum aviso. Este gate explícito remove essa fragilidade. */
+.raiz[data-estatico="false"] :global([data-glifo][data-indice="0"] path) {
+  animation:
+    tracoDesenho 882ms cubic-bezier(0.65, 0, 0.35, 1) 0ms both,
+    tracoPreenche 252ms ease-out 630ms both;
+}
+
+.raiz[data-estatico="false"] :global([data-glifo][data-indice="1"] path) {
+  animation:
+    tracoDesenho 1092ms cubic-bezier(0.65, 0, 0.35, 1) 140ms both,
+    tracoPreenche 312ms ease-out 920ms both;
+}
+
+.raiz[data-estatico="false"] :global([data-glifo][data-indice="2"] path) {
   animation:
     tracoDesenho 882ms cubic-bezier(0.65, 0, 0.35, 1) 280ms both,
     tracoPreenche 252ms ease-out 910ms both;
@@ -87,6 +102,9 @@
 .raiz :global([data-ponto]) {
   opacity: 0;
   transform: scale(0.35);
+}
+
+.raiz[data-estatico="false"] :global([data-ponto]) {
   animation: pontoAcende 300ms cubic-bezier(0.34, 1.56, 0.64, 1) 1270ms both;
 }
 

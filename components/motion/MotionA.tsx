@@ -1,6 +1,5 @@
 "use client";
 
-import type { CSSProperties } from "react";
 import Logo202 from "@/components/Logo202";
 import { DURACAO_MAXIMA_MS, type PropsMotion } from "./tipos";
 import estilos from "./MotionA.module.css";
@@ -14,17 +13,24 @@ import estilos from "./MotionA.module.css";
  * somem; o ponto verde acende por último. É o elemento gráfico nº3 do
  * design.md ("consultoria que constrói") em movimento.
  *
- * O teto de duração (DURACAO_MAXIMA_MS, ./tipos) é injetado como a variável
- * CSS --duracao-max abaixo — o CSS Module comenta o orçamento a partir dela
- * em vez de repetir "1800" como número solto.
+ * Linha do tempo completa em MotionA.module.css. Fim real: 1650ms — a guarda
+ * abaixo confere isso contra DURACAO_MAXIMA_MS (./tipos) em tempo de execução,
+ * em vez de deixar o teto do spec §6 sem checagem. Mesmo padrão de MotionB.
  */
+const DURACAO_TOTAL_MS = 1650;
+
+if (DURACAO_TOTAL_MS > DURACAO_MAXIMA_MS) {
+  throw new Error(
+    `MotionA: duração total (${DURACAO_TOTAL_MS}ms) excede DURACAO_MAXIMA_MS (${DURACAO_MAXIMA_MS}ms)`
+  );
+}
+
 export default function MotionA({ estatico = false }: PropsMotion) {
   return (
     <div
       data-motion="A"
       data-estatico={String(estatico)}
       className={estilos.palco}
-      style={{ "--duracao-max": `${DURACAO_MAXIMA_MS}ms` } as CSSProperties}
     >
       <span className={estilos.linhaH} aria-hidden="true" />
       <span className={estilos.linhaV} aria-hidden="true" />

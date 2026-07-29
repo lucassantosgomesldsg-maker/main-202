@@ -1,7 +1,7 @@
 .raiz {
   display: flex;
   align-items: flex-end;
-  gap: 0.14em;
+  gap: 0.03em;
   width: clamp(11rem, 34vw, 30rem);
   font-size: clamp(11rem, 34vw, 30rem); /* referência para o em do ponto */
 }

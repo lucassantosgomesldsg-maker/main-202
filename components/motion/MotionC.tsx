@@ -1,3 +1,5 @@
+"use client";
+
 import Logo202 from "@/components/Logo202";
 import { DURACAO_MAXIMA_MS } from "./tipos";
 import type { PropsMotion } from "./tipos";

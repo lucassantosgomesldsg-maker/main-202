@@ -1,8 +1,8 @@
 /* MotionA.module.css — candidato A, linhas construtivas.
  *
- * Linha do tempo (todas as animações abaixo somam menos que o orçamento
- * --duracao-max, injetado pelo componente a partir de DURACAO_MAXIMA_MS em
- * ./tipos — não hardcodeamos o teto aqui, só documentamos os estágios):
+ * Linha do tempo (todas as animações abaixo somam menos que o orçamento de
+ * DURACAO_MAXIMA_MS em ./tipos — a guarda em MotionA.tsx confere isso em
+ * tempo de execução; aqui só documentamos os estágios):
  *
  *   0ms    → 480ms   linhas crescem do centro até cruzar o palco inteiro
  *   460ms  → 980ms   glifos revelados a partir da interseção (clip-path)
@@ -10,7 +10,7 @@
  *   1300ms → 1650ms  ponto verde acende (último elemento a aparecer)
  *
  * Os estágios se sobrepõem ~20ms de propósito, para a leitura ficar contínua
- * em vez de picotada. Fim real: 1650ms, dentro do teto de --duracao-max.
+ * em vez de picotada. Fim real: 1650ms, dentro do teto do spec §6.
  */
 
 .palco {
