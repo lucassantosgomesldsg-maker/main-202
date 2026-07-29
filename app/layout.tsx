@@ -1,6 +1,6 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Fraunces, IBM_Plex_Mono, Inter } from "next/font/google";
-import { oneliner } from "@/lib/copy";
+import { oneliner, titulo } from "@/lib/copy";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -35,8 +35,20 @@ const inter = Inter({
 // bem, esses vivem em og:title/twitter:title (tags <meta>, não <title>) e não
 // competem com isto — só não devolva `title` a este objeto.
 export const metadata: Metadata = {
+  metadataBase: new URL("https://202lab.com.br"),
   description: oneliner("pt"),
+  openGraph: {
+    title: titulo("pt"),
+    description: oneliner("pt"),
+    url: "https://202lab.com.br",
+    siteName: "202Lab",
+    locale: "pt_BR",
+    type: "website",
+  },
+  twitter: { card: "summary_large_image", title: titulo("pt"), description: oneliner("pt") },
 };
+
+export const viewport: Viewport = { themeColor: "#0a0a0a" };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
