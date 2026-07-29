@@ -171,6 +171,44 @@ percorresse o vetor (`stroke-dasharray`/`stroke-dashoffset`), e depois preenche.
 O Lucas escolhe por gosto, vendo. Não há critério técnico de desempate — os três serão
 entregues em qualidade equivalente.
 
+### Resultado (29/07/2026): nenhum dos três
+
+O Lucas assistiu aos três e recusou todos. Nova direção, com a referência
+`https://jopecuro.com/`, especificada como **Motion D** no plano de implementação:
+
+1. A malha `202` do fundo cresce **do centro para fora** até cobrir a tela.
+2. **Só depois** a logo `202` entra — e maior do que estava.
+3. O ponto verde acende por último.
+
+Duas mudanças que isso arrasta para o resto do documento:
+
+- **O teto de duração sobe de 1800 ms para 2000 ms.** São dois atos em sequência agora. A
+  regra existia para o visitante não achar que o site travou; com a malha acendendo desde
+  os primeiros 100 ms, a tela nunca fica parada, que era o risco real.
+- **Nasce a lanterna** (§6.1), que muda o fundo especificado na §5.
+
+## 6.1 A lanterna do mouse
+
+O cursor é uma lanterna que ilumina a malha do fundo. Sem ela, o fundo é quase preto.
+
+Duas camadas da mesma malha: uma base em `#0c0c0e` (no limite do perceptível) e uma camada
+de luz em `#333333` recortada por um `radial-gradient` de 22rem centrado na lanterna.
+
+**A física, que é o ponto da feature.** Enquanto o mouse se move, a luz o persegue com
+interpolação. Quando o mouse **para**, a luz não para junto: ela segue em frente por
+inércia, na mesma direção e sentido em que o cursor vinha, perdendo velocidade até parar.
+Qualquer movimento novo do mouse a traz de volta à perseguição.
+
+A lógica vive em `lib/usaLanterna.ts`, separada do componente e testada sem navegador.
+
+**Onde a lanterna não existe:**
+
+- **Celular e tablet** (`pointer: coarse`): não há cursor. A lanterna é desligada e a malha
+  inteira renderiza em `#101010`, o valor aprovado pelo Lucas. Sem isso o visitante de
+  celular veria uma tela quase preta e vazia — este é o furo mais provável da feature.
+- **`prefers-reduced-motion: reduce`**: a luz segue o cursor sem inércia. Movimento que o
+  usuário não pediu é exatamente o que essa preferência recusa.
+
 ---
 
 ## 7. Bilinguismo
