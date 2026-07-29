@@ -21,25 +21,6 @@ export default function Home() {
 
   useEffect(() => {
     document.documentElement.lang = idioma === "pt" ? "pt-BR" : "en";
-
-    const tituloDesejado = titulo(idioma);
-    document.title = tituloDesejado;
-
-    // O App Router reafirma o <title> estático do metadata (sempre em "pt")
-    // pouco depois da hidratação — em produção, não só em dev — e essa
-    // reafirmação vence a escrita acima quando ela acontece perto do mount
-    // (como na restauração via localStorage). Sem isto, quem volta com EN
-    // salvo vê o conteúdo da página em inglês mas a aba do navegador em
-    // português. O observer corrige de volta se algo mexer no título
-    // enquanto este efeito estiver de pé; a troca por clique, que acontece
-    // bem depois desse instante, nunca chega a precisar dele.
-    const elementoTitulo = document.querySelector("title");
-    if (!elementoTitulo) return;
-    const observador = new MutationObserver(() => {
-      if (document.title !== tituloDesejado) document.title = tituloDesejado;
-    });
-    observador.observe(elementoTitulo, { childList: true, characterData: true, subtree: true });
-    return () => observador.disconnect();
   }, [idioma]);
 
   function trocarIdioma(novo: Idioma) {
@@ -49,6 +30,12 @@ export default function Home() {
 
   return (
     <div className="tela">
+      {/* Único dono do <title>: app/layout.tsx deliberadamente não declara
+          metadata.title (ver comentário lá). O React 19 hoista este elemento
+          para o <head> de onde quer que ele esteja na árvore — é o jeito
+          declarativo, sem escrita manual em document.title e sem correr
+          atrás de nenhuma reconciliação do App Router. */}
+      <title>{titulo(idioma)}</title>
       <header className="topo">
         <SeletorIdioma idioma={idioma} aoTrocar={trocarIdioma} />
         <a
