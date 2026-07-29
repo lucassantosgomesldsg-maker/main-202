@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, it, expect } from "vitest";
 import Home from "./page";
 import { COORDENADAS, LOCAL } from "@/lib/copy";
@@ -27,5 +28,40 @@ describe("a tela", () => {
   it("mostra a logo", () => {
     render(<Home />);
     expect(screen.getByRole("img", { name: "202Lab" })).toBeInTheDocument();
+  });
+});
+
+describe("troca de idioma", () => {
+  it("troca o oneliner e o rótulo de contato para inglês", async () => {
+    render(<Home />);
+    await userEvent.click(screen.getByRole("button", { name: "EN" }));
+    expect(screen.getByText("We amplify talent.")).toBeInTheDocument();
+    expect(screen.getByText("We build the future.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /CONTACT/ })).toBeInTheDocument();
+  });
+
+  it("não traduz as coordenadas", async () => {
+    render(<Home />);
+    await userEvent.click(screen.getByRole("button", { name: "EN" }));
+    expect(screen.getByText("SÃO JOSÉ DOS CAMPOS, BR")).toBeInTheDocument();
+  });
+
+  it("guarda a escolha e o idioma do documento", async () => {
+    render(<Home />);
+    await userEvent.click(screen.getByRole("button", { name: "EN" }));
+    expect(window.localStorage.getItem("202:idioma")).toBe("en");
+    expect(document.documentElement.lang).toBe("en");
+    expect(document.title).toBe("202Lab — We amplify talent. We build the future.");
+  });
+
+  it("começa em português mesmo que o navegador esteja em inglês", () => {
+    render(<Home />);
+    expect(screen.getByText("Potencializamos talentos e")).toBeInTheDocument();
+  });
+
+  it("restaura o idioma guardado numa visita seguinte", () => {
+    window.localStorage.setItem("202:idioma", "en");
+    render(<Home />);
+    expect(screen.getByText("We amplify talent.")).toBeInTheDocument();
   });
 });
