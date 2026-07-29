@@ -1,0 +1,29 @@
+.raiz {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.14em;
+  width: clamp(11rem, 34vw, 30rem);
+  font-size: clamp(11rem, 34vw, 30rem); /* referência para o em do ponto */
+}
+
+.svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.ponto {
+  flex: 0 0 auto;
+  width: 0.075em;
+  height: 0.075em;
+  border-radius: 50%;
+  background: var(--verde-sinal);
+}
+
+@media (max-height: 600px) {
+  .raiz {
+    width: clamp(7rem, 22vh, 14rem);
+    font-size: clamp(7rem, 22vh, 14rem);
+  }
+}

@@ -1,7 +1,7 @@
 // GERADO por scripts/extrair-logo.mjs — não editar à mão.
 // Origem: visual_assets/Raw_Images/202_Branco.svg (repo da trilha).
 
-export const LOGO_VIEWBOX = "61 527 664 440";
+export const LOGO_VIEWBOX = "64 564 654 305";
 export const LOGO_GRUPO_TRANSFORM = "matrix(1, 0, 0, 1, 61, 527)";
 
 export const LOGO_GLIFOS = [
