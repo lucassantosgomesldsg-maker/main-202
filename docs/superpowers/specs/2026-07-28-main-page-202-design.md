@@ -36,7 +36,7 @@ A referência de escopo é a Long Lake: abre, é aquilo, acabou.
 | Motion da logo | **Em aberto por decisão** — 3 protótipos serão construídos e o Lucas escolhe vendo | — |
 | Fundo | Preto `#0A0A0A` + padrão `202020` sutil | Preto liso; `202` gigante em dot-matrix |
 | Contato | Link para `https://www.instagram.com/202lab.br/`, aba nova | mailto; WhatsApp; formulário; agendamento |
-| Canto inferior direito | Coordenadas + `SÃO JOSÉ DOS CAMPOS, BR` | Quarto 202 / EST. 2026; os dois; vazio |
+| Canto inferior direito | Coordenadas **do ITA** + `SÃO JOSÉ DOS CAMPOS, BR` | Quarto 202 / EST. 2026; os dois; vazio |
 | Idioma | Bilíngue PT / EN com seletor | Só português |
 | Oneliner EN | "We amplify talent. We build the future." | "We empower talent and build the future."; "Powering talent, building the future." |
 | Stack | Next.js + Vercel, repo novo `202lab-site` | HTML estático puro; dentro do repo da trilha |
@@ -60,7 +60,7 @@ Quatro cantos ocupados, centro livre para a logo. É a composição construtiva 
 │                                                    │
 │                                                    │
 │  Potencializamos talentos e                        │
-│  construímos o futuro.       23°12'46"S 45°52'34"W │
+│  construímos o futuro.       23°12'37"S 45°52'35"W │
 │                              SÃO JOSÉ DOS CAMPOS,BR│
 └────────────────────────────────────────────────────┘
 ```
@@ -91,8 +91,19 @@ Estes textos são finais. Não parafrasear.
 |---|---|---|
 | `oneliner` | Potencializamos talentos e construímos o futuro. | We amplify talent. We build the future. |
 | `contato` | CONTATO | CONTACT |
-| `coordenadas` | 23°12'46"S  45°52'34"W | *(idêntico)* |
+| `coordenadas` | 23°12'37"S  45°52'35"W | *(idêntico)* |
 | `local` | SÃO JOSÉ DOS CAMPOS, BR | *(idêntico)* |
+
+**As coordenadas são as do ITA**, não as do centro de São José dos Campos — a origem
+real da 202 é o campus. Valor decimal correspondente: `-23.21021, -45.87645`, que é o
+nó do ITA no OpenStreetMap.
+
+Ressalva de precisão: fontes públicas divergem em cerca de 500 m sobre "onde é o ITA",
+porque o campus é grande. A outra leitura corrente é `-23.2061, -45.8727`
+(`23°12'22"S 45°52'22"W`). Adotamos a primeira por ser a mais próxima do valor que já
+estava no `design.md` (`23°12'46"S 45°52'34"W`), mantendo coerência com o material de
+marca existente. Se o Lucas quiser um ponto específico — o Prédio Principal, o H8, ou
+o próprio quarto 202 — basta trocar a string em `copy.ts`.
 | `<title>` | 202Lab — Potencializamos talentos e construímos o futuro | 202Lab — We amplify talent. We build the future. |
 
 O oneliner quebra em duas linhas por controle explícito (`max-width` em `ch`), não por
