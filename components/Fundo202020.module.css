@@ -1,0 +1,14 @@
+.fundo {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+  color: var(--padrao-202020);
+  font-family: var(--fonte-mono), ui-monospace, monospace;
+  font-size: 1.25rem;
+  line-height: 1.35;
+  letter-spacing: 0.08em;
+  word-break: break-all;
+}
