@@ -1,0 +1,114 @@
+/* MotionB — revelação vertical por glifo.
+   Cada [data-glifo] esconde o seu <path> atrás de uma "máscara" que abre de
+   baixo para cima (o inset do topo encolhe até zero), enquanto o próprio
+   path sobe alguns pixels até a posição final — o clássico letreiro de
+   estúdio de branding subindo atrás de uma linha de corte. O ponto verde
+   acende por último, sempre.
+
+   Armadilha evitada de propósito: `.svg` no Logo202.module.css já é
+   `overflow: visible`, então overflow:hidden num ancestral nunca clipparia
+   nada aqui — e cada <g data-glifo> carrega um atributo `transform` próprio
+   (é assim que o Logo202 posiciona cada glifo dentro do viewBox). Se esta
+   folha de estilo tentasse animar `transform` nesse MESMO <g>, a regra CSS
+   substituiria o atributo de apresentação por inteiro (atributos de
+   apresentação perdem para qualquer seletor CSS — não se somam a ele), e
+   cada glifo pularia para a posição errada. Por isso o clip-path e o
+   translateY abaixo são aplicados no <path> filho, que não tem nenhum
+   transform próprio para colidir — e como as duas propriedades vivem no
+   mesmo elemento, a caixa de referência do clip-path (fill-box) é sempre a
+   geometria estática do próprio path, nunca afetada pelo transform que
+   anima ao lado dela. */
+
+.palco {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+/* Estado de repouso: path escondido atrás da máscara (inset de 100% no topo
+   fecha a janela de clip inteira) e 14px abaixo da posição final. Serve de
+   estado inicial da animação e de base para o fallback de reduced-motion. */
+.logo :global([data-glifo] path) {
+  opacity: 0;
+  transform: translateY(14px);
+  clip-path: inset(100% 0 0 0) fill-box;
+}
+
+.logo :global([data-ponto]) {
+  opacity: 0;
+  transform: scale(0.3);
+}
+
+/* Animação — só roda quando NÃO é estático. Ordem data-indice 0, 1, 2 com
+   120ms de atraso entre cada. */
+.palco[data-estatico="false"] .logo :global([data-glifo] path) {
+  animation: revelarGlifo 640ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, clip-path, opacity;
+}
+.palco[data-estatico="false"] .logo :global([data-glifo][data-indice="1"] path) {
+  animation-delay: 120ms;
+}
+.palco[data-estatico="false"] .logo :global([data-glifo][data-indice="2"] path) {
+  animation-delay: 240ms;
+}
+
+/* Glifo 2 termina aos 880ms (240ms de atraso + 640ms). O ponto entra aos
+   940ms e termina aos 1360ms — bem dentro do teto de 1800ms (ver
+   DURACAO_MAXIMA_MS/DURACAO_TOTAL_MS em MotionB.tsx). Sempre o último a
+   aparecer. */
+.palco[data-estatico="false"] .logo :global([data-ponto]) {
+  animation: acenderPonto 420ms cubic-bezier(0.34, 1.56, 0.64, 1) 940ms both;
+}
+
+/* Estado final explícito: no modo estático tudo já aparece pronto, sem
+   animar. Escrito à mão aqui — não depende do fim de nenhum keyframe, que
+   nem chega a rodar nesse modo. */
+.palco[data-estatico="true"] .logo :global([data-glifo] path),
+.palco[data-estatico="true"] .logo :global([data-ponto]) {
+  opacity: 1;
+  transform: none;
+  clip-path: none;
+}
+
+@keyframes revelarGlifo {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+    clip-path: inset(100% 0 0 0) fill-box;
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    clip-path: inset(0 0 0 0) fill-box;
+  }
+}
+
+@keyframes acenderPonto {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* !important de propósito: sem isso, a cadeia mais específica
+     .palco[data-estatico="false"] .logo :global([data-glifo][data-indice="1"] path)
+     venceria esta regra e a animação continuaria rodando mesmo com a
+     preferência de acessibilidade ativa. Acessibilidade tem que vencer
+     qualquer guerra de especificidade no resto da folha. */
+  .logo :global([data-glifo] path),
+  .logo :global([data-ponto]) {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+    clip-path: none !important;
+  }
+}
