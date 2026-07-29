@@ -16,6 +16,13 @@ export default function Home() {
   // restaura a escolha anterior; nunca detecta o idioma do navegador
   useEffect(() => {
     const guardado = window.localStorage.getItem(CHAVE_IDIOMA);
+    // Proposital, não um efeito perdido: o estado PRECISA nascer "pt" pro
+    // HTML do servidor bater com o primeiro render do cliente (hydration),
+    // e só localStorage (inexistente no servidor) diz se deve virar "en".
+    // Isto é sincronizar React com um sistema externo — o próprio caso de
+    // uso que a doc da regra aceita — não um derivado de outro estado
+    // React. Já confirmado como não-defeito em duas revisões anteriores.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (guardado === "en" || guardado === "pt") setIdioma(guardado);
   }, []);
 

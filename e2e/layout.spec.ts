@@ -253,7 +253,12 @@ test.describe("o ímã da lanterna", () => {
 });
 
 test.describe("com animações reduzidas", () => {
-  test.use({ reducedMotion: "reduce" });
+  // `reducedMotion` não é uma option "achatada" em PlaywrightTestOptions
+  // nesta versão (@playwright/test 1.62) — só colorScheme, viewport etc.
+  // viram fixtures próprias; o resto (reducedMotion, contrast, forcedColors,
+  // screen) só é aceito dentro de `contextOptions`, como o próprio .d.ts
+  // documenta. Runtime idêntico a `{ reducedMotion: "reduce" }`.
+  test.use({ contextOptions: { reducedMotion: "reduce" } });
 
   test("a logo já aparece montada e visível", async ({ page }) => {
     await page.goto("/");
