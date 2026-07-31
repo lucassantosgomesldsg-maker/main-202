@@ -39,3 +39,141 @@
   transform-box: fill-box;
   transform-origin: center;
 }
+
+/* ── Ato 1: a logo cresce e o "0" gira (0 → --d-crescimento) ───────────── */
+
+/* Estado de repouso, que também é a base do fallback: nada aqui depende de um
+   keyframe ter rodado. */
+.abertura :global([data-logo]) {
+  transform: scale(0.82);
+}
+
+.abertura[data-abertura="tocando"] :global([data-logo]) {
+  animation: logo-crescer var(--d-crescimento) cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* A rotação vai no <path>, e NÃO no <g data-glifo>: em SVG a propriedade CSS
+   `transform` SOBRESCREVE o atributo `transform`, e o <g> carrega o
+   translate(199.249752, 336.821489) que põe o "0" no lugar dele dentro da
+   palavra. Animar o <g> apagaria esse translate e o glifo saltaria para fora
+   da logo. O <path> não tem atributo nenhum, e o `transform-box: fill-box` lá
+   em cima faz o `center` do transform-origin ser o centro do próprio glifo. */
+.abertura[data-abertura="tocando"] :global([data-glifo][data-indice="1"] path) {
+  animation: zero-girar var(--d-crescimento) cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* Mesma curva que o crescimento, de propósito. Os dois duram --d-crescimento
+   e terminam juntos no relógio — mas isso não basta. Com uma expo-out no
+   crescimento (95% do caminho em 40% do tempo) e uma ease-in-out no giro, a
+   logo PARECE pronta aos 600ms enquanto o "0" ainda roda, e lê como dois
+   movimentos em vez de um. Com a mesma curva, resolvem juntos também aos
+   olhos — que é o que o Lucas pediu: "voltando à posição correta assim que
+   chegar no tamanho ideal". */
+
+@keyframes logo-crescer {
+  from {
+    transform: scale(0.82);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+@keyframes zero-girar {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ── Ato 2: o ponto verde pulsa (--t-pulso) ─────────────────────────────── */
+
+/* O ponto não precisa de animação própria para "acompanhar o crescimento":
+   ele é filho de [data-logo] e é carregado pelo scale junto com o resto. O
+   que ele ganha aqui é a batida de chegada. */
+.abertura :global([data-ponto]) {
+  position: relative;
+}
+
+/* O halo. radial-gradient + transform + opacity: as três coisas que o
+   compositor faz de graça. NÃO é box-shadow animado — box-shadow não é
+   composto na GPU e repinta a cada quadro, e este projeto já escolheu duas
+   vezes ficar nas propriedades baratas. */
+.abertura :global([data-ponto])::after {
+  content: "";
+  position: absolute;
+  inset: -50%;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--verde-sinal) 0%, transparent 70%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.abertura[data-abertura="tocando"] :global([data-ponto]) {
+  animation: ponto-pulsar var(--d-pulso) cubic-bezier(0.34, 1.56, 0.64, 1)
+    var(--t-pulso) both;
+}
+
+.abertura[data-abertura="tocando"] :global([data-ponto])::after {
+  animation: ponto-halo var(--d-pulso) ease-out var(--t-pulso) both;
+}
+
+@keyframes ponto-pulsar {
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.35);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Sem resíduo: o estado final do ponto é o círculo chapado de sempre. */
+@keyframes ponto-halo {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  40% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.2);
+  }
+}
+
+/* ── Estado final explícito: visita repetida na mesma sessão ────────────── */
+
+.abertura[data-abertura="estatica"] :global([data-logo]) {
+  transform: none;
+}
+
+.abertura[data-abertura="estatica"] :global([data-ponto])::after {
+  content: none;
+}
+
+/* ── prefers-reduced-motion ─────────────────────────────────────────────── */
+
+/* !important de propósito: sem ele, a cadeia
+   `.abertura[data-abertura="tocando"] :global([data-glifo]...)` venceria por
+   especificidade e a animação rodaria mesmo com a preferência ligada — a
+   mesma lição que MotionD.module.css já tinha registrado por escrito.
+   O bloco de globals.css não resolve sozinho: ele zera animation-duration,
+   mas não zera animation-delay. */
+@media (prefers-reduced-motion: reduce) {
+  .abertura :global([data-logo]),
+  .abertura :global([data-glifo][data-indice="1"] path),
+  .abertura :global([data-ponto]) {
+    animation: none !important;
+    transform: none !important;
+  }
+
+  .abertura :global([data-ponto])::after {
+    content: none !important;
+  }
+}
