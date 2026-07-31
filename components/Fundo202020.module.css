@@ -7,8 +7,14 @@
   user-select: none;
 }
 
-/* A vinheta da referência: some no meio, fecha nos cantos. `pointer-events`
-   nenhum porque ela cobre a tela toda e o CONTATO precisa continuar clicável. */
+/* A vinheta da referência: some no meio, fecha nos cantos.
+
+   O `pointer-events: none` abaixo é defesa em profundidade, e não o que segura
+   o clique hoje: a propriedade é herdada, e o `.fundo` acima já declara `none`
+   — a vinheta computaria `none` mesmo sem esta linha. Ela existe porque a
+   vinheta é `inset: 0` e cobre a tela inteira: no dia em que sair de dentro do
+   `.fundo`, sem esta linha ela vira uma folha de vidro sobre o CONTATO e o
+   seletor de idioma. Custa nada e evita um bug caro de achar. */
 .vinheta {
   position: absolute;
   inset: 0;

@@ -67,9 +67,15 @@ describe("Fundo202020", () => {
     // contrário do que este teste precisa provar. Quem guarda a regra é o
     // arquivo, então é o arquivo que se afirma.
     //
-    // Isto importa de verdade: a vinheta é `position: absolute; inset: 0` e
-    // cobre a tela toda. Sem `pointer-events: none` ela fica por cima do
-    // CONTATO e do seletor de idioma, e os dois param de receber clique.
+    // O que a regra faz, com precisão: ela é defesa em profundidade, NÃO o que
+    // segura o clique hoje. `pointer-events` é herdada, e o `.fundo` — pai da
+    // vinheta — já declara `none`. Conferido no navegador: com a declaração
+    // própria da vinheta revertida, o computado dela continua `none`, herdado.
+    // Apagar a linha do `.vinheta` não quebraria clique nenhum enquanto ela
+    // morar dentro do `.fundo`. A regra existe para o dia em que ela não morar:
+    // a vinheta é `position: absolute; inset: 0` e cobre a tela inteira, então
+    // fora daquele pai ela viraria uma folha de vidro sobre o CONTATO e o
+    // seletor de idioma. É barata, e o custo de descobrir isso pelo bug é alto.
     const regra = /\.vinheta\s*\{[^}]*\}/.exec(CSS_FUNDO)?.[0] ?? "";
     expect(regra, ".vinheta sumiu do CSS Module").not.toBe("");
     expect(regra).toMatch(/pointer-events:\s*none/);

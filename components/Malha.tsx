@@ -166,19 +166,53 @@ export default function Malha() {
     let ultima: PosicaoViva = { ...PARADA };
 
     /**
-     * A fonte que o canvas vai desenhar, em shorthand CSS.
+     * A lista de famílias do canvas, resolvida pelo CSS Module — hoje
+     * `"The Seasons", Fraunces, "Fraunces Fallback", Georgia, serif`.
      *
-     * A família vem do CSS Module — ver o comentário em Malha.module.css, que
-     * promete que nenhum nome de fonte fica repetido em dois lugares que podem
-     * divergir. Esta função é o que torna a promessa verdadeira: ela é a ÚNICA
-     * origem da string de fonte, usada tanto por `construir` quanto pelo
-     * `document.fonts.load` lá embaixo — que antes tinha `"The Seasons"`
-     * escrito à mão e ficaria pedindo a fonte errada se o CSS trocasse.
+     * É daqui que sai TODO nome de fonte deste arquivo. Ver o comentário em
+     * Malha.module.css: a família mora no CSS e nenhum nome fica repetido em
+     * dois lugares que podem divergir.
      */
-    const fonteDoCanvas = () =>
-      `400 ${PARAMETROS.tamanhoFonte}px ${
-        getComputedStyle(canvas).fontFamily || "Georgia, serif"
-      }`;
+    const listaDeFamilias = () =>
+      getComputedStyle(canvas).fontFamily || "Georgia, serif";
+
+    /** O shorthand CSS de fonte, com o corpo e o peso da malha. */
+    const fonteCom = (familias: string) =>
+      `400 ${PARAMETROS.tamanhoFonte}px ${familias}`;
+
+    /** O que o canvas DESENHA: a lista inteira, para o navegador escolher. */
+    const fonteDoCanvas = () => fonteCom(listaDeFamilias());
+
+    /**
+     * O que se PEDE ao `document.fonts.load`: só a família primária.
+     *
+     * Armadilha, e não é óbvia — não "simplifique" isto de volta para a lista
+     * inteira. `document.fonts.load` aceita a lista, mas então ele casa TODAS
+     * as famílias registradas nela e a Promise só resolve se todas carregarem.
+     * Medido nesta página: com a lista inteira ele casa 3 faces (The Seasons,
+     * Fraunces e "Fraunces Fallback"); com a família primária, 1.
+     *
+     * O problema é a terceira. "Fraunces Fallback" é gerada pelo next/font como
+     * `@font-face { src: local("Times New Roman") }` — conferido lendo a regra
+     * na página. Numa máquina sem Times New Roman instalada (desktop Linux é o
+     * caso típico) esse face não resolve, e UM face que falha rejeita a Promise
+     * INTEIRA: verificado injetando um `local()` inexistente ao lado de uma
+     * fonte já carregada, e a chamada rejeitou com `NetworkError`.
+     *
+     * Como o `.catch` lá embaixo engole tudo, o efeito seria silencioso e
+     * permanente: `construir()` nunca rodaria depois que a The Seasons
+     * chegasse, e a trama ficaria rasterizada com o avanço da Fraunces
+     * desenhando glifos da The Seasons — exatamente o desalinhamento que
+     * aquela chamada existe para prevenir — até o próximo resize.
+     *
+     * A família primária é, por definição, a fonte cuja métrica a malha usa.
+     * É só a chegada dela que precisa disparar a reconstrução.
+     */
+    const fonteParaCarregar = () =>
+      // `split(",")[0]` basta: nome de família com vírgula dentro das aspas não
+      // existe na prática, e as aspas em volta de "The Seasons" são preservadas
+      // pelo valor computado — que é o que `fonts.load` precisa receber.
+      fonteCom(listaDeFamilias().split(",")[0].trim());
 
     const construir = () => {
       if (!bctx) return;
@@ -355,16 +389,16 @@ export default function Malha() {
     document.addEventListener("visibilitychange", aoTrocarVisibilidade);
 
     // A métrica muda quando a The Seasons chega: sem remontar a base, a trama
-    // fica desenhada com a largura da Fraunces e some o alinhamento. Pedimos
-    // exatamente a fonte que o canvas vai usar — `fonteDoCanvas()` resolve a
-    // família pelo CSS Module — em vez de repetir "The Seasons" aqui: com o
-    // nome escrito à mão, trocar a letra no CSS deixava este `load` esperando
-    // uma fonte que a malha não desenha mais. Guardado por `vivo`: se o
-    // componente desmontar antes da Promise resolver, este `.then` não pode
-    // chamar `construir()` sobre um canvas morto.
+    // fica desenhada com a largura da Fraunces e some o alinhamento. A família
+    // vem do CSS Module por `fonteParaCarregar()`, em vez de "The Seasons"
+    // escrito à mão aqui — com o nome na mão, trocar a letra no CSS deixava
+    // este `load` esperando uma fonte que a malha não desenha mais. E é a
+    // família PRIMÁRIA, não a lista: ver a armadilha documentada lá em cima.
+    // Guardado por `vivo`: se o componente desmontar antes da Promise resolver,
+    // este `.then` não pode chamar `construir()` sobre um canvas morto.
     if (typeof document !== "undefined" && document.fonts?.load) {
       document.fonts
-        .load(fonteDoCanvas())
+        .load(fonteParaCarregar())
         .then(() => {
           if (vivo) construir();
         })
