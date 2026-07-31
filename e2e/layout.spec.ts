@@ -303,3 +303,60 @@ test.describe("com animações reduzidas", () => {
     expect(await logo.evaluate((el) => getComputedStyle(el).opacity)).toBe("1");
   });
 });
+
+test.describe("a malha viva", () => {
+  test("cobre a viewport e não deixa coordenada para trás", async ({ page }) => {
+    await page.goto("/");
+    const canvas = page.locator("[data-lanterna] canvas");
+    await expect(canvas).toHaveCount(1);
+
+    const caixa = await canvas.boundingBox();
+    const viewport = page.viewportSize()!;
+    expect(caixa!.width).toBeGreaterThanOrEqual(viewport.width - 1);
+    expect(caixa!.height).toBeGreaterThanOrEqual(viewport.height - 1);
+
+    await expect(page.getByText(/23°12'37"S/)).toHaveCount(0);
+    await expect(page.getByText(/SÃO JOSÉ DOS CAMPOS/)).toHaveCount(0);
+  });
+
+  test("a trama é visível antes de qualquer movimento de mouse", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForTimeout(2500); // a entrada termina em 2000ms
+    const canvas = page.locator("[data-lanterna] canvas");
+    // Um pixel qualquer fora do centro precisa estar acima do preto puro: é o
+    // que separa "textura visível" de "fundo liso", que é o ponto da mudança.
+    const claro = await canvas.evaluate((el: HTMLCanvasElement) => {
+      const ctx = el.getContext("2d")!;
+      const d = ctx.getImageData(0, 0, el.width, Math.min(200, el.height)).data;
+      let maximo = 0;
+      for (let i = 0; i < d.length; i += 4) maximo = Math.max(maximo, d[i + 1]);
+      return maximo;
+    });
+    expect(claro).toBeGreaterThan(8);
+  });
+});
+
+test.describe("com movimento reduzido", () => {
+  test.use({ reducedMotion: "reduce" });
+
+  test("a trama continua visível e nada quebra", async ({ page }) => {
+    const erros: string[] = [];
+    page.on("pageerror", (e) => erros.push(e.message));
+
+    await page.goto("/");
+    await page.waitForTimeout(500); // sem animação de entrada, não há o que esperar
+
+    const canvas = page.locator("[data-lanterna] canvas");
+    await expect(canvas).toHaveCount(1);
+
+    const claro = await canvas.evaluate((el: HTMLCanvasElement) => {
+      const ctx = el.getContext("2d")!;
+      const d = ctx.getImageData(0, 0, el.width, Math.min(200, el.height)).data;
+      let maximo = 0;
+      for (let i = 0; i < d.length; i += 4) maximo = Math.max(maximo, d[i + 1]);
+      return maximo;
+    });
+    expect(claro).toBeGreaterThan(8);
+    expect(erros).toEqual([]);
+  });
+});
