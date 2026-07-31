@@ -1,0 +1,13 @@
+/* A família fica AQUI, e não numa string dentro do JS, de propósito: o
+   componente lê `getComputedStyle(canvas).fontFamily` e entrega o resultado ao
+   `ctx.font`. Assim o fallback é resolvido pelo navegador — The Seasons quando
+   chegar, Fraunces enquanto não chegar — e nenhum nome de fonte fica repetido
+   em dois lugares que podem divergir. */
+.canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  font-family: "The Seasons", var(--fonte-display), Georgia, serif;
+}
