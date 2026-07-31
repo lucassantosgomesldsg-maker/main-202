@@ -790,8 +790,16 @@ Crie `components/Malha.test.tsx`:
 ```tsx
 import { render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import Lanterna from "./Lanterna";
 import Malha from "./Malha";
 
+/**
+ * O laço de desenho NÃO é testável aqui: o jsdom não implementa contexto 2d,
+ * então `getContext("2d")` devolve null e o efeito sai antes de agendar
+ * quadro. Isso não é limitação a contornar — é o comportamento exigido, e o
+ * segundo teste abaixo o verifica. O desenho de verdade é coberto pelo e2e
+ * (Task 7); a regra de pular quadro é coberta por `devePular` (Task 2).
+ */
 describe("Malha", () => {
   beforeEach(() => {
     vi.stubGlobal("requestAnimationFrame", vi.fn(() => 1));
@@ -816,22 +824,19 @@ describe("Malha", () => {
     expect(requestAnimationFrame).not.toHaveBeenCalled();
   });
 
-  it("sem <Lanterna> em volta, ainda monta", () => {
-    // A malha é fundo: ela existe mesmo onde não há lanterna (ponteiro grosso,
-    // ou qualquer página que a use sozinha).
-    expect(() => render(<Malha />)).not.toThrow();
-  });
-
-  it("desmontar não deixa listener de visibilidade para trás", () => {
-    const remover = vi.spyOn(document, "removeEventListener");
-    const { unmount } = render(<Malha />);
-    unmount();
-    // Sem contexto 2d o efeito sai antes de registrar; o teste garante que o
-    // desmonte é seguro nos dois caminhos.
-    expect(() => remover.mock.calls).not.toThrow();
-    remover.mockRestore();
+  it("monta dentro de uma <Lanterna>, lendo a posição viva pelo contexto", () => {
+    // Caminho diferente do teste acima: aqui o contexto NÃO é null. É o
+    // arranjo real da página, e é o que prova que o provider e o consumidor
+    // se encontram.
+    const { container } = render(
+      <Lanterna>
+        <Malha />
+      </Lanterna>
+    );
+    expect(container.querySelector("[data-lanterna] canvas")).not.toBeNull();
   });
 });
+
 ```
 
 - [ ] **Step 2: Rodar e ver falhar**
@@ -865,10 +870,18 @@ const ContextoViva = createContext<Viva>(null);
  * `null` não é erro: a malha é fundo e precisa existir onde a lanterna não
  * existe — em ponteiro grosso, e em qualquer teste que renderize a malha
  * sozinha. Quem consome trata `null` como "sem luz", não como falha.
+ *
+ * O nome interno é `useLanternaViva` pelo mesmo motivo que `useLanterna` em
+ * lib/usaLanterna.ts: a regra react-hooks identifica hook pelo PREFIXO do
+ * nome. Uma função chamada `usaLanternaViva` que chama `useContext` é vista
+ * como função comum chamando hook — que é erro de lint — e, pior, o corpo
+ * deixa de ser checado. O nome público continua em português.
  */
-export function usaLanternaViva(): Viva {
+function useLanternaViva(): Viva {
   return useContext(ContextoViva);
 }
+
+export { useLanternaViva as usaLanternaViva };
 
 /**
  * O cursor vira lanterna: este elemento carrega `--lanterna-x` /
@@ -942,7 +955,9 @@ import {
   type Celulas,
   type Grade,
 } from "@/lib/malha";
-import { usaLanternaViva } from "./Lanterna";
+// Alias obrigatório, não estilo — mesma regra do resto do repo: a checagem
+// react-hooks só reconhece hook pelo prefixo `use` no ponto da chamada.
+import { usaLanternaViva as useLanternaViva } from "./Lanterna";
 import estilos from "./Malha.module.css";
 
 const PARADA = { x: 0, y: 0, escala: 1, ativa: false } as const;
@@ -984,7 +999,7 @@ function lerCor(elemento: Element, nome: string, padrao: string): string {
  */
 export default function Malha() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const viva = usaLanternaViva();
+  const viva = useLanternaViva();
 
   useEffect(() => {
     const canvas = canvasRef.current;
