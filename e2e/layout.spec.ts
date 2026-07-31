@@ -1,4 +1,16 @@
 import { test, expect, type Page } from "@playwright/test";
+import { DURACAO_TOTAL_MAXIMA_MS } from "../lib/abertura";
+
+/**
+ * Uma folga sobre o fim REAL da coreografia, importado de lib/abertura.ts em
+ * vez de escrito à mão. Antes eram 2000ms literais espalhados pelo arquivo,
+ * herdados do MotionD; a entrada de hoje termina em 4484ms (pt) e mexer numa
+ * duração lá dentro empurra este número junto, sem ninguém precisar lembrar.
+ *
+ * Sim, isto deixa a suíte mais lenta: são ~4,8s por caso, contra ~2s antes.
+ * É o preço de medir a página no estado em que o visitante a encontra.
+ */
+const DEPOIS_DA_ENTRADA = DURACAO_TOTAL_MAXIMA_MS + 300;
 
 /**
  * A regra dura do projeto: a página nunca tem scroll, em nenhum viewport.
@@ -9,10 +21,10 @@ import { test, expect, type Page } from "@playwright/test";
  *   - o oneliner em inglês tem um comprimento diferente do em português —
  *     então cada checagem de layout roda nos DOIS idiomas, semeando
  *     `localStorage["202:idioma"]` antes do primeiro carregamento;
- *   - a entrada (MotionD) toca uma vez por sessão do navegador e é pulada
- *     num reload dentro da mesma sessão (`sessionStorage["202:motion"]`) — as
- *     asserções de "sem scroll" valem nos dois estados, não só durante a
- *     animação.
+ *   - a abertura (lib/abertura.ts + app/abertura.module.css) toca uma vez por
+ *     sessão do navegador e é pulada num reload dentro da mesma sessão
+ *     (`sessionStorage["202:motion"]`) — as asserções de "sem scroll" valem
+ *     nos dois estados, não só durante a animação.
  *
  * Isso multiplica os dois testes originais por 2 idiomas x 2 estados de
  * animação = 4, mantendo a intenção do roteiro original (linhas comentadas
@@ -110,7 +122,7 @@ for (const vp of VIEWPORTS) {
       // Original: "não tem scroll em ${vp.nome}", durante a animação de entrada.
       test("não tem scroll durante a entrada", async ({ page }) => {
         await page.goto("/");
-        await page.waitForTimeout(2000); // deixa a animação terminar
+        await page.waitForTimeout(DEPOIS_DA_ENTRADA); // deixa a animação terminar
         esperaSemScroll(await medirDocumento(page));
       });
 
@@ -119,7 +131,7 @@ for (const vp of VIEWPORTS) {
       // precisa ser igualmente livre de scroll.
       test("não tem scroll após reload (animação pulada)", async ({ page }) => {
         await page.goto("/");
-        await page.waitForTimeout(2000);
+        await page.waitForTimeout(DEPOIS_DA_ENTRADA);
         await page.reload();
         await page.waitForTimeout(300);
         esperaSemScroll(await medirDocumento(page));
@@ -128,13 +140,13 @@ for (const vp of VIEWPORTS) {
       // Original: "nada é cortado em ${vp.nome}", durante a animação de entrada.
       test("nada é cortado durante a entrada", async ({ page }) => {
         await page.goto("/");
-        await page.waitForTimeout(2000);
+        await page.waitForTimeout(DEPOIS_DA_ENTRADA);
         await esperaNadaCortado(page, vp.width, vp.height);
       });
 
       test("nada é cortado após reload (animação pulada)", async ({ page }) => {
         await page.goto("/");
-        await page.waitForTimeout(2000);
+        await page.waitForTimeout(DEPOIS_DA_ENTRADA);
         await page.reload();
         await page.waitForTimeout(300);
         await esperaNadaCortado(page, vp.width, vp.height);
@@ -187,7 +199,7 @@ test.describe("o ímã da lanterna", () => {
   test.beforeEach(async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/");
-    await page.waitForTimeout(2100); // a entrada termina em 2000ms
+    await page.waitForTimeout(DEPOIS_DA_ENTRADA); // a entrada termina em DURACAO_TOTAL_MAXIMA_MS
   });
 
   for (const alvo of ALVOS) {
@@ -407,7 +419,7 @@ test.describe("a malha viva", () => {
 
   test("a trama é visível antes de qualquer movimento de mouse", async ({ page }) => {
     await page.goto("/");
-    await page.waitForTimeout(2500); // a entrada termina em 2000ms
+    await page.waitForTimeout(DEPOIS_DA_ENTRADA); // a entrada termina em DURACAO_TOTAL_MAXIMA_MS
 
     // Duas afirmações diferentes, e as duas são necessárias:
     // 1. o bitmap tem trama (getImageData);
@@ -422,7 +434,7 @@ test.describe("a malha viva", () => {
     // este par, aquele teste passaria com a cintilação ligada — o corpo dele
     // era igual ao deste, e nenhum dos dois olhava para o que os separa.
     await page.goto("/");
-    await page.waitForTimeout(2500);
+    await page.waitForTimeout(DEPOIS_DA_ENTRADA);
 
     const antes = await assinaturaDaTrama(page);
     await page.waitForTimeout(300); // sem tocar no mouse
@@ -481,5 +493,131 @@ test.describe("com movimento reduzido", () => {
     const depois = await assinaturaDaTrama(page);
 
     expect(depois, "a malha se mexeu com movimento reduzido ligado").toBe(antes);
+  });
+});
+
+/**
+ * A abertura em si. O que só um navegador de verdade prova é que as regras de
+ * app/abertura.module.css realmente venceram as dos módulos dos componentes e
+ * que a coreografia chega ao estado final — o jsdom não carrega CSS Modules,
+ * então nenhum teste de vitest enxerga uma linha destas folhas.
+ */
+test.describe("a abertura", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+  });
+
+  test("termina com a logo no tamanho final e o giro fechado", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForTimeout(DEPOIS_DA_ENTRADA);
+
+    // "none" e a matriz identidade dizem a mesma coisa: escala 1, sem giro.
+    const identidade = ["none", "matrix(1, 0, 0, 1, 0, 0)"];
+
+    const logo = await page
+      .locator("[data-logo]")
+      .evaluate((el) => getComputedStyle(el).transform);
+    expect(identidade, `a logo parou em ${logo}`).toContain(logo);
+
+    const zero = await page
+      .locator("[data-glifo][data-indice='1'] path")
+      .evaluate((el) => getComputedStyle(el).transform);
+    expect(identidade, `o "0" parou em ${zero}`).toContain(zero);
+  });
+
+  test("o 0 continua no lugar dele dentro da palavra", async ({ page }) => {
+    // A armadilha do §5a do design: se a rotação tivesse ido para o
+    // <g data-glifo>, ela teria apagado o `transform` de atributo que
+    // posiciona o glifo, e o "0" terminaria fora da caixa da logo.
+    await page.goto("/");
+    await page.waitForTimeout(DEPOIS_DA_ENTRADA);
+
+    const logo = (await page.locator("[data-logo]").boundingBox())!;
+    const zero = (await page
+      .locator("[data-glifo][data-indice='1'] path")
+      .boundingBox())!;
+
+    expect(zero.x).toBeGreaterThan(logo.x);
+    expect(zero.x + zero.width).toBeLessThan(logo.x + logo.width);
+  });
+
+  test("termina com a frase inteira acesa e nenhum cursor aceso", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForTimeout(DEPOIS_DA_ENTRADA);
+
+    const opacidades = await page
+      .locator("[data-caractere]")
+      .evaluateAll((els) => els.map((el) => Number(getComputedStyle(el).opacity)));
+
+    expect(opacidades.length).toBeGreaterThan(30);
+    expect(Math.min(...opacidades)).toBeGreaterThan(0.99);
+
+    const cursoresAcesos = await page
+      .locator("[data-caractere]")
+      .evaluateAll(
+        (els) =>
+          els.filter(
+            (el) => Number(getComputedStyle(el, "::after").opacity) > 0.01,
+          ).length,
+      );
+    expect(cursoresAcesos).toBe(0);
+  });
+
+  test("no começo a frase ainda não escreveu nada", async ({ page }) => {
+    // Contraparte decisiva do teste acima: sem ela, "tudo aceso no fim"
+    // passaria com a animação nunca tendo rodado.
+    await page.goto("/");
+    await page.waitForTimeout(500); // a frase só começa em 2680ms
+
+    const acesos = await page
+      .locator("[data-caractere]")
+      .evaluateAll(
+        (els) =>
+          els.filter((el) => Number(getComputedStyle(el).opacity) > 0.5).length,
+      );
+    expect(acesos).toBe(0);
+  });
+});
+
+test.describe("a abertura com movimento reduzido", () => {
+  test.use({ contextOptions: { reducedMotion: "reduce" } });
+
+  test("a frase já está inteira no primeiro quadro, e sem cursor", async ({ page }) => {
+    await page.goto("/");
+
+    // Prova de que a preferência está mesmo ligada nesta página — sem isto o
+    // teste passaria com o modo reduzido nunca tendo sido ativado.
+    const reduzidoDeVerdade = await page.evaluate(
+      () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    );
+    expect(reduzidoDeVerdade).toBe(true);
+
+    const opacidades = await page
+      .locator("[data-caractere]")
+      .evaluateAll((els) => els.map((el) => Number(getComputedStyle(el).opacity)));
+
+    expect(opacidades.length).toBeGreaterThan(30);
+    expect(Math.min(...opacidades)).toBeGreaterThan(0.99);
+
+    const cursoresAcesos = await page
+      .locator("[data-caractere]")
+      .evaluateAll(
+        (els) =>
+          els.filter(
+            (el) => Number(getComputedStyle(el, "::after").opacity) > 0.01,
+          ).length,
+      );
+    expect(cursoresAcesos).toBe(0);
+  });
+
+  test("o topo já está no lugar, sem ter entrado de lado", async ({ page }) => {
+    await page.goto("/");
+
+    for (const seletor of ["[data-ima='idioma']", "[data-ima='contato']"]) {
+      const t = await page
+        .locator(seletor)
+        .evaluate((el) => getComputedStyle(el).transform);
+      expect(["none", "matrix(1, 0, 0, 1, 0, 0)"], `${seletor} = ${t}`).toContain(t);
+    }
   });
 });
