@@ -187,6 +187,36 @@ Duas mudanças que isso arrasta para o resto do documento:
   os primeiros 100 ms, a tela nunca fica parada, que era o risco real.
 - **Nasce a lanterna** (§6.1), que muda o fundo especificado na §5.
 
+### Resultado (31/07/2026): o Motion D sai, entra a abertura da tela
+
+O Lucas pediu uma entrada nova, especificada em
+`docs/superpowers/specs/2026-07-31-abertura-da-tela-design.md`. O Motion D fica
+**arquivado no repo**, sem nenhum import e com os testes rodando, para poder
+voltar sem arqueologia de git.
+
+A sequência nova: a logo cresce girando o `0` e o ponto verde pulsa ao
+assentar; os textos do topo entram pelas laterais da tela; a frase do rodapé é
+digitada com uma barra de digitação.
+
+Três coisas que isso arrasta para este documento:
+
+- **O teto de duração desta página passa a ser 4800 ms**, em
+  `lib/abertura.ts`. O teto de 2000 ms em `components/motion/tipos.ts` **não
+  muda**: ele governa os candidatos de motion, e o Motion D arquivado continua
+  obedecendo a ele. A regra que o teto protege continua a mesma — o visitante
+  não pode achar que o site travou — e continua valendo: a tela não fica parada
+  em instante nenhum, exceto pelas duas pausas de 0,4 s e 0,2 s, que são
+  deliberadas.
+- **"O ponto verde acende por último, sempre, como batida final" vira "o verde
+  fecha".** A sequência nova encerra com a frase digitada, e o ponto pulsa no
+  meio. Para não perder a batida, a barra de digitação é `--verde-sinal`: o
+  último pixel a se mexer na tela continua sendo verde.
+- **"Os quatro elementos dos cantos entram em fade suave depois da logo,
+  escalonados" está implementado — com outro gesto.** Não é fade: `PT/EN` e
+  `CONTATO ↗` entram pelas laterais da tela, e a frase do rodapé é digitada. O
+  princípio (os cantos vêm depois da logo, em ordem) foi respeitado; o fade
+  não.
+
 ## 6.1 A lanterna do mouse
 
 O cursor é uma lanterna que ilumina a malha do fundo. Sem ela, o fundo é quase preto.
