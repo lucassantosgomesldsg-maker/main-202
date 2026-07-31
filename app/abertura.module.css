@@ -44,7 +44,7 @@
 
 /* Estado de repouso, que também é a base do fallback: nada aqui depende de um
    keyframe ter rodado. */
-.abertura :global([data-logo]) {
+.abertura[data-abertura] :global([data-logo]) {
   transform: scale(0.82);
 }
 
@@ -93,7 +93,7 @@
 /* O ponto não precisa de animação própria para "acompanhar o crescimento":
    ele é filho de [data-logo] e é carregado pelo scale junto com o resto. O
    que ele ganha aqui é a batida de chegada. */
-.abertura :global([data-ponto]) {
+.abertura[data-abertura] :global([data-ponto]) {
   position: relative;
 }
 
@@ -101,7 +101,7 @@
    compositor faz de graça. NÃO é box-shadow animado — box-shadow não é
    composto na GPU e repinta a cada quadro, e este projeto já escolheu duas
    vezes ficar nas propriedades baratas. */
-.abertura :global([data-ponto])::after {
+.abertura[data-abertura] :global([data-ponto])::after {
   content: "";
   position: absolute;
   inset: -50%;
@@ -166,14 +166,14 @@
    O bloco de globals.css não resolve sozinho: ele zera animation-duration,
    mas não zera animation-delay. */
 @media (prefers-reduced-motion: reduce) {
-  .abertura :global([data-logo]),
-  .abertura :global([data-glifo][data-indice="1"] path),
-  .abertura :global([data-ponto]) {
+  .abertura[data-abertura] :global([data-logo]),
+  .abertura[data-abertura] :global([data-glifo][data-indice="1"] path),
+  .abertura[data-abertura] :global([data-ponto]) {
     animation: none !important;
     transform: none !important;
   }
 
-  .abertura :global([data-ponto])::after {
+  .abertura[data-abertura] :global([data-ponto])::after {
     content: none !important;
   }
 }
