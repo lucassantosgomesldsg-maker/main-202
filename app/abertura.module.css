@@ -5,21 +5,37 @@
  * properties (--d-* e --t-*). Mexer numa duração lá empurra tudo aqui junto,
  * em vez de deixar dois números iguais se desencontrarem em silêncio.
  *
- * Toda regra é ancorada em
- * `.abertura[data-abertura="..."] :global([data-...])`. Os dois atributos não
- * são decoração: eles levam a especificidade para (0,3,0) e fazem esta folha
- * vencer as regras dos módulos dos componentes (Logo202.module.css,
- * Fundo202020.module.css) POR ESPECIFICIDADE, nunca por ordem de import — que,
- * segundo a doc do Next, é a ordem dos imports no código e muda quando alguém
- * reordena uma linha.
+ * Toda regra é ancorada em `.abertura[data-abertura...] :global([data-...])`
+ * — mas o valor do atributo depende do papel da regra:
+ *
+ *   - regras de PREPARO (independentes de estado — geometria que precisa
+ *     valer tanto tocando quanto estática) ancoram em
+ *     `.abertura[data-abertura]`, SEM valor. Nunca num valor específico: numa
+ *     visita repetida a página já nasce "estatica", e uma regra de preparo
+ *     ancorada em "tocando" simplesmente não existiria para essa visita;
+ *   - regras de COREOGRAFIA (dependentes de estado — o que de fato anima ou
+ *     não) ancoram em `.abertura[data-abertura="tocando"]` ou
+ *     `.abertura[data-abertura="estatica"]`.
+ *
+ * Nos dois casos os atributos não são decoração: eles levam a especificidade
+ * para (0,3,0) e fazem esta folha vencer as regras dos módulos dos
+ * componentes (Logo202.module.css, Fundo202020.module.css) POR
+ * ESPECIFICIDADE, nunca por ordem de import — que, segundo a doc do Next, é a
+ * ordem dos imports no código e muda quando alguém reordena uma linha.
  */
 
 /* Preparo do glifo do "0" para girar em torno do próprio centro (Task 4).
    Inerte enquanto não houver `transform`: transform-box e transform-origin
    sozinhos não movem nada. Fica aqui, e não em Logo202.module.css, porque é
    parte da coreografia — e porque é esta regra que ancora a classe .abertura
-   nesta folha. */
-.abertura :global([data-glifo][data-indice="1"] path) {
+   nesta folha.
+
+   Regra de PREPARO: ancorada em [data-abertura] sem valor, de propósito — ver
+   o cabeçalho acima. Numa visita repetida (data-abertura="estatica") o "0"
+   ainda precisa ter uma origem de rotação válida para o caso de algo animá-lo
+   depois; ancorar em [data-abertura="tocando"] apagaria essa garantia em
+   silêncio. */
+.abertura[data-abertura] :global([data-glifo][data-indice="1"] path) {
   transform-box: fill-box;
   transform-origin: center;
 }
