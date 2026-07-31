@@ -36,6 +36,14 @@ describe("montarGrade", () => {
     expect(g.colunas * 10).toBeGreaterThanOrEqual(1000 - PARAMETROS.padX);
     expect(g.linhas * 16).toBeGreaterThanOrEqual(600 - PARAMETROS.padY);
     expect(g.total).toBe(g.colunas * g.linhas);
+
+    // A folga de VERDADE, que é o que o nome deste teste promete: a última
+    // célula já começa fora da caixa. As duas asserções acima passam mesmo se o
+    // `+ 1` de `montarGrade` for apagado — o `Math.ceil` sozinho já as
+    // satisfaz — e aí sobraria a faixa apagada na borda que o `+ 1` existe
+    // justamente para evitar. Estas duas caem sem ele (996 < 1000, 596 < 600).
+    expect(PARAMETROS.padX + (g.colunas - 1) * 10).toBeGreaterThanOrEqual(1000);
+    expect(PARAMETROS.padY + (g.linhas - 1) * 16).toBeGreaterThanOrEqual(600);
   });
 
   it("devolve grade vazia quando a métrica ainda não existe", () => {

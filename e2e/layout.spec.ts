@@ -304,6 +304,92 @@ test.describe("com animações reduzidas", () => {
   });
 });
 
+/**
+ * O que o VISITANTE enxerga do fundo — e não o que está no backing store.
+ *
+ * `getImageData` lê o bitmap do canvas. Ele continua cheio de trama mesmo se
+ * o `.fundo` voltar ao `clip-path: circle(0%)` de repouso (que é o estado
+ * PADRÃO desta folha — basta a animação não rodar), ganhar `opacity: 0` ou for
+ * soterrado no z-index: os testes ficariam verdes com a página preta. Estas
+ * propriedades são o que decide se aquele bitmap chega aos olhos de alguém.
+ *
+ * O `.fundo` é alcançado pelo pai de `[data-lanterna]`, e não pela classe: ela
+ * é um CSS Module com hash e mudaria a cada build.
+ */
+async function visibilidadeDoFundo(page: Page) {
+  return page.evaluate(() => {
+    const fundo = document.querySelector("[data-lanterna]")!.parentElement!;
+    const canvas = document.querySelector("[data-lanterna] canvas") as HTMLElement;
+    const sf = getComputedStyle(fundo);
+    const sc = getComputedStyle(canvas);
+    return {
+      clipPath: sf.clipPath,
+      opacity: sf.opacity,
+      visibility: sf.visibility,
+      display: sf.display,
+      opacidadeCanvas: sc.opacity,
+      visibilidadeCanvas: sc.visibility,
+      displayCanvas: sc.display,
+    };
+  });
+}
+
+/**
+ * `none` (modo estático e movimento reduzido) ou o círculo aberto do fim da
+ * entrada (`circle(150% ...)`). O que este predicado existe para reprovar é o
+ * `circle(0% at 50% 50%)` do estado de repouso — qualquer outra forma cai como
+ * desconhecida de propósito, para ninguém trocar o recorte sem revisar isto.
+ */
+function clipPathCobreTudo(valor: string): boolean {
+  if (valor === "none" || valor === "") return true;
+  const m = /^circle\(\s*([\d.]+)%/.exec(valor);
+  return m ? Number(m[1]) >= 100 : false;
+}
+
+function esperaFundoVisivel(v: Awaited<ReturnType<typeof visibilidadeDoFundo>>) {
+  expect(v.visibility, "o fundo não está visível").toBe("visible");
+  expect(v.displayCanvas, "o canvas não é renderizado").not.toBe("none");
+  expect(v.visibilidadeCanvas, "o canvas não está visível").toBe("visible");
+  expect(v.display, "o fundo não é renderizado").not.toBe("none");
+  expect(Number(v.opacity), "o fundo está transparente").toBeGreaterThan(0.99);
+  expect(Number(v.opacidadeCanvas), "o canvas está transparente").toBeGreaterThan(0.99);
+  expect(
+    clipPathCobreTudo(v.clipPath),
+    `o fundo está recortado e não chega à tela: clip-path = ${v.clipPath}`,
+  ).toBe(true);
+}
+
+/**
+ * Um número que muda se QUALQUER pixel da trama mudar.
+ *
+ * FNV-1a sobre os bytes, calculado dentro da página: trazer o ImageData
+ * inteiro para o Node seriam megabytes por leitura, e o que interessa aqui é
+ * só "é o mesmo quadro ou não".
+ */
+async function assinaturaDaTrama(page: Page) {
+  return page.locator("[data-lanterna] canvas").evaluate((el: HTMLCanvasElement) => {
+    const ctx = el.getContext("2d")!;
+    const d = ctx.getImageData(0, 0, el.width, Math.min(200, el.height)).data;
+    let h = 2166136261;
+    for (let i = 0; i < d.length; i++) {
+      h ^= d[i];
+      h = Math.imul(h, 16777619);
+    }
+    return h >>> 0;
+  });
+}
+
+/** O verde mais claro da faixa de cima: separa "textura" de "fundo liso". */
+async function claroDaTrama(page: Page) {
+  return page.locator("[data-lanterna] canvas").evaluate((el: HTMLCanvasElement) => {
+    const ctx = el.getContext("2d")!;
+    const d = ctx.getImageData(0, 0, el.width, Math.min(200, el.height)).data;
+    let maximo = 0;
+    for (let i = 0; i < d.length; i += 4) maximo = Math.max(maximo, d[i + 1]);
+    return maximo;
+  });
+}
+
 test.describe("a malha viva", () => {
   test("cobre a viewport e não deixa coordenada para trás", async ({ page }) => {
     await page.goto("/");
@@ -322,17 +408,27 @@ test.describe("a malha viva", () => {
   test("a trama é visível antes de qualquer movimento de mouse", async ({ page }) => {
     await page.goto("/");
     await page.waitForTimeout(2500); // a entrada termina em 2000ms
-    const canvas = page.locator("[data-lanterna] canvas");
-    // Um pixel qualquer fora do centro precisa estar acima do preto puro: é o
-    // que separa "textura visível" de "fundo liso", que é o ponto da mudança.
-    const claro = await canvas.evaluate((el: HTMLCanvasElement) => {
-      const ctx = el.getContext("2d")!;
-      const d = ctx.getImageData(0, 0, el.width, Math.min(200, el.height)).data;
-      let maximo = 0;
-      for (let i = 0; i < d.length; i += 4) maximo = Math.max(maximo, d[i + 1]);
-      return maximo;
-    });
-    expect(claro).toBeGreaterThan(8);
+
+    // Duas afirmações diferentes, e as duas são necessárias:
+    // 1. o bitmap tem trama (getImageData);
+    // 2. o bitmap chega à tela (clip-path, opacity, visibility).
+    // Sozinha, a primeira passaria com a página inteira preta.
+    expect(await claroDaTrama(page)).toBeGreaterThan(8);
+    esperaFundoVisivel(await visibilidadeDoFundo(page));
+  });
+
+  test("a trama cintila sozinha: dois quadros a 300ms são diferentes", async ({ page }) => {
+    // Contraparte decisiva do teste de movimento reduzido logo abaixo. Sem
+    // este par, aquele teste passaria com a cintilação ligada — o corpo dele
+    // era igual ao deste, e nenhum dos dois olhava para o que os separa.
+    await page.goto("/");
+    await page.waitForTimeout(2500);
+
+    const antes = await assinaturaDaTrama(page);
+    await page.waitForTimeout(300); // sem tocar no mouse
+    const depois = await assinaturaDaTrama(page);
+
+    expect(depois, "a malha não respirou em 300ms").not.toBe(antes);
   });
 });
 
@@ -364,14 +460,26 @@ test.describe("com movimento reduzido", () => {
     const canvas = page.locator("[data-lanterna] canvas");
     await expect(canvas).toHaveCount(1);
 
-    const claro = await canvas.evaluate((el: HTMLCanvasElement) => {
-      const ctx = el.getContext("2d")!;
-      const d = ctx.getImageData(0, 0, el.width, Math.min(200, el.height)).data;
-      let maximo = 0;
-      for (let i = 0; i < d.length; i += 4) maximo = Math.max(maximo, d[i + 1]);
-      return maximo;
-    });
-    expect(claro).toBeGreaterThan(8);
+    expect(await claroDaTrama(page)).toBeGreaterThan(8);
+    esperaFundoVisivel(await visibilidadeDoFundo(page));
     expect(erros).toEqual([]);
+  });
+
+  test("a trama fica PARADA: dois quadros a 300ms são idênticos", async ({ page }) => {
+    // Esta é a asserção que decide. Até aqui o corpo deste bloco era igual ao
+    // do teste sem preferência nenhuma — ele afirmava só "a trama aparece e
+    // nada quebra", que continuaria verdade com a cintilação ligada, e não
+    // provava nada sobre o comportamento reduzido. Sem mexer no mouse, com
+    // `cintila = false` e `devePular` funcionando, o laço não repinta e o
+    // bitmap não pode mudar um único byte. O par que separa os dois estados é
+    // "a trama cintila sozinha", no bloco da malha viva.
+    await page.goto("/");
+    await page.waitForTimeout(1000);
+
+    const antes = await assinaturaDaTrama(page);
+    await page.waitForTimeout(300); // sem tocar no mouse
+    const depois = await assinaturaDaTrama(page);
+
+    expect(depois, "a malha se mexeu com movimento reduzido ligado").toBe(antes);
   });
 });

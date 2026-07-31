@@ -1,6 +1,20 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Fundo202020 from "./Fundo202020";
+
+/**
+ * O CSS Module da vinheta, lido como texto — ver o teste da vinheta.
+ *
+ * Pela raiz do projeto, e não por `import.meta.url`: sob o vitest o
+ * `import.meta.url` do módulo transformado não é `file:`, e o `readFileSync`
+ * recusa ("The URL must be of scheme file").
+ */
+const CSS_FUNDO = readFileSync(
+  resolve(process.cwd(), "components/Fundo202020.module.css"),
+  "utf8"
+);
 
 describe("Fundo202020", () => {
   beforeEach(() => {
@@ -40,7 +54,25 @@ describe("Fundo202020", () => {
 
   it("tem a vinheta, e ela não intercepta o mouse", () => {
     const { container } = render(<Fundo202020 />);
-    expect(container.querySelector("[data-vinheta]")).not.toBeNull();
+    const vinheta = container.querySelector("[data-vinheta]");
+    expect(vinheta).not.toBeNull();
+    // A classe sai MESMO do CSS Module desta pasta, e não de um `className`
+    // solto — é o que liga o elemento à regra conferida logo abaixo.
+    expect(vinheta!.className).toMatch(/vinheta/);
+
+    // `getComputedStyle` não serve aqui: este projeto não pede `css: true` ao
+    // vitest, então `document.styleSheets.length` é 0 no jsdom e TODA
+    // propriedade sai no valor inicial — `pointer-events: auto`. Uma asserção
+    // sobre o computado passaria idêntica com a regra apagada, que é o
+    // contrário do que este teste precisa provar. Quem guarda a regra é o
+    // arquivo, então é o arquivo que se afirma.
+    //
+    // Isto importa de verdade: a vinheta é `position: absolute; inset: 0` e
+    // cobre a tela toda. Sem `pointer-events: none` ela fica por cima do
+    // CONTATO e do seletor de idioma, e os dois param de receber clique.
+    const regra = /\.vinheta\s*\{[^}]*\}/.exec(CSS_FUNDO)?.[0] ?? "";
+    expect(regra, ".vinheta sumiu do CSS Module").not.toBe("");
+    expect(regra).toMatch(/pointer-events:\s*none/);
   });
 
   it("não desenha mais a malha como texto no DOM", () => {
