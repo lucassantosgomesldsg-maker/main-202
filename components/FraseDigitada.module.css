@@ -45,15 +45,33 @@
 
 /* `forwards` e não `both`: com `both` o cursor já estaria aceso ANTES do
    atraso correr, e os 47 cursores apareceriam todos juntos no carregamento.
-   `steps(1, end)` segura a opacidade em 1 durante a fatia inteira do
-   caractere e derruba para 0 no fim dela — um cursor aceso por vez. */
+   Isto NÃO usa `steps(1, end)`, e o motivo é medido, não gosto: numa página
+   real (Chromium, via `document.getAnimations()`), a animação do caractere 0
+   chegava a `playState: "finished"` com `currentTime` já em `endTime`, mas
+   `progress` em 0.9999999999999943 — nunca o `1.0` exato. `steps(1, end)` é,
+   na prática, `floor(progress × 1)`: qualquer valor abaixo de `1.0`, mesmo
+   por uma fração de ponto flutuante, cai no keyframe inicial. Com
+   `forwards`, esse valor fica congelado — 46 dos 47 cursores acendiam e
+   nunca apagavam. O e2e de `e2e/layout.spec.ts` ("termina com a frase
+   inteira acesa e nenhum cursor aceso") foi o que flagrou isto; não havia
+   como o jsdom do vitest ver esta folha.
+   A troca por `linear` com um platô em keyframes (0%–99% aceso, 100% apaga)
+   não depende de `progress` bater exatamente em `1.0` em ponto nenhum: ele
+   só precisa CRUZAR o limiar de 99%, e `forwards` prende no valor final
+   assim que a duração passa — não importa se o navegador mede o fim como
+   0.999...94 ou 1.0. Isso custa 0.34ms de fade dentro da fatia de 34ms do
+   caractere (1% de 34ms), imperceptível a olho nu e indistinguível de um
+   corte seco. Não trocar de volta para `steps(1, end)` sem reler este
+   comentário — é exatamente essa "simplificação" que reintroduz o bug. */
 .frase[data-estatica="false"] .caractere::after {
-  animation: cursor-apaga var(--d-caractere) steps(1, end) var(--atraso) forwards;
+  animation: cursor-passa var(--d-caractere) linear var(--atraso) forwards;
 }
 
 /* O último caractere não passa a bola para ninguém: o cursor fica nele e some
    em fade. Esta regra é mais específica e vence inteira — `animation` é uma
-   propriedade só, não se mistura. */
+   propriedade só, não se mistura. Continua em `cursor-apaga`/`linear`: essa
+   combinação já resolvia certo (fade de verdade ao longo de --d-cursor, bem
+   mais folgado que 34ms), então não muda. */
 .frase[data-estatica="false"] .caractere[data-ultimo="true"]::after {
   animation: cursor-apaga var(--d-cursor) linear var(--atraso) forwards;
 }
@@ -64,6 +82,20 @@
   }
 }
 
+/* Cursor de cada caractere comum, enquanto ele é digitado. Ver o comentário
+   acima da regra que usa isto: o platô em 99% substitui `steps(1, end)`. */
+@keyframes cursor-passa {
+  0%,
+  99% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Cursor do ÚLTIMO caractere: fade de verdade, não um platô — ele precisa
+   sumir visivelmente, não só cortar. */
 @keyframes cursor-apaga {
   from {
     opacity: 1;
