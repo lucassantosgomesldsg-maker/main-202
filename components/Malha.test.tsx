@@ -1,7 +1,7 @@
 import { render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Lanterna from "./Lanterna";
-import Malha from "./Malha";
+import Malha, { lerPx } from "./Malha";
 
 /**
  * O laço de desenho NÃO é testável aqui: o jsdom não implementa contexto 2d,
@@ -44,5 +44,35 @@ describe("Malha", () => {
       </Lanterna>
     );
     expect(container.querySelector("[data-lanterna] canvas")).not.toBeNull();
+  });
+});
+
+/**
+ * `lerPx` não toca canvas nenhum — só `getComputedStyle` sobre um elemento
+ * qualquer — então dá para testar sem contexto 2d, ao contrário do laço de
+ * desenho acima.
+ */
+describe("lerPx", () => {
+  it("aceita um valor em px", () => {
+    const el = document.createElement("div");
+    document.body.appendChild(el);
+    el.style.setProperty("--raio-lanterna", "192px");
+    expect(lerPx(el, "--raio-lanterna", 300)).toBe(192);
+    el.remove();
+  });
+
+  it("rejeita rem e cai no padrão — o navegador não converte unidade de custom property não registrada", () => {
+    const el = document.createElement("div");
+    document.body.appendChild(el);
+    el.style.setProperty("--raio-lanterna", "12rem");
+    expect(lerPx(el, "--raio-lanterna", 300)).toBe(300);
+    el.remove();
+  });
+
+  it("cai no padrão quando a variável não está definida", () => {
+    const el = document.createElement("div");
+    document.body.appendChild(el);
+    expect(lerPx(el, "--raio-lanterna", 300)).toBe(300);
+    el.remove();
   });
 });

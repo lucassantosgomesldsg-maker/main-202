@@ -17,11 +17,16 @@ import {
 // react-hooks só reconhece hook pelo prefixo `use` no ponto da chamada.
 import { usaLanternaViva as useLanternaViva } from "./Lanterna";
 import estilos from "./Malha.module.css";
+import type { PosicaoViva } from "@/lib/usaLanterna";
 
-// Sem `as const`: este valor é espalhado em `ultima`, uma variável mutável
-// reatribuída com números e booleanos "largos" a cada quadro — com o tipo
-// literal (`0`, `1`, `false`) o tsc rejeitaria essa reatribuição.
-const PARADA = { x: 0, y: 0, escala: 1, ativa: false };
+// `as const`: PARADA é o "sem luz" compartilhado por toda instância de
+// `Malha` — precisa continuar somente-leitura para o tsc barrar qualquer
+// `luz.x = ...` futuro dentro do laço de desenho, que envenenaria esse
+// default de forma permanente e silenciosa entre quadros (e entre páginas,
+// já que é um singleton de módulo). `ultima`, que É mutável de propósito,
+// ganha o tipo largo (`PosicaoViva`) explicitamente em vez de herdar os
+// literais por inferência — ver o comentário junto da declaração dela.
+const PARADA = { x: 0, y: 0, escala: 1, ativa: false } as const;
 
 function consulta(pergunta: string): boolean {
   if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
@@ -30,10 +35,22 @@ function consulta(pergunta: string): boolean {
   return window.matchMedia(pergunta).matches;
 }
 
-/** Lê um comprimento de custom property, uma vez. Nunca dentro do quadro. */
-function lerPx(elemento: Element, nome: string, padrao: number): number {
+/**
+ * Lê um comprimento de custom property, uma vez. Nunca dentro do quadro.
+ *
+ * Só aceita px. Custom property não é propriedade registrada (sem
+ * `@property`), então o navegador NUNCA converte unidade — `getPropertyValue`
+ * devolve o texto cru escrito no CSS. Se aceitássemos qualquer número, um
+ * token escrito em `rem` (ou `em`, `%`, ...) daria `Number.parseFloat` feliz
+ * e um valor silenciosamente errado — `"12rem"` vira `12`, um raio dez vezes
+ * menor que o pretendido, sem erro nenhum e sem teste que pegue isso. Melhor
+ * cair no padrão do que desenhar com a unidade trocada.
+ */
+export function lerPx(elemento: Element, nome: string, padrao: number): number {
   const bruto = getComputedStyle(elemento).getPropertyValue(nome).trim();
-  const n = Number.parseFloat(bruto);
+  const m = /^(-?\d+(?:\.\d+)?)px$/.exec(bruto);
+  if (!m) return padrao;
+  const n = Number.parseFloat(m[1]);
   return Number.isFinite(n) && n > 0 ? n : padrao;
 }
 
@@ -96,7 +113,15 @@ export default function Malha() {
     let quadroId = 0;
     let alternado = false;
     let precisaDesenhar = true;
-    let ultima = { ...PARADA };
+    // Mesmo padrão de `precisaMedir` em lib/usaLanterna.ts: o ResizeObserver só
+    // marca; quem chama `construir()` de fato é o `quadro`, no máximo uma vez
+    // por quadro — nunca uma vez por notificação do observador.
+    let precisaConstruir = false;
+    // A Promise de `document.fonts.load` pode resolver depois de desmontar
+    // (ou, no StrictMode, sobre a closure de um efeito já descartado): sem
+    // esta trava, o `.then` chamaria `construir()` sobre um canvas morto.
+    let vivo = true;
+    let ultima: PosicaoViva = { ...PARADA };
 
     const construir = () => {
       const r = caixa.getBoundingClientRect();
@@ -202,6 +227,18 @@ export default function Malha() {
     const quadro = (t: number) => {
       quadroId = requestAnimationFrame(quadro);
 
+      // Redimensionar é raro e pesado (refaz a grade, re-sorteia as células —
+      // apagando o rastro e as fases da cintilação — e rasteriza a trama
+      // inteira em milhares de `fillText`). Rodar aqui, e não dentro do
+      // callback do observador, garante no máximo uma reconstrução por
+      // quadro mesmo que o observador dispare várias notificações seguidas
+      // (um arrasto de redimensionamento, ou a notificação inicial que todo
+      // ResizeObserver dispara logo após `observe()`).
+      if (precisaConstruir) {
+        precisaConstruir = false;
+        construir();
+      }
+
       // Ponteiro grosso: metade dos quadros. A respiração usa sin(t * 0.8) —
       // lenta o bastante para 30 quadros por segundo serem indistinguíveis de
       // 60, e o celular é justamente quem tem menos bateria para gastar.
@@ -249,22 +286,29 @@ export default function Malha() {
 
     const observador =
       typeof ResizeObserver === "function"
-        ? new ResizeObserver(() => construir())
+        ? new ResizeObserver(() => {
+            precisaConstruir = true;
+          })
         : null;
     observador?.observe(caixa);
 
     document.addEventListener("visibilitychange", aoTrocarVisibilidade);
 
     // A métrica muda quando a The Seasons chega: sem remontar a base, a trama
-    // fica desenhada com a largura da Fraunces e some o alinhamento.
+    // fica desenhada com a largura da Fraunces e some o alinhamento. Guardado
+    // por `vivo`: se o componente desmontar antes da Promise resolver, este
+    // `.then` não pode chamar `construir()` sobre um canvas morto.
     if (typeof document !== "undefined" && document.fonts?.load) {
       document.fonts
         .load(`400 ${PARAMETROS.tamanhoFonte}px "The Seasons"`)
-        .then(() => construir())
+        .then(() => {
+          if (vivo) construir();
+        })
         .catch(() => {});
     }
 
     return () => {
+      vivo = false;
       dormir();
       observador?.disconnect();
       document.removeEventListener("visibilitychange", aoTrocarVisibilidade);
