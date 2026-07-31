@@ -1,3 +1,15 @@
+/* A letra da malha de fundo. Recortada para "2" e "0" por
+   scripts/gerar-fonte-malha.mjs — o .ttf de origem não vive no repo.
+   `swap`: enquanto ela não chega, a malha desenha com a Fraunces, que já está
+   em memória, e se redesenha quando a troca acontece. */
+@font-face {
+  font-family: "The Seasons";
+  src: url("/fonts/the-seasons-20.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* Tokens copiados de design_system/tokens.css do repo da trilha, sem alteração
    de valor. Os @font-face da The Seasons ficaram de fora: aquela fonte só vive
    no logo, e o logo aqui é SVG. */
