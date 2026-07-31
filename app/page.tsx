@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import MotionD from "@/components/motion/MotionD";
+import { useEffect, useState, type CSSProperties } from "react";
+import Palco from "@/components/Palco";
 import SeletorIdioma from "@/components/SeletorIdioma";
 // O alias `as useMotionUmaVez` não é cosmético: a regra react-hooks só
 // reconhece uma chamada como hook pelo NOME no ponto da chamada. Com o nome
@@ -10,7 +10,9 @@ import SeletorIdioma from "@/components/SeletorIdioma";
 // lint, tsc e build, e derrubava a página em runtime. O export segue em
 // português (convenção do projeto); só o identificador local muda.
 import { usaMotionUmaVez as useMotionUmaVez } from "@/lib/usaMotionUmaVez";
+import { TEMPOS } from "@/lib/abertura";
 import { COPY, INSTAGRAM, titulo, type Idioma } from "@/lib/copy";
+import estilos from "./abertura.module.css";
 
 const CHAVE_IDIOMA = "202:idioma";
 
@@ -42,7 +44,16 @@ export default function Home() {
   }
 
   return (
-    <main className="tela">
+    <main
+      className={`tela ${estilos.abertura}`}
+      /* O interruptor único da coreografia. As três regiões da página (.topo,
+         .centro, .base) penduram nele — assim não têm como discordar entre si
+         sobre estar tocando ou não. Nasce "tocando" para o HTML do servidor
+         bater com o primeiro render do cliente; quem já viu a entrada nesta
+         sessão vira "estatica" no efeito de usaMotionUmaVez. */
+      data-abertura={jaRodou ? "estatica" : "tocando"}
+      style={TEMPOS as CSSProperties}
+    >
       {/* Único dono do <title>: app/layout.tsx deliberadamente não declara
           metadata.title (ver comentário lá). O React 19 hoista este elemento
           para o <head> de onde quer que ele esteja na árvore — é o jeito
@@ -66,7 +77,7 @@ export default function Home() {
       </header>
 
       <div className="centro">
-        <MotionD estatico={jaRodou} />
+        <Palco />
       </div>
 
       <footer className="base">

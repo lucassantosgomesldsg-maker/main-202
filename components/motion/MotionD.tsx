@@ -1,3 +1,19 @@
+/* ───────────────────────────────────────────────────────────────────────────
+ * ARQUIVADO em 31/07/2026. Nenhum arquivo da aplicação importa este.
+ *
+ * Era a entrada da página: a malha crescia do centro para fora, depois a logo
+ * abria do meio para os lados, e o ponto verde acendia por último. Foi
+ * substituído pela abertura de lib/abertura.ts + app/abertura.module.css — a
+ * logo cresce girando o "0", o topo entra pelas laterais, a frase é digitada.
+ *
+ * Fica no repo inteiro e com os testes rodando, de propósito, para o efeito
+ * poder voltar sem arqueologia de git.
+ *
+ * Para religar: renderize <MotionD estatico={jaRodou}/> dentro de .centro em
+ * app/page.tsx, no lugar de <Palco/>. As duas coreografias animam [data-logo]
+ * e [data-ponto] — então desligue também as regras correspondentes de
+ * app/abertura.module.css, senão elas brigam por especificidade.
+ * ─────────────────────────────────────────────────────────────────────────── */
 "use client";
 
 import type { CSSProperties } from "react";

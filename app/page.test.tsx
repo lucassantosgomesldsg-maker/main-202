@@ -1,7 +1,18 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
+import { INICIO_FRASE, INICIO_TOPO } from "@/lib/abertura";
+import { __resetarParaTeste } from "@/lib/usaMotionUmaVez";
 import Home from "./page";
+
+// A guarda de módulo de usaMotionUmaVez e o sessionStorage sobrevivem entre
+// casos do mesmo arquivo. Sem zerar os dois, o primeiro render decide por
+// todos e as asserções sobre `data-abertura` passariam por ordem, não por
+// comportamento.
+beforeEach(() => {
+  __resetarParaTeste();
+  window.sessionStorage.clear();
+});
 
 describe("a tela", () => {
   it("mostra o oneliner em português, quebrado em duas linhas", () => {
@@ -56,5 +67,32 @@ describe("troca de idioma", () => {
     window.localStorage.setItem("202:idioma", "en");
     render(<Home />);
     expect(screen.getByText("We amplify talent.")).toBeInTheDocument();
+  });
+});
+
+describe("a abertura", () => {
+  it("nasce tocando: o HTML do servidor não pula a entrada", () => {
+    const { container } = render(<Home />);
+    expect(container.querySelector("main")).toHaveAttribute(
+      "data-abertura",
+      "tocando",
+    );
+  });
+
+  it("entrega os tempos da coreografia ao CSS, no <main>", () => {
+    const { container } = render(<Home />);
+    const tela = container.querySelector("main") as HTMLElement;
+
+    // Os dois que carregam a ordem dos atos:
+    expect(tela.style.getPropertyValue("--t-topo")).toBe(`${INICIO_TOPO}ms`);
+    expect(tela.style.getPropertyValue("--t-frase")).toBe(`${INICIO_FRASE}ms`);
+  });
+
+  it("desenha o palco com o fundo e a logo dentro", () => {
+    const { container } = render(<Home />);
+    const palco = container.querySelector("[data-palco]");
+    expect(palco).not.toBeNull();
+    expect(palco!.querySelector("[data-logo]")).not.toBeNull();
+    expect(palco!.querySelector("[data-lanterna]")).not.toBeNull();
   });
 });

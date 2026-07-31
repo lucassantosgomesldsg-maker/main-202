@@ -1,0 +1,27 @@
+/* A geometria herdada do MotionD.module.css (arquivado). Nada aqui anima. */
+
+.palco {
+  /* Cobre a seção inteira — o ancestral posicionado mais próximo é .tela —
+     para a malha ser fundo de tela cheia e não um retângulo do tamanho da
+     logo. */
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+/* Dois seletores de classe de propósito: precisa vencer o `position: fixed`
+   de .fundo em Fundo202020.module.css sem depender da ordem em que os dois
+   CSS modules entram no bundle — a doc do Next é explícita ao dizer que essa
+   ordem é a ordem dos imports no código. Aqui a malha é fundo desta seção, e
+   não da viewport: é isso que faz a lanterna acertar o cursor. */
+.palco .fundo {
+  position: absolute;
+}
+
+.logo {
+  position: relative;
+  z-index: 1;
+}
