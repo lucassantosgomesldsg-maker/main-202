@@ -12,6 +12,7 @@ import SeletorIdioma from "@/components/SeletorIdioma";
 import { usaMotionUmaVez as useMotionUmaVez } from "@/lib/usaMotionUmaVez";
 import { TEMPOS } from "@/lib/abertura";
 import { COPY, INSTAGRAM, titulo, type Idioma } from "@/lib/copy";
+import FraseDigitada from "@/components/FraseDigitada";
 import estilos from "./abertura.module.css";
 
 const CHAVE_IDIOMA = "202:idioma";
@@ -86,17 +87,11 @@ export default function Home() {
             cima da frase. Decisão explícita do Lucas.
 
             É <h1> e não <p>: é a única frase da página que descreve o que a
-            202 faz, então é o título dela para leitor de tela e para busca —
-            a página vinha com zero heading. Os <span> por linha continuam:
-            os testes (unitário e e2e) casam texto linha a linha. Nada muda
-            visualmente — `.oneliner` já define família, peso e tamanho, e o
-            reset `* { margin: 0 }` no topo de globals.css já zerava a margem
-            que o h1 traria por padrão. */}
-        <h1 className="oneliner" data-ima="oneliner">
-          <span>{t.onelinerLinhas[0]}</span>
-          <br />
-          <span>{t.onelinerLinhas[1]}</span>
-        </h1>
+            202 faz, então é o título dela para leitor de tela e para busca.
+            Quem desenha o <h1>, os <span> por linha e os <span> por caractere
+            é components/FraseDigitada — inclusive a digitação, que é CSS puro
+            e não depende de JavaScript. */}
+        <FraseDigitada idioma={idioma} estatica={jaRodou} />
       </footer>
     </main>
   );

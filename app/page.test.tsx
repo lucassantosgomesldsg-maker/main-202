@@ -14,11 +14,19 @@ beforeEach(() => {
   window.sessionStorage.clear();
 });
 
+/** A frase virou um <span> por caractere, e o `getByText` do testing-library
+ *  só casa nós de texto DIRETOS de um elemento — por isso as asserções de
+ *  frase passam a ser por linha, com toHaveTextContent. */
+function linhas(container: HTMLElement) {
+  return container.querySelectorAll("[data-linha]");
+}
+
 describe("a tela", () => {
   it("mostra o oneliner em português, quebrado em duas linhas", () => {
-    render(<Home />);
-    expect(screen.getByText("Potencializamos talentos e")).toBeInTheDocument();
-    expect(screen.getByText("construímos o futuro.")).toBeInTheDocument();
+    const { container } = render(<Home />);
+    expect(linhas(container)).toHaveLength(2);
+    expect(linhas(container)[0]).toHaveTextContent("Potencializamos talentos e");
+    expect(linhas(container)[1]).toHaveTextContent("construímos o futuro.");
   });
 
   it("não mostra mais coordenadas nem cidade no rodapé", () => {
@@ -43,10 +51,10 @@ describe("a tela", () => {
 
 describe("troca de idioma", () => {
   it("troca o oneliner e o rótulo de contato para inglês", async () => {
-    render(<Home />);
+    const { container } = render(<Home />);
     await userEvent.click(screen.getByRole("button", { name: "EN" }));
-    expect(screen.getByText("We amplify talent.")).toBeInTheDocument();
-    expect(screen.getByText("We build the future.")).toBeInTheDocument();
+    expect(linhas(container)[0]).toHaveTextContent("We amplify talent.");
+    expect(linhas(container)[1]).toHaveTextContent("We build the future.");
     expect(screen.getByRole("link", { name: /CONTACT/ })).toBeInTheDocument();
   });
 
@@ -59,14 +67,14 @@ describe("troca de idioma", () => {
   });
 
   it("começa em português mesmo que o navegador esteja em inglês", () => {
-    render(<Home />);
-    expect(screen.getByText("Potencializamos talentos e")).toBeInTheDocument();
+    const { container } = render(<Home />);
+    expect(linhas(container)[0]).toHaveTextContent("Potencializamos talentos e");
   });
 
   it("restaura o idioma guardado numa visita seguinte", () => {
     window.localStorage.setItem("202:idioma", "en");
-    render(<Home />);
-    expect(screen.getByText("We amplify talent.")).toBeInTheDocument();
+    const { container } = render(<Home />);
+    expect(linhas(container)[0]).toHaveTextContent("We amplify talent.");
   });
 });
 

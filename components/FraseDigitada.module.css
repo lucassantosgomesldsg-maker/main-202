@@ -1,0 +1,101 @@
+/* A digitação. Nenhum tempo literal: --t-frase, --d-caractere e --d-cursor
+ * vêm de lib/abertura.ts, pendurados no <main> por app/page.tsx. */
+
+.caractere {
+  /* O atraso deste caractere, derivado do índice que o React pôs em --i. É
+     isto que substitui o timer. */
+  --atraso: calc(var(--t-frase) + var(--i) * var(--d-caractere));
+
+  /* `relative` para o cursor (::after) se ancorar no fim deste caractere sem
+     ninguém medir offsetLeft quadro a quadro. Num elemento inline, `relative`
+     não muda o layout. NÃO virar inline-block: isso quebraria o kerning da
+     fonte display. */
+  position: relative;
+
+  /* opacity, e não visibility: visibility:hidden tiraria o caractere da
+     árvore de acessibilidade, e o leitor de tela leria um <h1> vazio durante
+     a entrada inteira. Com opacity ele continua na árvore e continua
+     ocupando o mesmo espaço — o que também evita pulo de layout e mantém o
+     ímã da lanterna acertando a caixa certa do começo ao fim. */
+  opacity: 0;
+}
+
+.caractere::after {
+  content: "";
+  position: absolute;
+  left: 100%;
+  top: 0.06em;
+  width: 0.06em;
+  height: 1em;
+  /* Verde de propósito: a §6 do spec da main page fecha com "o ponto verde
+     acende por último, sempre". Esta coreografia encerra com a frase, então
+     quem fecha em verde passa a ser o cursor. */
+  background: var(--verde-sinal);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ── Tocando ────────────────────────────────────────────────────────────── */
+
+/* 1ms, e não um fade: a 34ms de cadência, um fade de 90ms deixaria três
+   caracteres meio-transparentes ao mesmo tempo — vira borrão, não digitação. */
+.frase[data-estatica="false"] .caractere {
+  animation: caractere-surge 1ms linear var(--atraso) forwards;
+}
+
+/* `forwards` e não `both`: com `both` o cursor já estaria aceso ANTES do
+   atraso correr, e os 47 cursores apareceriam todos juntos no carregamento.
+   `steps(1, end)` segura a opacidade em 1 durante a fatia inteira do
+   caractere e derruba para 0 no fim dela — um cursor aceso por vez. */
+.frase[data-estatica="false"] .caractere::after {
+  animation: cursor-apaga var(--d-caractere) steps(1, end) var(--atraso) forwards;
+}
+
+/* O último caractere não passa a bola para ninguém: o cursor fica nele e some
+   em fade. Esta regra é mais específica e vence inteira — `animation` é uma
+   propriedade só, não se mistura. */
+.frase[data-estatica="false"] .caractere[data-ultimo="true"]::after {
+  animation: cursor-apaga var(--d-cursor) linear var(--atraso) forwards;
+}
+
+@keyframes caractere-surge {
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes cursor-apaga {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* ── Estático (visita repetida na mesma sessão) ─────────────────────────── */
+
+.frase[data-estatica="true"] .caractere {
+  opacity: 1;
+}
+
+.frase[data-estatica="true"] .caractere::after {
+  content: none;
+}
+
+/* ── prefers-reduced-motion ─────────────────────────────────────────────── */
+
+/* !important de propósito, e zerando a ANIMAÇÃO inteira: o bloco de
+   globals.css zera `animation-duration`, mas não zera `animation-delay` —
+   sozinho, ele deixaria os 47 caracteres surgirem escalonados ao longo de
+   1,6s, com duração zero e atrasos intactos. Isso ainda é movimento. */
+@media (prefers-reduced-motion: reduce) {
+  .caractere {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+
+  .caractere::after {
+    content: none !important;
+  }
+}
