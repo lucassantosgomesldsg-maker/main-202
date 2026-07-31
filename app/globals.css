@@ -36,12 +36,14 @@
      corpo fixo de 18px), e uma ponta em rem faria o raio dessincronizar da
      trama se o visitante mudasse o tamanho de fonte do navegador. */
   --raio-lanterna: 300px;
-  /* Posição de repouso, antes do primeiro movimento do mouse — e o valor
-     definitivo em ponteiro grosso, onde nenhum JS escreve por cima. */
+  /* As três abaixo são a posição e a escala da luz em TEXTO, escritas quadro a
+     quadro por lib/usaLanterna no elemento [data-lanterna]. Quem desenha não
+     lê nenhuma delas: a malha (components/Malha.tsx) usa o ref numérico, e o
+     repouso dela é {x:0, y:0, ativa:false} — sem luz nenhuma, não "no centro".
+     Estes valores são só o ponto de partida da cascata, para as variáveis
+     existirem antes do primeiro quadro e para quem quiser lê-las de fora. */
   --lanterna-x: 50%;
   --lanterna-y: 50%;
-  /* Multiplicador do raio, escrito quadro a quadro pelo ímã (lib/usaLanterna).
-     1 é a luz livre; ela cresce até --escala-lanterna 2 ao grudar num alvo. */
   --escala-lanterna: 1;
 
   --tracking-label: 0.1em;
@@ -128,13 +130,16 @@ a:focus-visible, button:focus-visible {
   letter-spacing: -0.01em;
 }
 
-@media (max-width: 720px) {
-  .base {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1.5rem;
-  }
-}
+/* O `@media (max-width: 720px)` que empilhava `.base` em coluna saiu em
+   31/07/2026. Ele existia para separar o oneliner das coordenadas no celular;
+   com as coordenadas fora da página, `.base` tem UM filho só, e aí nada do que
+   a regra fazia tem efeito: `flex-direction` não muda a posição de um item
+   único (o container tem altura de conteúdo, então o `align-items` do eixo
+   cruzado não tem folga para distribuir), `justify-content: space-between`
+   com um item o deixa no início em qualquer direção, e `gap` só existe ENTRE
+   filhos. Conferido no navegador em 390x844, 320x568 e 720x800: a caixa de
+   `.base` e a de `.oneliner` saem idênticas ao centésimo de pixel com e sem a
+   regra. Se algum dia `.base` ganhar um segundo filho, a regra precisa voltar. */
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

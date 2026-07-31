@@ -432,8 +432,11 @@ function consulta(pergunta: string): boolean {
  * rolável.
  *
  * Qualquer elemento da página com `data-ima` vira um ímã: a luz é capturada
- * por ele, puxada ao centro e crescida (`--escala-lanterna`, que o CSS
- * multiplica por `--raio-lanterna`) até o cursor ser puxado longe o bastante.
+ * por ele, puxada ao centro e crescida (`--escala-lanterna`) até o cursor ser
+ * puxado longe o bastante. Quem multiplica essa escala pelo raio é
+ * `components/Malha.tsx`, em número, dentro do laço de desenho — CSS nenhum
+ * multiplica nada desde que a máscara foi apagada. A variável continua sendo
+ * escrita porque é a mesma verdade em texto, para quem quiser ler de fora.
  * O atributo é só uma marca — nada de `pointer-events`, nada de listener no
  * alvo — então clique, foco e teclado do elemento marcado continuam
  * exatamente como eram.
