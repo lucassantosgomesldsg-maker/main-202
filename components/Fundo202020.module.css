@@ -7,62 +7,15 @@
   user-select: none;
 }
 
-/* As duas camadas precisam ser tipograficamente idênticas, senão a malha da
-   luz não cai em cima da malha da base e o texto aparece dobrado. Por isso a
-   métrica vive aqui, uma vez, e não em cada camada. */
-.base,
-.luz {
+/* A vinheta da referência: some no meio, fecha nos cantos. `pointer-events`
+   nenhum porque ela cobre a tela toda e o CONTATO precisa continuar clicável. */
+.vinheta {
   position: absolute;
   inset: 0;
-  overflow: hidden;
-  font-family: var(--fonte-mono), ui-monospace, monospace;
-  font-size: 1.25rem;
-  line-height: 1.35;
-  letter-spacing: 0.08em;
-  word-break: break-all;
-}
-
-.base {
-  color: var(--padrao-base);
-}
-
-.luz {
-  color: var(--padrao-luz);
-  /* O buraco de luz. --lanterna-x/y e --escala-lanterna vêm do <Lanterna> pai
-     (herdadas), e são escritas quadro a quadro dentro do
-     requestAnimationFrame — mudar só a posição e o raio de uma máscara não
-     invalida layout nenhum.
-
-     O raio é o token vezes a escala do ímã: a lógica em lib/usaLanterna nunca
-     precisa saber quantos pixels tem o raio, só quantas vezes ele cresce. E o
-     círculo continua círculo ao capturar — cresce, não vira o retângulo do
-     alvo (é assim na referência, graffio.co). */
-  -webkit-mask-image: radial-gradient(
-    circle calc(var(--raio-lanterna) * var(--escala-lanterna)) at
-      var(--lanterna-x) var(--lanterna-y),
-    #000 0%,
-    rgba(0, 0, 0, 0.55) 45%,
-    transparent 75%
+  pointer-events: none;
+  background: radial-gradient(
+    120% 120% at 50% 45%,
+    transparent 55%,
+    rgba(0, 0, 0, 0.55) 100%
   );
-  mask-image: radial-gradient(
-    circle calc(var(--raio-lanterna) * var(--escala-lanterna)) at
-      var(--lanterna-x) var(--lanterna-y),
-    #000 0%,
-    rgba(0, 0, 0, 0.55) 45%,
-    transparent 75%
-  );
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-}
-
-/* Ponteiro grosso: celular e tablet não têm cursor. Sem isto o visitante de
-   celular veria um fundo quase preto e vazio — então a lanterna some e a
-   malha inteira volta ao #101010 aprovado na fatia 1. */
-@media (pointer: coarse) {
-  .base {
-    color: var(--padrao-202020);
-  }
-  .luz {
-    display: none;
-  }
 }

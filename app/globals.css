@@ -11,28 +11,31 @@
 }
 
 /* Tokens copiados de design_system/tokens.css do repo da trilha, sem alteração
-   de valor. Os @font-face da The Seasons ficaram de fora: aquela fonte só vive
-   no logo, e o logo aqui é SVG. */
+   de valor. O @font-face da The Seasons, acima, não é mais exclusivo do logo
+   (que continua SVG): a malha de fundo (components/Malha.tsx) também desenha
+   com essa fonte. */
 :root {
   --preto-202: #0a0a0a;
   --branco-202: #ffffff;
   --cinza-texto: #8b8b85;
   --cinza-linha: #262626;
   --verde-sinal: #c6ff3e;
-  --padrao-202020: #101010;
 
   /* Verde de fósforo de terminal antigo. NÃO é cor de marca e não deve virar
      uma: o Verde Sinal (--verde-sinal, #c6ff3e) puxa para o amarelo-limão e
-     não lê como código. É exceção consciente do fundador, com token próprio
-     justamente para ninguém "corrigir" isto para o verde da marca depois.
-     Só existe debaixo da lanterna. */
-  --verde-codigo: #39ff14;
+     não lê como código. Só existe debaixo da lanterna.
+     31/07/2026 — passou de #39ff14 para #28d305 por decisão do Lucas, para
+     bater com o efeito de referência. Não é alguém "corrigindo" a exceção do
+     fundador de volta ao verde da marca; é troca deliberada. */
+  --verde-codigo: #28d305;
 
-  /* A malha em duas camadas: a base fica no limite do perceptível sobre o
-     preto, e a lanterna acende a camada de luz por cima dela. */
-  --padrao-base: #0c0c0c;
-  --padrao-luz: var(--verde-codigo);
-  --raio-lanterna: 12rem;
+  /* A trama apagada, sobre o preto. Quem pinta agora é o canvas
+     (components/Malha.tsx), que lê este valor uma vez por montagem. */
+  --padrao-repouso: #171717;
+  /* Em px, e não em rem: o efeito inteiro é medido em pixels (a malha tem
+     corpo fixo de 18px), e uma ponta em rem faria o raio dessincronizar da
+     trama se o visitante mudasse o tamanho de fonte do navegador. */
+  --raio-lanterna: 300px;
   /* Posição de repouso, antes do primeiro movimento do mouse — e o valor
      definitivo em ponteiro grosso, onde nenhum JS escreve por cima. */
   --lanterna-x: 50%;

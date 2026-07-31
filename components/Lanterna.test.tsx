@@ -96,9 +96,9 @@ describe("Lanterna", () => {
   });
 
   it("publica a escala do ímã junto com a posição, e ela começa em 1", () => {
-    // O contrato com o CSS: o raio da máscara é --raio-lanterna vezes esta
-    // variável (ver Fundo202020.module.css). Sem alvo nenhum na página ela
-    // vale 1 — a luz do tamanho de sempre.
+    // O contrato com o CSS: o raio da luz é --raio-lanterna vezes esta
+    // variável (ver components/Malha.tsx, que multiplica o raio pela escala).
+    // Sem alvo nenhum na página ela vale 1 — a luz do tamanho de sempre.
     fingirMedia();
     const { container } = render(<Lanterna />);
     const el = container.querySelector("[data-lanterna]") as HTMLElement;

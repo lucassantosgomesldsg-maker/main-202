@@ -463,7 +463,8 @@ function useLanterna(): PosicaoLanterna {
   useEffect(() => {
     if (!alvo || typeof window === "undefined") return;
     // Ponteiro grosso: celular e tablet não têm cursor. Nenhum listener,
-    // nenhum quadro — o fallback é puramente CSS (malha em --padrao-202020).
+    // nenhum quadro — quem decide o que desenhar sem luz nenhuma é a malha em
+    // canvas (components/Malha.tsx), não mais um token CSS de fallback.
     if (consulta("(pointer: coarse)")) return;
 
     const semInercia = consulta("(prefers-reduced-motion: reduce)");
