@@ -319,5 +319,32 @@ execução é subir o servidor e mostrar.
 | Licença da The Seasons | Certo, se a 202 só tem a demo | Registrado. Decisão e resolução são do Lucas. |
 | Serifada em 18px embola e vira sujeira | Média | `tamanhoFonte` e `tracking` são parâmetros. Se não resolver, trocar por Fraunces é mudar uma string. |
 | Bateria no celular pela cintilação | Média | 30 quadros por segundo, pausa em segundo plano. Trade-off aceito pelo Lucas. |
-| Canvas de tela cheia cai de quadros em máquina fraca | Baixa | Só as células acesas são redesenhadas; a base é cópia de bitmap. `dpr` limitado a 2. |
+| Canvas de tela cheia cai de quadros em máquina fraca | Baixa | Ver a nota abaixo: medido, com folga. A base é cópia de bitmap e o `dpr` é limitado a 2. |
 | `getContext("2d")` nulo no jsdom quebra a suíte | Alta se ignorado | Tratado como requisito de código, com teste próprio. |
+
+### Correção de 31/07/2026 — "só as células acesas são redesenhadas"
+
+A linha original desta tabela dizia que o custo estava contido porque **"só as
+células acesas são redesenhadas"**. A afirmação era substancialmente falsa nesta
+composição de parâmetros, e fica registrada aqui em vez de apagada.
+
+O motivo: `amplitudeCintilacao` (0.035) é **maior** que `limiarAceso` (0.02).
+Os dois vieram da referência aprovada e nenhum dos dois muda — mas a
+consequência é que, em repouso absoluto e sem mouse nenhum, a própria
+respiração já empurra boa parte da malha acima do limiar, todo quadro, para
+sempre. "Só as acesas" não quer dizer "poucas".
+
+**Medição na página real** (Chromium, 1440x900, DPR 2, `--raio-lanterna: 300px`,
+malha de 7.068 células; tempo médio dentro do laço de desenho, por quadro):
+
+| Cenário | Células redesenhadas | Com halo | Tempo médio |
+|---|---|---|---|
+| (a) repouso, sem mouse | ~1.940 (27%) | 0 | **2,6 ms** |
+| (b) lanterna livre | ~2.830 (40%) | ~280 | **4,3 ms** |
+| (c) presa num ímã (raio 2x) | ~3.120 (44%) | ~515 | **4,6 ms** |
+
+A folga é grande: o pior caso medido usa 28% do orçamento de 16,7 ms dos 60
+quadros por segundo, e o p95 dos três cenários ficou em 6,9 ms. Mas ela vem de
+`fillText` ser barato nesse tamanho de fonte, **não** do limiar estar segurando
+o trabalho. Quem mexer em `amplitudeCintilacao`, em `tamanhoFonte` ou no
+`--raio-lanterna` mexe direto nesses números e precisa medir de novo.

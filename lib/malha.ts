@@ -22,17 +22,57 @@ export const PARAMETROS = {
   padY: 4,
   /** A malha apagada, sobre o preto da página. */
   corRepouso: "#171717",
+  /**
+   * A cor da luz. Padrão de fallback do token `--verde-codigo`, igual ao que
+   * `corRepouso` é para `--padrao-repouso`: quem manda é o CSS, este valor só
+   * vale se o token sumir ou vier num formato que não seja `#rrggbb`.
+   */
+  corLuz: "#28d305",
+  /**
+   * Raio da luz em px, antes da escala do ímã. Padrão de fallback do token
+   * `--raio-lanterna`, pela mesma regra das cores acima.
+   */
+  raioBase: 300,
   /** Quanto do caminho até a cor da luz um brilho 1.0 percorre. */
   intensidade: 0.85,
   /** Fração do brilho que sobrevive a cada quadro — é isto que vira rastro. */
   decaimento: 0.9,
-  /** Teto da respiração em repouso. */
+  /**
+   * Teto da respiração em repouso.
+   *
+   * Repare que é MAIOR que `limiarAceso` (0.035 contra 0.02), e isso não é
+   * descuido: os dois vieram da referência aprovada. A consequência está
+   * documentada em `limiarAceso` — em repouso absoluto a cintilação sozinha
+   * já acende cerca de um quarto da malha, todo quadro, para sempre.
+   */
   amplitudeCintilacao: 0.035,
   /** Radianos por segundo da respiração. */
   velocidadeCintilacao: 0.8,
   /** Curva da queda com a distância. Acima de 1 concentra a luz no centro. */
   expoenteProximidade: 1.6,
-  /** Abaixo disto a célula não é redesenhada. */
+  /**
+   * Abaixo disto a célula não é redesenhada.
+   *
+   * NÃO conte com ele para "quase nada é redesenhado" — essa afirmação já
+   * esteve escrita aqui e no spec §8, e é falsa nesta composição. Como
+   * `amplitudeCintilacao` (0.035) é maior que este limiar (0.02), a própria
+   * respiração empurra boa parte das células acima dele mesmo sem mouse
+   * nenhum. O que ele de fato faz é cortar a cauda do rastro e as células de
+   * fator baixo — não transformar o quadro num punhado de `fillText`.
+   *
+   * Medido em 31/07/2026 na página real (Chromium, 1440x900, DPR 2, malha de
+   * 7.068 células), média por quadro:
+   *
+   *   repouso sem mouse   ~1.940 células redesenhadas (27%), 0 halos — 2,6 ms
+   *   lanterna livre      ~2.830 células (40%),  ~280 halos       — 4,3 ms
+   *   presa num ímã (2x)  ~3.120 células (44%),  ~515 halos       — 4,6 ms
+   *
+   * Ou seja: o custo real é alto em número de células e ainda assim folgado
+   * em tempo — o pior caso medido usa 28% do orçamento de 16,7 ms. A folga
+   * existe, mas ela vem de `fillText` ser barato, não de o limiar estar
+   * segurando o trabalho. Quem mexer em `amplitudeCintilacao` ou no tamanho
+   * da fonte mexe direto nesse número.
+   */
   limiarAceso: 0.02,
   /** A partir daqui a célula ganha halo. */
   limiarHalo: 0.25,
