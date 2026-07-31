@@ -337,7 +337,14 @@ test.describe("a malha viva", () => {
 });
 
 test.describe("com movimento reduzido", () => {
-  test.use({ reducedMotion: "reduce" });
+  // `reducedMotion` "achatado" (fora de `contextOptions`) não é uma fixture
+  // reconhecida nesta versão (@playwright/test 1.62) — vira uma chave morta,
+  // sem efeito nenhum no contexto real, e o teste passaria mesmo com a
+  // preferência nunca tendo sido ligada (falsa segurança). A forma que
+  // realmente funciona é a mesma já usada acima, em "com animações
+  // reduzidas": `contextOptions: { reducedMotion: "reduce" }`. Não
+  // "simplificar" de volta para a forma achatada.
+  test.use({ contextOptions: { reducedMotion: "reduce" } });
 
   test("a trama continua visível e nada quebra", async ({ page }) => {
     const erros: string[] = [];
@@ -345,6 +352,14 @@ test.describe("com movimento reduzido", () => {
 
     await page.goto("/");
     await page.waitForTimeout(500); // sem animação de entrada, não há o que esperar
+
+    // Prova de que a preferência realmente está ligada nesta página — sem
+    // isso, o teste abaixo poderia passar mesmo com o modo reduzido nunca
+    // tendo sido ativado, e não provaria nada sobre o comportamento reduzido.
+    const reduzidoDeVerdade = await page.evaluate(
+      () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    );
+    expect(reduzidoDeVerdade).toBe(true);
 
     const canvas = page.locator("[data-lanterna] canvas");
     await expect(canvas).toHaveCount(1);
