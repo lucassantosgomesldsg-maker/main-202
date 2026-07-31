@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 
 /**
  * A física da lanterna que segue o mouse — e que continua deslizando depois
@@ -98,12 +98,33 @@ export type Limites = { largura: number; altura: number };
 /** Constante para não alocar um array novo a cada quadro sem ímã. */
 const SEM_ALVOS: readonly AlvoIma[] = [];
 
+/**
+ * A posição da luz **neste quadro**, para quem desenha quadro a quadro.
+ *
+ * Existe porque a malha em canvas precisa de números, e as variáveis CSS são
+ * texto: relê-las com `getComputedStyle` a cada quadro forçaria recálculo de
+ * estilo 60 vezes por segundo — exatamente o custo que `medirImas` documenta
+ * que este arquivo evita de propósito.
+ *
+ * É um ref, e não estado: quem lê está dentro de um requestAnimationFrame e não
+ * quer renderização nenhuma do React por causa disso.
+ */
+export type PosicaoViva = {
+  x: number;
+  y: number;
+  escala: number;
+  /** Houve algum movimento de mouse desde a montagem. */
+  ativa: boolean;
+};
+
 export type PosicaoLanterna = {
   x: number;
   y: number;
   ativa: boolean;
   /** Callback ref: pendure no elemento que deve receber as variáveis. */
   ref: (elemento: HTMLElement | null) => void;
+  /** A posição viva, quadro a quadro. Ver PosicaoViva. */
+  viva: RefObject<PosicaoViva>;
 };
 
 export function estadoInicial(x: number, y: number): EstadoLanterna {
@@ -437,6 +458,7 @@ function consulta(pergunta: string): boolean {
 function useLanterna(): PosicaoLanterna {
   const [alvo, setAlvo] = useState<HTMLElement | null>(null);
   const [pos, setPos] = useState({ x: 0, y: 0, ativa: false });
+  const viva = useRef<PosicaoViva>({ x: 0, y: 0, escala: 1, ativa: false });
 
   useEffect(() => {
     if (!alvo || typeof window === "undefined") return;
@@ -513,6 +535,13 @@ function useLanterna(): PosicaoLanterna {
       alvo.style.setProperty("--lanterna-y", `${estado.y.toFixed(2)}px`);
       alvo.style.setProperty("--escala-lanterna", estado.escala.toFixed(3));
 
+      // Mesma verdade das variáveis CSS acima, em número. Escrever nos dois
+      // lugares no mesmo ponto é o que garante que nunca divirjam.
+      viva.current.x = estado.x;
+      viva.current.y = estado.y;
+      viva.current.escala = estado.escala;
+      viva.current.ativa = temCursor;
+
       const aindaParado = t - estado.ultimoMovimento > PARADA_MS;
       const deslizando = Math.hypot(estado.vx, estado.vy) > 0;
       // O ímã tem uma animação própria (ir ao centro, crescer, encolher) que
@@ -581,7 +610,7 @@ function useLanterna(): PosicaoLanterna {
     };
   }, [alvo]);
 
-  return { ...pos, ref: setAlvo };
+  return { ...pos, ref: setAlvo, viva };
 }
 
 export { useLanterna as usaLanterna };

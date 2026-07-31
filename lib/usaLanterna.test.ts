@@ -1,4 +1,5 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, afterEach, beforeEach, vi } from "vitest";
+import { act, renderHook } from "@testing-library/react";
 import {
   passo,
   estadoInicial,
@@ -16,6 +17,7 @@ import {
   RAIO_SEGUIMENTO,
   SEGUIMENTO,
   V_MINIMA,
+  usaLanterna,
   type AlvoIma,
   type EstadoLanterna,
 } from "./usaLanterna";
@@ -898,5 +900,58 @@ describe("imaAssentado — quando não há mais nada a animar", () => {
     expect(CAPTURA).toBe(0.22);
     expect(ESCALA_IMA).toBe(2);
     expect(RAIO_SEGUIMENTO).toBe(0.15);
+  });
+});
+
+describe("a posição viva", () => {
+  let quadros: FrameRequestCallback[] = [];
+
+  beforeEach(() => {
+    quadros = [];
+    vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => {
+      quadros.push(cb);
+      return quadros.length;
+    });
+    vi.stubGlobal("cancelAnimationFrame", () => {});
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  /** Roda o próximo quadro agendado, se houver. */
+  function rodarQuadro(t: number) {
+    const proximo = quadros.shift();
+    if (proximo) act(() => proximo(t));
+  }
+
+  it("nasce parada e inativa", () => {
+    const { result } = renderHook(() => usaLanterna());
+    expect(result.current.viva.current).toEqual({
+      x: 0,
+      y: 0,
+      escala: 1,
+      ativa: false,
+    });
+  });
+
+  it("acompanha as variáveis CSS que a lanterna escreve", () => {
+    const { result } = renderHook(() => usaLanterna());
+    const elemento = document.createElement("div");
+    document.body.appendChild(elemento);
+
+    act(() => result.current.ref(elemento));
+    act(() => {
+      window.dispatchEvent(new MouseEvent("mousemove", { clientX: 40, clientY: 25 }));
+    });
+    rodarQuadro(16);
+
+    const viva = result.current.viva.current;
+    expect(viva.ativa).toBe(true);
+    expect(Number.parseFloat(elemento.style.getPropertyValue("--lanterna-x"))).toBeCloseTo(viva.x, 2);
+    expect(Number.parseFloat(elemento.style.getPropertyValue("--lanterna-y"))).toBeCloseTo(viva.y, 2);
+    expect(Number.parseFloat(elemento.style.getPropertyValue("--escala-lanterna"))).toBeCloseTo(viva.escala, 3);
+
+    elemento.remove();
   });
 });
