@@ -16,12 +16,6 @@ export const COPY = {
   { onelinerLinhas: readonly [string, string]; contato: string }
 >;
 
-/** Iguais nos dois idiomas — coordenadas do ITA, onde a 202 começou.
- *  Um espaço simples entre latitude e longitude: o HTML colapsa espaços
- *  repetidos de qualquer jeito, então dois não mudariam nada na tela. */
-export const COORDENADAS = "23°12'37\"S 45°52'35\"W";
-export const LOCAL = "SÃO JOSÉ DOS CAMPOS, BR";
-
 export const INSTAGRAM = "https://www.instagram.com/202lab.br/";
 
 export function oneliner(idioma: Idioma): string {

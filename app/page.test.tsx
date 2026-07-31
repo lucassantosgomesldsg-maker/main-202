@@ -2,7 +2,6 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect } from "vitest";
 import Home from "./page";
-import { COORDENADAS, LOCAL } from "@/lib/copy";
 
 describe("a tela", () => {
   it("mostra o oneliner em português, quebrado em duas linhas", () => {
@@ -11,10 +10,10 @@ describe("a tela", () => {
     expect(screen.getByText("construímos o futuro.")).toBeInTheDocument();
   });
 
-  it("mostra as coordenadas do ITA e a cidade", () => {
+  it("não mostra mais coordenadas nem cidade no rodapé", () => {
     render(<Home />);
-    expect(screen.getByText(COORDENADAS)).toBeInTheDocument();
-    expect(screen.getByText(LOCAL)).toBeInTheDocument();
+    expect(screen.queryByText(/23°12'37"S/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/SÃO JOSÉ DOS CAMPOS/)).not.toBeInTheDocument();
   });
 
   it("leva ao Instagram da 202, em aba nova e sem vazar referência", () => {
@@ -38,12 +37,6 @@ describe("troca de idioma", () => {
     expect(screen.getByText("We amplify talent.")).toBeInTheDocument();
     expect(screen.getByText("We build the future.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /CONTACT/ })).toBeInTheDocument();
-  });
-
-  it("não traduz as coordenadas", async () => {
-    render(<Home />);
-    await userEvent.click(screen.getByRole("button", { name: "EN" }));
-    expect(screen.getByText("SÃO JOSÉ DOS CAMPOS, BR")).toBeInTheDocument();
   });
 
   it("guarda a escolha e o idioma do documento", async () => {

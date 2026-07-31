@@ -29,7 +29,7 @@ const VIEWPORTS = [
 
 const IDIOMAS = ["pt", "en"] as const;
 
-const SELETORES_CANTOS = ["[data-logo]", ".oneliner", ".coordenadas", ".contato"];
+const SELETORES_CANTOS = ["[data-logo]", ".oneliner", ".contato"];
 
 /** Semeia o idioma ANTES de qualquer script da página rodar — precisa
  *  existir já na primeira leitura de localStorage em app/page.tsx. */

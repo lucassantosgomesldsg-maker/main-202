@@ -10,7 +10,7 @@ import SeletorIdioma from "@/components/SeletorIdioma";
 // lint, tsc e build, e derrubava a página em runtime. O export segue em
 // português (convenção do projeto); só o identificador local muda.
 import { usaMotionUmaVez as useMotionUmaVez } from "@/lib/usaMotionUmaVez";
-import { COORDENADAS, COPY, INSTAGRAM, LOCAL, titulo, type Idioma } from "@/lib/copy";
+import { COPY, INSTAGRAM, titulo, type Idioma } from "@/lib/copy";
 
 const CHAVE_IDIOMA = "202:idioma";
 
@@ -86,11 +86,6 @@ export default function Home() {
           <br />
           <span>{t.onelinerLinhas[1]}</span>
         </h1>
-        <p className="label coordenadas">
-          <span>{COORDENADAS}</span>
-          <br />
-          <span>{LOCAL}</span>
-        </p>
       </footer>
     </main>
   );

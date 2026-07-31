@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { COPY, oneliner, titulo, COORDENADAS, LOCAL, INSTAGRAM } from "./copy";
+import { COPY, oneliner, titulo, INSTAGRAM } from "./copy";
 
 describe("copy", () => {
   it("tem o oneliner em português, verbatim, quebrado em duas linhas", () => {
@@ -29,11 +29,6 @@ describe("copy", () => {
   it("traduz o rótulo de contato", () => {
     expect(COPY.pt.contato).toBe("CONTATO");
     expect(COPY.en.contato).toBe("CONTACT");
-  });
-
-  it("usa as coordenadas do ITA e não muda com o idioma", () => {
-    expect(COORDENADAS).toBe("23°12'37\"S 45°52'35\"W");
-    expect(LOCAL).toBe("SÃO JOSÉ DOS CAMPOS, BR");
   });
 
   it("aponta para o Instagram da 202", () => {

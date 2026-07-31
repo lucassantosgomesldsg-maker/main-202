@@ -113,15 +113,12 @@ a:focus-visible, button:focus-visible {
   letter-spacing: -0.01em;
 }
 
-.coordenadas { text-align: right; }
-
 @media (max-width: 720px) {
   .base {
     flex-direction: column;
     align-items: flex-start;
     gap: 1.5rem;
   }
-  .coordenadas { text-align: left; }
 }
 
 @media (prefers-reduced-motion: reduce) {
