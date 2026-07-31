@@ -157,6 +157,73 @@
   content: none;
 }
 
+/* ── Ato 3: os textos do topo entram pelas laterais (--t-topo) ──────────── */
+
+/* Cada um exatamente fora da sua borda: 100% da própria largura mais a margem
+   da página. O recorte é do `html, body { overflow: hidden }` que já existe
+   em globals.css — nada aqui precisa recortar.
+
+   Um artefato conhecido, e é medição, não defeito: enquanto o CONTATO está
+   deslocado para a direita, `document.body.scrollWidth` reporta a extensão
+   real do conteúdo mesmo escondida pelo overflow. Ninguém consegue rolar; o
+   e2e é que precisa medir depois do fim da entrada (ver e2e/layout.spec.ts). */
+/* `[data-abertura]` sem valor: presença do atributo, não um estado. Estas duas
+   são regras de REPOUSO — precisam valer antes de a animação começar, e a
+   presença do atributo é o que leva a especificidade a (0,3,0), que é o que
+   faz esta folha vencer os módulos dos componentes por especificidade e nunca
+   por ordem de import. É a mesma convenção que o cabeçalho do arquivo
+   documenta e que as regras da Task 4 seguem. */
+.abertura[data-abertura] :global([data-ima="idioma"]) {
+  transform: translateX(calc(-100% - var(--margem)));
+  opacity: 0;
+}
+
+.abertura[data-abertura] :global([data-ima="contato"]) {
+  transform: translateX(calc(100% + var(--margem)));
+  opacity: 0;
+}
+
+/* Os dois ao mesmo tempo, sem escalonar: é um gesto simétrico só, não dois. */
+.abertura[data-abertura="tocando"] :global([data-ima="idioma"]) {
+  animation: topo-esquerda var(--d-topo) cubic-bezier(0.16, 1, 0.3, 1)
+    var(--t-topo) both;
+}
+
+.abertura[data-abertura="tocando"] :global([data-ima="contato"]) {
+  animation: topo-direita var(--d-topo) cubic-bezier(0.16, 1, 0.3, 1)
+    var(--t-topo) both;
+}
+
+@keyframes topo-esquerda {
+  from {
+    transform: translateX(calc(-100% - var(--margem)));
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes topo-direita {
+  from {
+    transform: translateX(calc(100% + var(--margem)));
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* ── Estado final explícito: visita repetida na mesma sessão ────────────── */
+
+.abertura[data-abertura="estatica"] :global([data-ima="idioma"]),
+.abertura[data-abertura="estatica"] :global([data-ima="contato"]) {
+  transform: none;
+  opacity: 1;
+}
+
 /* ── prefers-reduced-motion ─────────────────────────────────────────────── */
 
 /* !important de propósito: sem ele, a cadeia
@@ -175,5 +242,12 @@
 
   .abertura[data-abertura] :global([data-ponto])::after {
     content: none !important;
+  }
+
+  .abertura[data-abertura] :global([data-ima="idioma"]),
+  .abertura[data-abertura] :global([data-ima="contato"]) {
+    animation: none !important;
+    transform: none !important;
+    opacity: 1 !important;
   }
 }
