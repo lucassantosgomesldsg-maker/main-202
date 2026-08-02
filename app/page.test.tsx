@@ -1,7 +1,8 @@
-import { render, screen } from "@testing-library/react";
+import { act } from "react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, it, expect, beforeEach } from "vitest";
-import { INICIO_FRASE, INICIO_TOPO } from "@/lib/abertura";
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { DURACAO_TOTAL_MAXIMA_MS, INICIO_FRASE, INICIO_TOPO } from "@/lib/abertura";
 import { __resetarParaTeste } from "@/lib/usaMotionUmaVez";
 import Home from "./page";
 
@@ -102,5 +103,43 @@ describe("a abertura", () => {
     expect(palco).not.toBeNull();
     expect(palco!.querySelector("[data-logo]")).not.toBeNull();
     expect(palco!.querySelector("[data-lanterna]")).not.toBeNull();
+  });
+
+  // Finding 1 do review final (2026-08-02): `jaRodou` responde "já vi a
+  // entrada NESTA SESSÃO?" — que só vira true numa carga SEGUINTE, nunca na
+  // mesma. Numa primeira visita, `jaRodou` fica false a carga inteira, mesmo
+  // muito depois de a coreografia ter terminado de verdade. Antes da
+  // correção, `estatica` era literalmente `jaRodou`, e qualquer <span> de
+  // caractere montado depois da troca de idioma (o índice global muda de
+  // tamanho entre PT e EN) nascia sob a regra "tocando" — com um --atraso que
+  // o relógio real já tinha passado, `forwards` (não `both`) deixando a regra
+  // de repouso `opacity:0` valer indefinidamente. O <h1> ficava com pedaços
+  // invisíveis por até ~4,2s depois de uma troca de idioma pós-entrada.
+  it("depois que a abertura termina de verdade, trocar de idioma não deixa caracteres presos a um atraso já vencido", () => {
+    vi.useFakeTimers();
+    try {
+      const { container } = render(<Home />);
+
+      // Avança bem além do pior caso entre os dois idiomas — a coreografia
+      // já terminou de verdade nesta mesma carga.
+      act(() => {
+        vi.advanceTimersByTime(DURACAO_TOTAL_MAXIMA_MS);
+      });
+
+      fireEvent.click(screen.getByRole("button", { name: "EN" }));
+
+      const h1 = container.querySelector("h1") as HTMLElement;
+      // Se isto ainda fosse `jaRodou`, valeria "false": a troca aconteceu na
+      // MESMA carga, e `jaRodou` só muda numa carga seguinte. `estatica`
+      // precisa refletir "a coreografia desta carga já terminou", não só "eu
+      // já vi isto antes".
+      expect(h1).toHaveAttribute("data-estatica", "true");
+      expect(container.querySelector("main")).toHaveAttribute(
+        "data-abertura",
+        "estatica",
+      );
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
