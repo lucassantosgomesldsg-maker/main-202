@@ -119,16 +119,25 @@ for (const vp of VIEWPORTS) {
         await semearIdioma(page, idioma);
       });
 
-      // Original: "não tem scroll em ${vp.nome}", durante a animação de entrada.
-      test("não tem scroll durante a entrada", async ({ page }) => {
+      // Original (Task 9): "não tem scroll em ${vp.nome}". Naquele roteiro a
+      // espera era só o suficiente para a animação de 2000ms do MotionD
+      // terminar, e o nome do teste dizia "durante a entrada" porque a
+      // medição realmente acontecia nesse meio-tempo. A entrada de hoje dura
+      // mais e tem uma duração real vinda de lib/abertura.ts — a espera sobe
+      // para DEPOIS_DA_ENTRADA, e a medição some para depois do fim de
+      // verdade. Não há mais "durante" nenhum aqui: ver §5c do design de
+      // 31/07/2026 sobre por que medir de propósito durante a entrada
+      // reintroduziria o artefato de scrollWidth ali documentado.
+      test("não tem scroll com a entrada terminada", async ({ page }) => {
         await page.goto("/");
-        await page.waitForTimeout(DEPOIS_DA_ENTRADA); // deixa a animação terminar
+        await page.waitForTimeout(DEPOIS_DA_ENTRADA); // deixa a entrada terminar
         esperaSemScroll(await medirDocumento(page));
       });
 
       // Estado que o roteiro original não cobria: reload na mesma sessão
-      // pula o MotionD (data-estatico="true" direto), e o layout final
-      // precisa ser igualmente livre de scroll.
+      // pula a coreografia (data-abertura="estatica" direto — o MotionD que
+      // tinha data-estatico está arquivado), e o layout final precisa ser
+      // igualmente livre de scroll.
       test("não tem scroll após reload (animação pulada)", async ({ page }) => {
         await page.goto("/");
         await page.waitForTimeout(DEPOIS_DA_ENTRADA);
@@ -137,8 +146,10 @@ for (const vp of VIEWPORTS) {
         esperaSemScroll(await medirDocumento(page));
       });
 
-      // Original: "nada é cortado em ${vp.nome}", durante a animação de entrada.
-      test("nada é cortado durante a entrada", async ({ page }) => {
+      // Original (Task 9): "nada é cortado em ${vp.nome}". Mesma nota do
+      // teste acima — a espera foi para DEPOIS_DA_ENTRADA, então isto mede o
+      // layout final, não mais um instante "durante" a animação.
+      test("nada é cortado com a entrada terminada", async ({ page }) => {
         await page.goto("/");
         await page.waitForTimeout(DEPOIS_DA_ENTRADA);
         await esperaNadaCortado(page, vp.width, vp.height);
