@@ -127,8 +127,13 @@ Tokens importados de `tokens.css` sem alteração:
 
 Justificativa, porque isso desvia do `design.md` §5 (que manda frases-chave terminarem
 em verde): numa tela com tão pouco elemento, dois pontos verdes competem entre si. O
-verde deve pertencer ao elemento que chega por último na coreografia de entrada — que
-é a logo. Decisão aprovada pelo Lucas em 28/07/2026; reverter é uma linha de CSS.
+verde pertence ao elemento que fica verde no ESTADO DE REPOUSO da página — a logo —, e
+não a "quem chega por último": sob a coreografia registrada em §6 (resultado de
+31/07/2026), o ponto da logo pulsa na batida 2 de 4, e é o cursor de digitação —
+também `--verde-sinal` — quem fecha a sequência. Mas o cursor termina em fade e some; o
+oneliner volta a terminar em ponto branco comum assim que a entrada acaba. O único verde
+que permanece aceso depois disso continua sendo o ponto da logo. Decisão aprovada pelo
+Lucas em 28/07/2026; reverter é uma linha de CSS.
 
 **Proporção resultante:** ~99% preto/branco/cinza, ~1% verde. Dentro da regra de
 "verde é acento raro" do `design.md` §3.

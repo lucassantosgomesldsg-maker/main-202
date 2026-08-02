@@ -6,7 +6,10 @@ Em produção: https://202lab.com.br
 Uma página só: o wordmark `202` gigante no centro, sobre uma malha `202020`
 quase engolida pelo preto. O cursor é uma lanterna que acende a malha em verde
 de terminal e **gruda** nos alvos da página. Na primeira visita da sessão a
-malha abre e a logo entra; num reload a entrada é pulada.
+entrada toca em quatro batidas — a logo cresce girando o `0`, o ponto verde
+pulsa ao assentar, `PT/EN` e `CONTATO ↗` entram pelas laterais da tela e a
+frase do rodapé se digita sozinha, caractere a caractere — e num reload dentro
+da mesma sessão ela é pulada.
 
 ## Rodar local
 
@@ -54,7 +57,7 @@ suíte cobre isso.
 | --- | --- |
 | Qualquer texto de marca | `lib/copy.ts` — **única** fonte; é copy aprovada, verbatim |
 | Cor, espaçamento, tipografia | bloco `:root` no topo de `app/globals.css` |
-| Animação de entrada | `components/motion/` (`MotionD.tsx` + `.module.css`) |
+| Animação de entrada | `lib/abertura.ts` (tempos), `app/abertura.module.css` (coreografia do topo e da logo), `components/FraseDigitada.*` (digitação do rodapé) |
 | Física da lanterna e do ímã | `lib/usaLanterna.ts` (testada sem navegador) |
 | Quem a lanterna agarra | atributo `data-ima` no JSX de `app/page.tsx` |
 | Ícones (favicon, apple-touch) | `node scripts/gerar-icones.mjs` — não edite os gerados à mão |

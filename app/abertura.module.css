@@ -149,6 +149,12 @@
 
 /* ── Estado final explícito: visita repetida na mesma sessão ────────────── */
 
+/* Esta seção PRECISA continuar depois das regras de repouso do Ato 1/2 acima:
+   `.abertura[data-abertura] :global(...)` e
+   `.abertura[data-abertura="estatica"] :global(...)` têm a MESMA
+   especificidade, (0,3,0) — um atributo com valor não pesa mais que um sem
+   valor. O empate é resolvido por ORDEM NO ARQUIVO, e subir esta seção para
+   antes do repouso inverteria o vencedor em silêncio. */
 .abertura[data-abertura="estatica"] :global([data-logo]) {
   transform: none;
 }
@@ -218,6 +224,11 @@
 
 /* ── Estado final explícito: visita repetida na mesma sessão ────────────── */
 
+/* Mesma razão da seção equivalente do Ato 1/2, acima: esta regra empata em
+   especificidade (0,3,0) com as regras de repouso do Ato 3 logo acima dela —
+   `[data-ima="idioma"]`/`[data-ima="contato"]` sem valor no atributo
+   `data-abertura` vs. com `="estatica"` — e só vence por vir depois no
+   arquivo. Precisa continuar depois do repouso, não antes. */
 .abertura[data-abertura="estatica"] :global([data-ima="idioma"]),
 .abertura[data-abertura="estatica"] :global([data-ima="contato"]) {
   transform: none;
