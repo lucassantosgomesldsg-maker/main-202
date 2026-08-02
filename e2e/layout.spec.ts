@@ -155,6 +155,36 @@ for (const vp of VIEWPORTS) {
   }
 }
 
+/** Onde a luz está e quanto ela cresceu, direto das variáveis CSS.
+ *  Fora de qualquer describe: também é usada pelo teste de "mexer o mouse
+ *  durante a entrada", que precisa do seu próprio goto/beforeEach e por isso
+ *  não pode viver dentro de `test.describe("o ímã da lanterna", ...)`. */
+async function luz(page: Page) {
+  return page.evaluate(() => {
+    const el = document.querySelector("[data-lanterna]") as HTMLElement;
+    return {
+      x: parseFloat(el.style.getPropertyValue("--lanterna-x")),
+      y: parseFloat(el.style.getPropertyValue("--lanterna-y")),
+      escala: parseFloat(el.style.getPropertyValue("--escala-lanterna")),
+    };
+  });
+}
+
+/**
+ * Centro do alvo em coordenadas da lanterna — que são as da caixa do
+ * elemento `[data-lanterna]`, não as da viewport. Na página real as duas
+ * coincidem, mas a conta fica explícita para o teste não passar por sorte.
+ */
+async function centro(page: Page, seletor: string) {
+  const alvo = (await page.locator(seletor).boundingBox())!;
+  const caixa = (await page.locator("[data-lanterna]").boundingBox())!;
+  return {
+    x: alvo.x + alvo.width / 2 - caixa.x,
+    y: alvo.y + alvo.height / 2 - caixa.y,
+    pagina: { x: alvo.x + alvo.width / 2, y: alvo.y + alvo.height / 2 },
+  };
+}
+
 /**
  * O ímã da lanterna (Task 11). A física em si é testada sem navegador em
  * lib/usaLanterna.test.ts; o que só um navegador de verdade prova é o resto:
@@ -168,33 +198,6 @@ test.describe("o ímã da lanterna", () => {
     { nome: "seletor de idioma", seletor: "[data-ima='idioma']" },
     { nome: "oneliner", seletor: ".oneliner" },
   ];
-
-  /** Onde a luz está e quanto ela cresceu, direto das variáveis CSS. */
-  async function luz(page: Page) {
-    return page.evaluate(() => {
-      const el = document.querySelector("[data-lanterna]") as HTMLElement;
-      return {
-        x: parseFloat(el.style.getPropertyValue("--lanterna-x")),
-        y: parseFloat(el.style.getPropertyValue("--lanterna-y")),
-        escala: parseFloat(el.style.getPropertyValue("--escala-lanterna")),
-      };
-    });
-  }
-
-  /**
-   * Centro do alvo em coordenadas da lanterna — que são as da caixa do
-   * elemento `[data-lanterna]`, não as da viewport. Na página real as duas
-   * coincidem, mas a conta fica explícita para o teste não passar por sorte.
-   */
-  async function centro(page: Page, seletor: string) {
-    const alvo = (await page.locator(seletor).boundingBox())!;
-    const caixa = (await page.locator("[data-lanterna]").boundingBox())!;
-    return {
-      x: alvo.x + alvo.width / 2 - caixa.x,
-      y: alvo.y + alvo.height / 2 - caixa.y,
-      pagina: { x: alvo.x + alvo.width / 2, y: alvo.y + alvo.height / 2 },
-    };
-  }
 
   test.beforeEach(async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
@@ -296,6 +299,50 @@ test.describe("o ímã da lanterna", () => {
     expect(Math.abs(depois.x - c.x)).toBeLessThan(2);
     expect(depois.escala).toBeGreaterThan(1.9);
     esperaSemScroll(await medirDocumento(page));
+  });
+});
+
+/**
+ * Finding 2 do review final (2026-08-02): a entrada transladada
+ * `[data-ima="idioma"]` e `[data-ima="contato"]` para fora da tela e os traz
+ * de volta — um movimento que ResizeObserver não vê (ele reporta TAMANHO;
+ * `translateX` não muda tamanho nenhum) e que `getBoundingClientRect` mede
+ * incluindo transform. Se o visitante mexe o mouse a qualquer momento antes
+ * do fim da entrada, o primeiro quadro do laço da lanterna consome o
+ * `precisaMedir` que o ResizeObserver da montagem já tinha marcado, e mede os
+ * dois alvos AINDA deslocados — e, sem mais ninguém marcando `precisaMedir`
+ * de novo, essa medição errada fica congelada pelo resto da visita. Este
+ * teste faz exatamente esse gesto (mover o mouse durante a entrada, sem
+ * esperar ela terminar antes) e prova que o ímã ainda funciona bem depois.
+ * Deste teste NÃO faz parte medir durante a entrada — só o gesto que
+ * quebrava a medição, com a asserção bem depois do fim real.
+ */
+test.describe("o ímã sobrevive a mexer o mouse durante a entrada", () => {
+  test("depois de mexer o mouse na entrada, o ímã do CONTATO ainda gruda no centro certo", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/");
+
+    // O gesto que congelava a medição antes da correção: mexer o mouse
+    // enquanto [data-ima='contato'] ainda está translatado para fora da
+    // tela — a entrada só termina em DURACAO_TOTAL_MAXIMA_MS.
+    await page.mouse.move(200, 120, { steps: 5 });
+    await page.waitForTimeout(300);
+    await page.mouse.move(600, 500, { steps: 10 });
+
+    // Bem depois do fim real da coreografia — inclusive depois do resize
+    // sintético que reafirma a medição (ver o useEffect em app/page.tsx).
+    await page.waitForTimeout(DEPOIS_DA_ENTRADA);
+
+    const c = await centro(page, "[data-ima='contato']");
+    await page.mouse.move(c.pagina.x, c.pagina.y, { steps: 20 });
+    await page.waitForTimeout(500);
+
+    const depois = await luz(page);
+    expect(Math.abs(depois.x - c.x)).toBeLessThan(2);
+    expect(Math.abs(depois.y - c.y)).toBeLessThan(2);
+    expect(depois.escala).toBeGreaterThan(1.9);
   });
 });
 
