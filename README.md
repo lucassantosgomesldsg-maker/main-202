@@ -9,7 +9,8 @@ de terminal e **gruda** nos alvos da página. Na primeira visita da sessão a
 entrada toca em quatro batidas — a logo cresce girando o `0`, o ponto verde
 pulsa ao assentar, `PT/EN` e `CONTATO ↗` entram pelas laterais da tela e a
 frase do rodapé se digita sozinha, caractere a caractere — e num reload dentro
-da mesma sessão ela é pulada.
+da mesma sessão ela é pulada. Trocar `PT/EN` com a página pronta apaga a frase
+de trás para frente, com o cursor recuando, e a reescreve na outra língua.
 
 ## Rodar local
 
