@@ -92,32 +92,22 @@
 
 /* O ponto não precisa de animação própria para "acompanhar o crescimento":
    ele é filho de [data-logo] e é carregado pelo scale junto com o resto. O
-   que ele ganha aqui é a batida de chegada. */
+   que ele ganha aqui é a batida de chegada.
+
+   02/08/2026 — o halo saiu. Era um ::after com radial-gradient que acendia
+   junto com esta batida (`ponto-halo`, 0 → 0.7 → 0 de opacidade, escala 0.4 →
+   2.2) e o Lucas leu como excessivo: um clarão verde no fim do giro do "0".
+   Removido inteiro — a regra de repouso, a de "tocando", os keyframes, e as
+   duas contra-regras que existiam só para desligá-lo (`content: none` em
+   `estatica` e em prefers-reduced-motion). Sobra a batida de escala, que não
+   é brilho. Se algum dia voltar, volta como um bloco só, não em pedaços. */
 .abertura[data-abertura] :global([data-ponto]) {
   position: relative;
-}
-
-/* O halo. radial-gradient + transform + opacity: as três coisas que o
-   compositor faz de graça. NÃO é box-shadow animado — box-shadow não é
-   composto na GPU e repinta a cada quadro, e este projeto já escolheu duas
-   vezes ficar nas propriedades baratas. */
-.abertura[data-abertura] :global([data-ponto])::after {
-  content: "";
-  position: absolute;
-  inset: -50%;
-  border-radius: 50%;
-  background: radial-gradient(circle, var(--verde-sinal) 0%, transparent 70%);
-  opacity: 0;
-  pointer-events: none;
 }
 
 .abertura[data-abertura="tocando"] :global([data-ponto]) {
   animation: ponto-pulsar var(--d-pulso) cubic-bezier(0.34, 1.56, 0.64, 1)
     var(--t-pulso) both;
-}
-
-.abertura[data-abertura="tocando"] :global([data-ponto])::after {
-  animation: ponto-halo var(--d-pulso) ease-out var(--t-pulso) both;
 }
 
 @keyframes ponto-pulsar {
@@ -132,21 +122,6 @@
   }
 }
 
-/* Sem resíduo: o estado final do ponto é o círculo chapado de sempre. */
-@keyframes ponto-halo {
-  0% {
-    opacity: 0;
-    transform: scale(0.4);
-  }
-  40% {
-    opacity: 0.7;
-  }
-  100% {
-    opacity: 0;
-    transform: scale(2.2);
-  }
-}
-
 /* ── Estado final explícito: visita repetida na mesma sessão ────────────── */
 
 /* Esta seção PRECISA continuar depois das regras de repouso do Ato 1/2 acima:
@@ -157,10 +132,6 @@
    antes do repouso inverteria o vencedor em silêncio. */
 .abertura[data-abertura="estatica"] :global([data-logo]) {
   transform: none;
-}
-
-.abertura[data-abertura="estatica"] :global([data-ponto])::after {
-  content: none;
 }
 
 /* ── Ato 3: os textos do topo entram pelas laterais (--t-topo) ──────────── */
@@ -249,10 +220,6 @@
   .abertura[data-abertura] :global([data-ponto]) {
     animation: none !important;
     transform: none !important;
-  }
-
-  .abertura[data-abertura] :global([data-ponto])::after {
-    content: none !important;
   }
 
   .abertura[data-abertura] :global([data-ima="idioma"]),
