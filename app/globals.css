@@ -33,9 +33,14 @@
      (components/Malha.tsx), que lê este valor uma vez por montagem. */
   --padrao-repouso: #171717;
   /* Em px, e não em rem: o efeito inteiro é medido em pixels (a malha tem
-     corpo fixo de 18px), e uma ponta em rem faria o raio dessincronizar da
-     trama se o visitante mudasse o tamanho de fonte do navegador. */
-  --raio-lanterna: 300px;
+     corpo fixo — ver `tamanhoFonte` em lib/malha.ts), e uma ponta em rem faria
+     o raio dessincronizar da trama se o visitante mudasse o tamanho de fonte
+     do navegador.
+     31/07/2026 — de 300px para 210px, junto com a queda de brilho da malha.
+     Quem desenha é components/Malha.tsx, que lê este token uma vez por
+     montagem e cai em `PARAMETROS.raioBase` se ele sumir: os dois valores
+     precisam continuar iguais, e há teste em lib/malha.test.ts que confere. */
+  --raio-lanterna: 210px;
   /* As três abaixo são a posição e a escala da luz em TEXTO, escritas quadro a
      quadro por lib/usaLanterna no elemento [data-lanterna]. Quem desenha não
      lê nenhuma delas: a malha (components/Malha.tsx) usa o ref numérico, e o

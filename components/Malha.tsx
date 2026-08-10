@@ -7,11 +7,13 @@ import {
   devePular,
   ganho,
   hexParaRgb,
+  medirCelula,
   misturar,
   montarGrade,
   semearCelulas,
   type Celulas,
   type Grade,
+  type Metrica,
 } from "@/lib/malha";
 // Alias obrigatório, não estilo — mesma regra do resto do repo: a checagem
 // react-hooks só reconhece hook pelo prefixo `use` no ponto da chamada.
@@ -77,7 +79,7 @@ function lerCor(elemento: Element, nome: string, padrao: string): string {
  *   acesos  — a cada quadro, copia a base e repinta por cima só as células
  *             acima do limiar. "Só as acesas" NÃO quer dizer "poucas": como
  *             a cintilação tem amplitude maior que o limiar, em repouso já
- *             são ~27% da malha, todo quadro. Os números medidos estão no
+ *             são ~28% da malha, todo quadro. Os números medidos estão no
  *             comentário de `limiarAceso` em lib/malha.ts.
  *
  * O laço daqui é INDEPENDENTE do laço da lanterna. O da lanterna dorme quando a
@@ -131,12 +133,16 @@ export default function Malha() {
     // ele ter ou não conteúdo válido.
     let basePronta = false;
     let larguraChar = 0;
+    // Onde cada glifo se apoia DENTRO da célula. Sem isto o "2", mais estreito
+    // que o "0", joga a diferença toda no vão à direita e a trama vira
+    // "20 20 20" — ver `medirCelula` em lib/malha.ts.
+    let deslocamentos: Metrica["deslocamentos"] = [0, 0];
     let alturaLinha = 0;
     let larguraCss = 0;
     let alturaCss = 0;
     let fonte = "";
     // Anotado: `PARAMETROS` é `as const`, então sem o `: number` o tsc infere o
-    // literal `300` e recusa a releitura do token logo abaixo.
+    // literal (hoje `210`) e recusa a releitura do token logo abaixo.
     let raio: number = PARAMETROS.raioBase;
     let quadroId = 0;
     let alternado = false;
@@ -230,7 +236,15 @@ export default function Malha() {
       ctx.font = fonte;
 
       const tracking = PARAMETROS.trackingRelativo * PARAMETROS.tamanhoFonte;
-      larguraChar = ctx.measureText("0").width + tracking;
+      // Os DOIS glifos são medidos: a malha só desenha "2" e "0", e eles não
+      // têm a mesma largura em fonte nenhuma que não seja monoespaçada.
+      const metrica = medirCelula(
+        ctx.measureText("2").width,
+        ctx.measureText("0").width,
+        tracking
+      );
+      larguraChar = metrica.larguraChar;
+      deslocamentos = metrica.deslocamentos;
       alturaLinha = PARAMETROS.tamanhoFonte * PARAMETROS.alturaLinhaRelativa;
       raio = lerPx(caixa, "--raio-lanterna", PARAMETROS.raioBase);
 
@@ -252,7 +266,12 @@ export default function Malha() {
         const y = PARAMETROS.padY + l * alturaLinha + PARAMETROS.tamanhoFonte;
         for (let c = 0; c < grade.colunas; c++) {
           const i = l * grade.colunas + c;
-          bctx.fillText(celulas.chars[i] ? "0" : "2", PARAMETROS.padX + c * larguraChar, y);
+          const glifo = celulas.chars[i];
+          bctx.fillText(
+            glifo ? "0" : "2",
+            PARAMETROS.padX + c * larguraChar + deslocamentos[glifo],
+            y
+          );
         }
       }
 
@@ -277,9 +296,12 @@ export default function Malha() {
         const y = PARAMETROS.padY + l * alturaLinha + PARAMETROS.tamanhoFonte;
         // O centro ótico do caractere fica acima da linha de base.
         const cy = y - PARAMETROS.tamanhoFonte * 0.35;
-        // O eixo horizontal NÃO tem correção equivalente (`x` é a borda
-        // esquerda do glifo, não o centro): a assimetria de ~4px é diferida de
-        // propósito, não é descuido — não "consertar" sem falar com o Lucas.
+        // O eixo horizontal NÃO tem correção equivalente: `x` é a borda
+        // ESQUERDA DA CÉLULA, e a luz é medida a partir dela — não do centro
+        // do glifo, que hoje fica meia célula à direita (`deslocamentos`). A
+        // assimetria continua diferida de propósito, não é descuido, e agora
+        // vale menos de 4px: a célula encolheu junto com a fonte. Não
+        // "consertar" sem falar com o Lucas.
         for (let c = 0; c < grade.colunas; c++) {
           const i = l * grade.colunas + c;
           const x = PARAMETROS.padX + c * larguraChar;
@@ -309,7 +331,8 @@ export default function Malha() {
           } else {
             ctx.shadowBlur = 0;
           }
-          ctx.fillText(celulas.chars[i] ? "0" : "2", x, y);
+          const glifo = celulas.chars[i];
+          ctx.fillText(glifo ? "0" : "2", x + deslocamentos[glifo], y);
         }
       }
       ctx.shadowBlur = 0;
