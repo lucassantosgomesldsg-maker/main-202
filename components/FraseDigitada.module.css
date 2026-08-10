@@ -1,10 +1,27 @@
-/* A digitação. Nenhum tempo literal: --t-frase, --d-caractere e --d-cursor
- * vêm de lib/abertura.ts, pendurados no <main> por app/page.tsx. */
+/* A digitação. Nenhum tempo literal: --t-frase, --t-troca, --d-caractere,
+ * --d-apagar e --d-cursor vêm de lib/abertura.ts, pendurados no <main> por
+ * app/page.tsx. Quem diz em que fase a frase está é `data-fase` no <h1>, posto
+ * por components/FraseDigitada.tsx. */
 
 .caractere {
+  /* De onde a digitação conta. A abertura conta de --t-frase (depois da logo e
+     do topo); a reescrita de uma troca de idioma conta de --t-troca, o respiro
+     curto depois do apagamento. Cada fase redefine ESTA variável, e o resto da
+     conta continua igual. */
+  --t-base: var(--t-frase);
+
   /* O atraso deste caractere, derivado do índice que o React pôs em --i. É
      isto que substitui o timer. */
-  --atraso: calc(var(--t-frase) + var(--i) * var(--d-caractere));
+  --atraso: calc(var(--t-base) + var(--i) * var(--d-caractere));
+
+  /* O apagamento anda ao contrário: o ÚLTIMO caractere é o primeiro a sair.
+     `--n` (o total) vem do <h1>.
+
+     São duas contas e não uma porque o cursor chega antes de o caractere
+     sumir: no intervalo em que o cursor está encostado nele, ele ainda está
+     escrito — é o fim do texto que sobrou. Ele some ao FIM da fatia. */
+  --chegada-cursor: calc((var(--n) - 1 - var(--i)) * var(--d-apagar));
+  --atraso-saida: calc((var(--n) - var(--i)) * var(--d-apagar));
 
   /* `relative` para o cursor (::after) se ancorar no fim deste caractere sem
      ninguém medir offsetLeft quadro a quadro. Num elemento inline, `relative`
@@ -35,12 +52,20 @@
   pointer-events: none;
 }
 
-/* ── Tocando ────────────────────────────────────────────────────────────── */
+/* ── Escrevendo (a abertura e a reescrita de uma troca) ─────────────────── */
 
-/* 1ms, e não um fade: a 34ms de cadência, um fade de 90ms deixaria três
-   caracteres meio-transparentes ao mesmo tempo — vira borrão, não digitação. */
-.frase[data-estatica="false"] .caractere {
+/* As duas fases usam a MESMA cadência e os mesmos keyframes — a digitação é a
+   assinatura da página, e duas cadências fariam a troca parecer outro efeito.
+   O que muda entre elas é só de onde o relógio conta, em --t-base. */
+.frase:is([data-fase="entrada"], [data-fase="escrevendo"]) .caractere {
+  /* 1ms, e não um fade: a 34ms de cadência, um fade de 90ms deixaria três
+     caracteres meio-transparentes ao mesmo tempo — vira borrão, não
+     digitação. */
   animation: caractere-surge 1ms linear var(--atraso) forwards;
+}
+
+.frase[data-fase="escrevendo"] .caractere {
+  --t-base: var(--t-troca);
 }
 
 /* `forwards` e não `both`: com `both` o cursor já estaria aceso ANTES do
@@ -63,7 +88,7 @@
    caractere (1% de 34ms), imperceptível a olho nu e indistinguível de um
    corte seco. Não trocar de volta para `steps(1, end)` sem reler este
    comentário — é exatamente essa "simplificação" que reintroduz o bug. */
-.frase[data-estatica="false"] .caractere::after {
+.frase:is([data-fase="entrada"], [data-fase="escrevendo"]) .caractere::after {
   animation: cursor-passa var(--d-caractere) linear var(--atraso) forwards;
 }
 
@@ -72,8 +97,29 @@
    propriedade só, não se mistura. Continua em `cursor-apaga`/`linear`: essa
    combinação já resolvia certo (fade de verdade ao longo de --d-cursor, bem
    mais folgado que 34ms), então não muda. */
-.frase[data-estatica="false"] .caractere[data-ultimo="true"]::after {
+.frase:is([data-fase="entrada"], [data-fase="escrevendo"])
+  .caractere[data-ultimo="true"]::after {
   animation: cursor-apaga var(--d-cursor) linear var(--atraso) forwards;
+}
+
+/* ── Apagando (a saída, na troca de idioma) ─────────────────────────────── */
+
+/* Aqui a frase COMEÇA acesa: esta fase só é acionada a partir de `parada`,
+   com todos os caracteres já escritos (ver o comentário em FraseDigitada.tsx
+   sobre por que uma frase incompleta se corta em vez de apagar). Os <span>
+   são remontados na virada, então nascem direto em opacity 1 — sem transição
+   a partir do 0 da regra base, sem piscada. */
+.frase[data-fase="apagando"] .caractere {
+  opacity: 1;
+  animation: caractere-some 1ms linear var(--atraso-saida) forwards;
+}
+
+/* O mesmo `cursor-passa` da digitação, só que na ordem inversa e no ritmo do
+   apagamento: o cursor encosta no caractere, ele some, o cursor recua para o
+   anterior. Cada um fica aceso exatamente a fatia dele — o platô em 99%
+   resolve aqui o mesmo problema de ponto flutuante descrito acima. */
+.frase[data-fase="apagando"] .caractere::after {
+  animation: cursor-passa var(--d-apagar) linear var(--chegada-cursor) forwards;
 }
 
 @keyframes caractere-surge {
@@ -82,8 +128,15 @@
   }
 }
 
-/* Cursor de cada caractere comum, enquanto ele é digitado. Ver o comentário
-   acima da regra que usa isto: o platô em 99% substitui `steps(1, end)`. */
+@keyframes caractere-some {
+  to {
+    opacity: 0;
+  }
+}
+
+/* Cursor de cada caractere comum, enquanto ele é digitado (ou apagado). Ver o
+   comentário acima da regra que usa isto: o platô em 99% substitui
+   `steps(1, end)`. */
 @keyframes cursor-passa {
   0%,
   99% {
@@ -105,13 +158,13 @@
   }
 }
 
-/* ── Estático (visita repetida na mesma sessão) ─────────────────────────── */
+/* ── Parada (visita repetida, ou coreografia já encerrada) ──────────────── */
 
-.frase[data-estatica="true"] .caractere {
+.frase[data-fase="parada"] .caractere {
   opacity: 1;
 }
 
-.frase[data-estatica="true"] .caractere::after {
+.frase[data-fase="parada"] .caractere::after {
   content: none;
 }
 
@@ -120,7 +173,12 @@
 /* !important de propósito, e zerando a ANIMAÇÃO inteira: o bloco de
    globals.css zera `animation-duration`, mas não zera `animation-delay` —
    sozinho, ele deixaria os 47 caracteres surgirem escalonados ao longo de
-   1,6s, com duração zero e atrasos intactos. Isso ainda é movimento. */
+   1,6s, com duração zero e atrasos intactos. Isso ainda é movimento.
+
+   Vale para as quatro fases, inclusive `apagando`: aqui a frase nunca some,
+   ela só troca. Quem zera os TIMERS que dividem as fases é o JavaScript de
+   FraseDigitada.tsx (@media não alcança setTimeout) — sem isso, a troca ficaria
+   parada por ~0,8s esperando um apagamento que não acontece. */
 @media (prefers-reduced-motion: reduce) {
   .caractere {
     animation: none !important;

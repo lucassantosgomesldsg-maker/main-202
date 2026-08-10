@@ -19,18 +19,42 @@ import { COPY, IDIOMAS, type Idioma } from "./copy";
 export const ATOS = {
   /** A logo cresce de 0.82 a 1, e o "0" dá uma volta completa. */
   crescimento: 1200,
-  /** O ponto verde assenta e pulsa com brilho. */
+  /**
+   * O ponto verde assenta com uma batida de escala.
+   *
+   * 02/08/2026 — sem halo. O clarão verde que acendia junto (`ponto-halo` em
+   * app/abertura.module.css) foi removido por ser excessivo; a duração ficou,
+   * porque a batida de escala continua e porque ela é um elo da cascata: é
+   * `pulso` que empurra `INICIO_TOPO` para depois do fim do Ato 2.
+   */
   pulso: 360,
-  /** Tela parada, de propósito, antes do topo entrar. */
-  esperaTopo: 400,
+  /**
+   * Tela parada, de propósito, antes do topo entrar.
+   *
+   * 02/08/2026 — de 400ms para 150ms. Ver `esperaFrase` logo abaixo.
+   */
+  esperaTopo: 150,
   /** PT/EN e CONTATO entram pelas laterais, ao mesmo tempo. */
   topo: 520,
-  /** Tela parada, de propósito, antes da frase começar. */
-  esperaFrase: 200,
+  /**
+   * Tela parada, de propósito, antes da frase começar.
+   *
+   * 02/08/2026 — de 200ms para 80ms. Junto com `esperaTopo`, corta 370ms de
+   * espera PARADA da entrada: o topo agora começa em 1710ms (era 1960) e a
+   * frase em 2310ms (era 2680). Nenhuma DURAÇÃO foi tocada — os gestos levam
+   * exatamente o mesmo tempo que levavam; o que encolheu foi só o vazio entre
+   * eles, que era o que lia como lento.
+   */
+  esperaFrase: 80,
   /** O ritmo da digitação: um caractere a cada tanto. */
   msPorCaractere: 34,
   /** A barra de digitação some. */
   saidaCursor: 240,
+  /** O ritmo do apagamento, na troca de idioma. Mais rápido que a digitação
+   *  de propósito: apagar é um backspace segurado, não uma segunda escrita. */
+  msPorCaractereApagando: 14,
+  /** O respiro entre a frase apagada e a nova começando a ser escrita. */
+  esperaTroca: 120,
 } as const;
 
 /** O ponto só pulsa quando o crescimento termina. Esta linha *é* a regra. */
@@ -65,6 +89,36 @@ export function caracteres(idioma: Idioma): number {
 export function duracaoTotal(idioma: Idioma): number {
   return (
     INICIO_FRASE +
+    (caracteres(idioma) - 1) * ATOS.msPorCaractere +
+    ATOS.saidaCursor
+  );
+}
+
+/**
+ * Quanto leva para apagar a frase, na troca de idioma.
+ *
+ * Aqui NÃO tem `- 1`, e a diferença para `duracaoTotal` é proposital: na
+ * digitação o caractere 0 SURGE em t=0, então entre n caracteres há n-1
+ * intervalos. No apagamento cada caractere ocupa uma fatia inteira antes de
+ * sumir — o último some ao FIM da primeira fatia, não no começo dela, senão a
+ * frase perderia uma letra no mesmo quadro do clique. São n fatias.
+ */
+export function duracaoApagamento(idioma: Idioma): number {
+  return caracteres(idioma) * ATOS.msPorCaractereApagando;
+}
+
+/**
+ * Quanto leva para reescrever a frase depois de apagada.
+ *
+ * Mesma cadência da abertura (`msPorCaractere`) — a digitação é a assinatura
+ * da página, e uma segunda cadência faria a troca parecer outro efeito. O que
+ * NÃO se repete é `INICIO_FRASE`: aquela espera existe para deixar a logo e o
+ * topo entrarem primeiro, e não há nada disso acontecendo numa troca. No lugar
+ * dela entra `esperaTroca`, o respiro curto entre apagar e escrever.
+ */
+export function duracaoEscrita(idioma: Idioma): number {
+  return (
+    ATOS.esperaTroca +
     (caracteres(idioma) - 1) * ATOS.msPorCaractere +
     ATOS.saidaCursor
   );
@@ -113,7 +167,9 @@ export const TEMPOS = {
   "--d-topo": `${ATOS.topo}ms`,
   "--d-caractere": `${ATOS.msPorCaractere}ms`,
   "--d-cursor": `${ATOS.saidaCursor}ms`,
+  "--d-apagar": `${ATOS.msPorCaractereApagando}ms`,
   "--t-pulso": `${INICIO_PULSO}ms`,
   "--t-topo": `${INICIO_TOPO}ms`,
   "--t-frase": `${INICIO_FRASE}ms`,
+  "--t-troca": `${ATOS.esperaTroca}ms`,
 };

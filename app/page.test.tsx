@@ -2,7 +2,13 @@ import { act } from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { DURACAO_TOTAL_MAXIMA_MS, INICIO_FRASE, INICIO_TOPO } from "@/lib/abertura";
+import {
+  DURACAO_TOTAL_MAXIMA_MS,
+  INICIO_FRASE,
+  INICIO_TOPO,
+  duracaoApagamento,
+  duracaoEscrita,
+} from "@/lib/abertura";
 import { __resetarParaTeste } from "@/lib/usaMotionUmaVez";
 import Home from "./page";
 
@@ -115,10 +121,20 @@ describe("a abertura", () => {
   // o relógio real já tinha passado, `forwards` (não `both`) deixando a regra
   // de repouso `opacity:0` valer indefinidamente. O <h1> ficava com pedaços
   // invisíveis por até ~4,2s depois de uma troca de idioma pós-entrada.
-  it("depois que a abertura termina de verdade, trocar de idioma não deixa caracteres presos a um atraso já vencido", () => {
+  //
+  // O que `estatica` protege continua sendo exatamente isso, e a troca de
+  // idioma que apaga e reescreve (02/08/2026) mantém a mesma dependência: é
+  // `estatica` que diz à frase que ela está inteira, e portanto que a próxima
+  // troca deve APAGAR em vez de cortar. A prova mudou de vocabulário —
+  // `data-estatica` virou `data-fase`, com quatro valores — mas a armadilha é
+  // a mesma: se a página não soubesse que a coreografia acabou, o clique
+  // cairia no caminho de corte e a reescrita nasceria com o atraso da
+  // abertura, já vencido.
+  it("depois que a abertura termina de verdade, trocar de idioma apaga, reescreve e para — sem prender ninguém a um atraso já vencido", () => {
     vi.useFakeTimers();
     try {
       const { container } = render(<Home />);
+      const h1 = container.querySelector("h1") as HTMLElement;
 
       // Avança bem além do pior caso entre os dois idiomas — a coreografia
       // já terminou de verdade nesta mesma carga.
@@ -126,14 +142,22 @@ describe("a abertura", () => {
         vi.advanceTimersByTime(DURACAO_TOTAL_MAXIMA_MS);
       });
 
-      fireEvent.click(screen.getByRole("button", { name: "EN" }));
+      // Se isto ainda fosse `jaRodou`, valeria "entrada": a troca acontece na
+      // MESMA carga, e `jaRodou` só muda numa carga seguinte.
+      expect(h1).toHaveAttribute("data-fase", "parada");
 
-      const h1 = container.querySelector("h1") as HTMLElement;
-      // Se isto ainda fosse `jaRodou`, valeria "false": a troca aconteceu na
-      // MESMA carga, e `jaRodou` só muda numa carga seguinte. `estatica`
-      // precisa refletir "a coreografia desta carga já terminou", não só "eu
-      // já vi isto antes".
-      expect(h1).toHaveAttribute("data-estatica", "true");
+      fireEvent.click(screen.getByRole("button", { name: "EN" }));
+      expect(h1).toHaveAttribute("data-fase", "apagando");
+
+      act(() => {
+        vi.advanceTimersByTime(duracaoApagamento("pt"));
+      });
+      expect(h1).toHaveAttribute("data-fase", "escrevendo");
+
+      act(() => {
+        vi.advanceTimersByTime(duracaoEscrita("en"));
+      });
+      expect(h1).toHaveAttribute("data-fase", "parada");
       expect(container.querySelector("main")).toHaveAttribute(
         "data-abertura",
         "estatica",

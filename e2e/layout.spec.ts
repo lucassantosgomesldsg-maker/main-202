@@ -1,5 +1,10 @@
 import { test, expect, type Page } from "@playwright/test";
-import { DURACAO_TOTAL_MAXIMA_MS } from "../lib/abertura";
+import {
+  DURACAO_TOTAL_MAXIMA_MS,
+  caracteres,
+  duracaoApagamento,
+  duracaoEscrita,
+} from "../lib/abertura";
 
 /**
  * Uma folga sobre o fim REAL da coreografia, importado de lib/abertura.ts em
@@ -625,7 +630,7 @@ test.describe("a abertura", () => {
     // Contraparte decisiva do teste acima: sem ela, "tudo aceso no fim"
     // passaria com a animação nunca tendo rodado.
     await page.goto("/");
-    await page.waitForTimeout(500); // a frase só começa em 2680ms
+    await page.waitForTimeout(500); // a frase só começa em INICIO_FRASE (2310ms)
 
     const acesos = await page
       .locator("[data-caractere]")
@@ -634,6 +639,153 @@ test.describe("a abertura", () => {
           els.filter((el) => Number(getComputedStyle(el).opacity) > 0.5).length,
       );
     expect(acesos).toBe(0);
+  });
+});
+
+/**
+ * A troca de idioma: apagar a frase antiga e escrever a nova.
+ *
+ * Nada disto é verificável sem navegador. O vitest prova a máquina de estado
+ * (as fases, os timers, a martelada) mas não enxerga UMA linha de
+ * FraseDigitada.module.css — e é o CSS que decide se o apagamento vai de trás
+ * para frente, se algum caractere ficou preso apagado, e se a remontagem por
+ * `tomada` reiniciou a animação de verdade em vez de herdar o relógio anterior.
+ */
+test.describe("a troca de idioma", () => {
+  /** Quais caracteres estão acesos, na ordem em que estão na frase. */
+  async function acesos(page: Page): Promise<boolean[]> {
+    return page
+      .locator("[data-caractere]")
+      .evaluateAll((els) =>
+        els.map((el) => Number(getComputedStyle(el).opacity) > 0.5),
+      );
+  }
+
+  async function cursoresAcesos(page: Page): Promise<number> {
+    return page
+      .locator("[data-caractere]")
+      .evaluateAll(
+        (els) =>
+          els.filter(
+            (el) => Number(getComputedStyle(el, "::after").opacity) > 0.01,
+          ).length,
+      );
+  }
+
+  test.beforeEach(async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/");
+    await page.waitForTimeout(DEPOIS_DA_ENTRADA); // a frase precisa estar inteira
+  });
+
+  test("apaga de trás para frente, com o texto antigo ainda no lugar", async ({
+    page,
+  }) => {
+    await page.getByRole("button", { name: "EN" }).click();
+    // No meio do apagamento: 47 caracteres × 14ms ≈ 658ms de ponta a ponta.
+    await page.waitForTimeout(Math.round(duracaoApagamento("pt") / 2));
+
+    const estado = await acesos(page);
+    const primeiroApagado = estado.indexOf(false);
+
+    // A prova da ORDEM, e não da contagem: o que sobra aceso é um prefixo.
+    // Se o apagamento andasse para frente, ou saísse tudo de uma vez, ou
+    // saísse em ordem aleatória, esta asserção cairia.
+    expect(primeiroApagado).toBeGreaterThan(0);
+    expect(estado.slice(primeiroApagado).some(Boolean)).toBe(false);
+
+    // E é a frase VELHA que está sendo apagada. Trocar o texto antes de
+    // apagar passaria a asserção acima e mesmo assim estaria errado: seria a
+    // frase nova sumindo de trás para frente, o filme ao contrário.
+    await expect(page.getByText("Potencializamos talentos e")).toBeVisible();
+  });
+
+  test("reescreve na língua nova, inteira e sem cursor sobrando", async ({
+    page,
+  }) => {
+    await page.getByRole("button", { name: "EN" }).click();
+    await page.waitForTimeout(
+      duracaoApagamento("pt") + duracaoEscrita("en") + 300,
+    );
+
+    const estado = await acesos(page);
+    expect(estado.length).toBe(caracteres("en"));
+    expect(estado.every(Boolean)).toBe(true);
+    expect(await cursoresAcesos(page)).toBe(0);
+    await expect(page.getByText("We build the future.")).toBeVisible();
+  });
+
+  test("no meio da reescrita a frase está pela metade — não inteira de uma vez", async ({
+    page,
+  }) => {
+    // Contraparte decisiva do teste acima: sem ela, "tudo aceso no fim"
+    // passaria com a reescrita nunca tendo sido animada. É também o que pega a
+    // armadilha da `tomada`: sem nós novos, os <span> herdariam a animação já
+    // terminada da frase anterior e a frase nova nasceria inteira acesa.
+    await page.getByRole("button", { name: "EN" }).click();
+    // Folga dos DOIS lados: 500ms depois do apagamento são ~11 dos 38
+    // caracteres do inglês (descontada a espera de 120ms), longe do zero e
+    // longe dos 1618ms que a reescrita inteira leva.
+    await page.waitForTimeout(duracaoApagamento("pt") + 500);
+
+    const estado = await acesos(page);
+    const primeiroApagado = estado.indexOf(false);
+
+    expect(primeiroApagado).toBeGreaterThan(0); // já escreveu alguma coisa
+    expect(estado.slice(primeiroApagado).some(Boolean)).toBe(false); // e não tudo
+  });
+
+  test("martelar PT/EN/PT/EN termina inteira, na língua do último clique", async ({
+    page,
+  }) => {
+    const pt = page.getByRole("button", { name: "PT" });
+    const en = page.getByRole("button", { name: "EN" });
+
+    // Cliques em cima da hora, caindo em fases diferentes de propósito: no
+    // meio do apagamento, no meio da reescrita, e um logo em seguida.
+    await en.click();
+    await page.waitForTimeout(80);
+    await pt.click();
+    await page.waitForTimeout(400);
+    await en.click();
+    await page.waitForTimeout(150);
+    await pt.click();
+    await en.click();
+
+    // O pior caso possível depois do último clique, com folga.
+    await page.waitForTimeout(
+      duracaoApagamento("pt") + duracaoEscrita("en") + 600,
+    );
+
+    const estado = await acesos(page);
+    expect(estado.length).toBe(caracteres("en"));
+    expect(estado.every(Boolean)).toBe(true); // nenhum caractere ficou para trás
+    expect(await cursoresAcesos(page)).toBe(0);
+    await expect(page.getByText("We amplify talent.")).toBeVisible();
+    esperaSemScroll(await medirDocumento(page));
+  });
+});
+
+test.describe("a troca de idioma com movimento reduzido", () => {
+  test.use({ contextOptions: { reducedMotion: "reduce" } });
+
+  test("troca na hora, sem apagar nem escrever", async ({ page }) => {
+    // O @media zera as animações, mas não alcança os setTimeout que dividem as
+    // fases — quem pediu MENOS movimento não pode ficar ~0,8s olhando para o
+    // texto antigo, parado, esperando um apagamento que não vai acontecer.
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/");
+
+    await page.getByRole("button", { name: "EN" }).click();
+    await page.waitForTimeout(120); // dois quadros, não duas fases
+
+    await expect(page.getByText("We amplify talent.")).toBeVisible();
+    const opacidades = await page
+      .locator("[data-caractere]")
+      .evaluateAll((els) => els.map((el) => Number(getComputedStyle(el).opacity)));
+
+    expect(opacidades.length).toBe(caracteres("en"));
+    expect(Math.min(...opacidades)).toBeGreaterThan(0.99);
   });
 });
 
