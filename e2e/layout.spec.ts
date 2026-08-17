@@ -46,7 +46,10 @@ const VIEWPORTS = [
 
 const IDIOMAS = ["pt", "en"] as const;
 
-const SELETORES_CANTOS = ["[data-logo]", ".oneliner", ".contato"];
+// `.tese` entrou em 17/08/2026: o topo passou de dois para três elementos na
+// mesma linha, e em 320px com `THE THESIS` + `CONTACT ↗` a folga ficou em
+// poucos pixels. É exatamente o caso que este teste existe para pegar.
+const SELETORES_CANTOS = ["[data-logo]", ".oneliner", ".contato", ".tese"];
 
 /** Semeia o idioma ANTES de qualquer script da página rodar — precisa
  *  existir já na primeira leitura de localStorage em app/page.tsx. */

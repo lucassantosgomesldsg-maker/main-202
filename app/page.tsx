@@ -88,18 +88,33 @@ export default function Home() {
       <title>{titulo(idioma)}</title>
       <header className="topo">
         <SeletorIdioma idioma={idioma} aoTrocar={trocarIdioma} />
-        {/* data-ima: a lanterna gruda aqui. É só uma marca lida por
+
+        {/* As duas âncoras da direita. O grupo existe porque `.topo` é um
+            `space-between`: com três filhos soltos, o link da tese cairia no
+            MEIO do topo em vez de ficar ao lado do contato.
+
+            `A TESE` vem antes, e sem seta. A `↗` do contato quer dizer uma
+            coisa específica — "isto sai do site" —, e a ausência dela aqui diz
+            a oposta, que é verdade. Duas setas lado a lado ainda leriam como
+            uma sequência ("A TESE → CONTATO"), que não é o que são.
+
+            data-ima: a lanterna gruda em cada um. É só uma marca lida por
             lib/usaLanterna — nada de pointer-events, nada de listener — então
-            o link continua clicável e focável exatamente como era. */}
-        <a
-          className="label contato"
-          data-ima="contato"
-          href={INSTAGRAM}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          {t.contato} ↗
-        </a>
+            os links continuam clicáveis e focáveis exatamente como eram. */}
+        <div className="topoDireita">
+          <Link className="label tese" data-ima="tese" href="/tese">
+            {t.tese}
+          </Link>
+          <a
+            className="label contato"
+            data-ima="contato"
+            href={INSTAGRAM}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {t.contato} ↗
+          </a>
+        </div>
       </header>
 
       <div className="centro">
@@ -117,22 +132,6 @@ export default function Home() {
             é components/FraseDigitada — inclusive a digitação, que é CSS puro
             e não depende de JavaScript. */}
         <FraseDigitada idioma={idioma} estatica={estatica} />
-
-        {/* O quarto canto, que ficou vazio até 17/08/2026. Aqui, e não no
-            topo, por dois motivos: o `.base` já era um flex `space-between`
-            desenhado para um segundo filho (ver o comentário em globals.css
-            sobre a regra de 720px, que volta agora), e a leitura fica na ordem
-            certa — a frase diz o que a 202 faz, e o link ao lado dela oferece
-            o porquê.
-
-            `→` e não `↗`: a seta diagonal é do CONTATO, que sai do site. Esta
-            fica dentro dele.
-
-            `data-ima` é só uma marca lida por lib/usaLanterna: qualquer
-            elemento com o atributo vira ímã, sem lista para atualizar. */}
-        <Link className="label tese" data-ima="tese" href="/tese">
-          {t.tese} →
-        </Link>
       </footer>
     </main>
   );

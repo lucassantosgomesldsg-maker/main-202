@@ -375,16 +375,16 @@ test.describe("as saídas", () => {
     await expect(page.locator("[data-logo]")).toBeVisible();
   });
 
-  test("o fecho oferece a volta e, depois dela, o contato", async ({ page }) => {
-    // A ordem é decisão de design, não acaso do JSX: a ← nasce à esquerda e a
-    // ↗ à direita, e invertidas as duas setas se cruzam no meio da linha.
+  test("o fecho oferece uma porta só: a volta para a home", async ({ page }) => {
+    // O contato saiu do fecho em 17/08/2026 e continua no cabeçalho fixo. Um
+    // segundo link aqui não é um detalhe estético: ele transforma a última
+    // linha da tese num pedido.
     await page.goto("/tese");
     const portas = page.locator("#fecho a");
 
-    await expect(portas).toHaveCount(2);
-    await expect(portas.nth(0)).toHaveAttribute("href", "/");
-    await expect(portas.nth(1)).toHaveAttribute("href", /instagram\.com/);
-    await expect(portas.nth(1)).toHaveAttribute("rel", "noopener noreferrer");
+    await expect(portas).toHaveCount(1);
+    await expect(portas.first()).toHaveAttribute("href", "/");
+    await expect(page.locator("header a[href*='instagram.com']")).toBeVisible();
   });
 });
 

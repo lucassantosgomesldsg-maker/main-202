@@ -51,22 +51,26 @@ virou "a HOME nunca rola". Ver §7.
 | Movimento | Abertura própria + revelação por seção, dirigida pelo scroll | Só revelação; estática |
 | Frentes | **Cinco**, com alocação/headhunting entre elas (17/08, 2ª rodada) | Quatro; seis, com o spin-out separado |
 | Produto | Não é só interno: o que amadurece **sai da 202 como empresa** | Produto só interno; spin-out como sexta frente |
-| Saída | Duas portas, nesta ordem: **a home e depois o contato** (17/08, 2ª rodada) | Contato primeiro; uma porta só; destinos novos |
+| Saída | **Uma porta: a volta para a home** (17/08, 3ª rodada). O contato vive no cabeçalho fixo, presente da primeira à última seção | Duas portas; contato repetido no fecho |
 | Fecho | **Sem parágrafo de convite** (17/08, 2ª rodada). A frase basta | "Se você leu até aqui e concorda…" antes das portas |
-| Ligação com a home | ~~Ainda não existe~~ **Feita em 17/08 (2ª rodada): `A TESE →` no canto inferior direito** | Link no topo; o oneliner vira link |
+| Ligação com a home | ~~Ainda não existe~~ **Feita em 17/08: `A TESE` no topo, ao lado do `CONTATO`** | Canto inferior direito (tentado e trocado); o oneliner vira link |
 
-**Por que o canto inferior direito.** Era o único dos quatro cantos vazio, e
-`globals.css` já registrava por escrito que o `.base` fora desenhado como um
-flex `space-between` esperando um segundo filho — com a regra de empilhamento
-em 720px anotada como "se algum dia ganhar um segundo filho, precisa voltar".
-Voltou. A leitura também sai na ordem certa: a frase diz o que a 202 faz e o
-link ao lado dela oferece o porquê. `→` e não `↗` porque a seta diagonal é do
-CONTATO, que sai do site.
+**Onde o link mora, e por quê.** Foi primeiro para o canto inferior direito —
+o único dos quatro vazio — e o Matheus pediu para movê-lo ao lado do contato.
+Faz sentido: o topo é onde a navegação do site já vive, e as duas âncoras
+externas ao conteúdo ficam juntas em vez de espalhadas pelas diagonais.
 
-Na abertura o link entra na **mesma batida** de `PT/EN` e `CONTATO` (Ato 3),
-pelo mesmo lado. Os três são navegação; chegarem juntos os lê como um gesto só,
-e dar a ele um ato próprio roubaria a última batida da frase, que é o clímax da
-entrada.
+- **`A TESE` vem antes do `CONTATO`, e sem seta.** A `↗` quer dizer uma coisa
+  específica — "isto sai do site" — e a ausência dela diz a oposta, que é
+  verdade. Duas setas lado a lado ainda leriam como sequência
+  ("A TESE → CONTATO"), que não é o que são.
+- **O grupo (`.topoDireita`) existe por necessidade, não por organização.**
+  `.topo` é um `space-between`: com três filhos soltos, o link cairia no meio
+  do topo.
+- **Na abertura, o grupo INTEIRO entra como um bloco** (Ato 3), e não cada link
+  por conta própria. É geometria: `translateX(100%)` é 100% da largura do
+  próprio elemento, e o `A TESE`, que não encosta na borda, deslizaria por trás
+  do `CONTATO` em vez de sair da tela.
 
 Falta só o deploy.
 

@@ -139,6 +139,20 @@ a:focus-visible, button:focus-visible {
 
 .base { align-items: flex-end; }
 
+/* As duas âncoras da direita do topo, num grupo só. Sem ele, `.topo` é um
+   `space-between` de três filhos e o link da tese cairia no meio da tela.
+   O `gap` encolhe junto com a margem da página: em 320px de largura, com
+   `PT / EN`, `THE THESIS` e `CONTACT ↗` na mesma linha, cada pixel conta. */
+.topoDireita {
+  display: flex;
+  align-items: flex-start;
+  gap: 2rem;
+}
+
+@media (max-width: 720px) {
+  .topoDireita { gap: 1.25rem; }
+}
+
 .centro {
   display: grid;
   place-items: center;
@@ -168,20 +182,21 @@ a:focus-visible, button:focus-visible {
   letter-spacing: -0.01em;
 }
 
-/* Esta regra saiu em 31/07/2026, quando `.base` ficou com UM filho só, e
-   VOLTOU em 17/08/2026, quando o link para a /tese entrou como segundo — o
-   comentário antigo previa exatamente isso.
+/* O `@media (max-width: 720px)` que empilhava `.base` em coluna saiu em
+   31/07/2026. Ele existia para separar o oneliner das coordenadas no celular;
+   com as coordenadas fora da página, `.base` tem UM filho só, e aí nada do que
+   a regra fazia tem efeito: `flex-direction` não muda a posição de um item
+   único (o container tem altura de conteúdo, então o `align-items` do eixo
+   cruzado não tem folga para distribuir), `justify-content: space-between`
+   com um item o deixa no início em qualquer direção, e `gap` só existe ENTRE
+   filhos. Conferido no navegador em 390x844, 320x568 e 720x800: a caixa de
+   `.base` e a de `.oneliner` saem idênticas ao centésimo de pixel com e sem a
+   regra.
 
-   Sem ela, numa tela estreita a frase de display e o link de mono disputam a
-   mesma linha: o `space-between` espreme o oneliner até ele quebrar em quatro
-   linhas. Empilhado, cada um fica com a largura inteira. */
-@media (max-width: 720px) {
-  .base {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1.1rem;
-  }
-}
+   Ela voltou por algumas horas em 17/08/2026, quando o link da /tese entrou
+   como segundo filho de `.base`, e saiu de novo quando ele foi para o topo, ao
+   lado do CONTATO. O aviso continua valendo: se algum dia `.base` ganhar um
+   segundo filho, a regra precisa voltar. */
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

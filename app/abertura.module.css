@@ -155,13 +155,15 @@
   opacity: 0;
 }
 
-/* O link da /tese entra pelo mesmo lado e na mesma batida do CONTATO, apesar
-   de morar no canto de BAIXO. Os três são navegação — trocar de idioma, sair
-   para o Instagram, ir para a tese — e chegar juntos os lê como um gesto só.
-   Dar a ele um ato próprio roubaria a última batida da frase, que é o clímax
-   da entrada. */
-.abertura[data-abertura] :global([data-ima="contato"]),
-.abertura[data-abertura] :global([data-ima="tese"]) {
+/* A direita inteira sai como UM bloco (`.topoDireita`), e não cada link por
+   conta própria. Não é gosto, é geometria: `translateX(100%)` é 100% da
+   largura do PRÓPRIO elemento, e o `A TESE`, que não encosta na borda,
+   deslizaria por trás do CONTATO em vez de sair da tela. Animar o grupo põe a
+   borda direita dele exatamente fora da margem, que é o que o gesto sempre
+   quis dizer.
+
+   E diz a coisa certa: os dois são navegação e chegam juntos. */
+.abertura[data-abertura] :global(.topoDireita) {
   transform: translateX(calc(100% + var(--margem)));
   opacity: 0;
 }
@@ -172,8 +174,7 @@
     var(--t-topo) both;
 }
 
-.abertura[data-abertura="tocando"] :global([data-ima="contato"]),
-.abertura[data-abertura="tocando"] :global([data-ima="tese"]) {
+.abertura[data-abertura="tocando"] :global(.topoDireita) {
   animation: topo-direita var(--d-topo) cubic-bezier(0.16, 1, 0.3, 1)
     var(--t-topo) both;
 }
@@ -204,12 +205,11 @@
 
 /* Mesma razão da seção equivalente do Ato 1/2, acima: esta regra empata em
    especificidade (0,3,0) com as regras de repouso do Ato 3 logo acima dela —
-   `[data-ima="idioma"]`/`[data-ima="contato"]` sem valor no atributo
-   `data-abertura` vs. com `="estatica"` — e só vence por vir depois no
-   arquivo. Precisa continuar depois do repouso, não antes. */
+   `[data-ima="idioma"]`/`.topoDireita` sem valor no atributo `data-abertura`
+   vs. com `="estatica"` — e só vence por vir depois no arquivo. Precisa
+   continuar depois do repouso, não antes. */
 .abertura[data-abertura="estatica"] :global([data-ima="idioma"]),
-.abertura[data-abertura="estatica"] :global([data-ima="contato"]),
-.abertura[data-abertura="estatica"] :global([data-ima="tese"]) {
+.abertura[data-abertura="estatica"] :global(.topoDireita) {
   transform: none;
   opacity: 1;
 }
@@ -231,8 +231,7 @@
   }
 
   .abertura[data-abertura] :global([data-ima="idioma"]),
-  .abertura[data-abertura] :global([data-ima="contato"]),
-  .abertura[data-abertura] :global([data-ima="tese"]) {
+  .abertura[data-abertura] :global(.topoDireita) {
     animation: none !important;
     transform: none !important;
     opacity: 1 !important;
