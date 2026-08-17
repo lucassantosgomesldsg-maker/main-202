@@ -183,12 +183,16 @@
 }
 
 /* ── O fecho ───────────────────────────────────────────────────────────────
-   Duas portas, sem convite: a própria home e o contato dela.
+   Uma porta: a volta para a home.
 
-   Havia um parágrafo entre a frase e as portas ("se você leu até aqui e
-   concorda…"). Saiu em 17/08/2026: a página inteira já é o convite, e explicar
-   isso na última linha enfraquece a frase que vem logo acima — a única da tese
-   que não precisa de apoio nenhum. */
+   Duas coisas saíram daqui em 17/08/2026, pelo mesmo motivo. O parágrafo de
+   convite ("se você leu até aqui e concorda…") e o link de contato: a página
+   inteira já é o convite, e o contato já está no cabeçalho fixo desde a
+   primeira seção. Repetir os dois no fim transformava a última linha da tese
+   num pedido, e ela é a única frase da página que não precisa de apoio nenhum.
+
+   `.portas` continua um flex com `gap` mesmo com um filho só — a caixa sai
+   idêntica, e a estrutura sobrevive a um segundo link voltar um dia. */
 .portas {
   display: flex;
   flex-wrap: wrap;

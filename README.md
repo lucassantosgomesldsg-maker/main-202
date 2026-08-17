@@ -9,14 +9,12 @@ Duas páginas, com regras opostas de propósito:
 | `/` | A main page — **uma tela, sem scroll** | Nunca |
 | `/tese` | **A Tese** — dez telas de argumento, com instrumento por seção | Sim |
 
-As duas são ligadas nos dois sentidos: `A TESE →` no canto inferior direito da
-home, e o wordmark `202` no topo da tese de volta para `/`. O idioma atravessa
-junto — é a mesma chave de `localStorage`, lida por `lib/usaIdioma.ts`.
+As duas são ligadas nos dois sentidos: `A TESE` no topo da home, ao lado do
+`CONTATO`, e o wordmark `202` no topo da tese de volta para `/`. O idioma
+atravessa junto — é a mesma chave de `localStorage`, lida por
+`lib/usaIdioma.ts`.
 
 ## A main page (`/`)
-
-Quatro cantos e um centro. Desde 17/08/2026 o quarto canto — o inferior
-direito, que era o único vazio — leva para a `/tese`.
 
 Uma página só: o wordmark `202` gigante no centro, sobre uma malha `202020`
 quase engolida pelo preto. O cursor é uma lanterna que acende a malha em verde

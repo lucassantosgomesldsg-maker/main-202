@@ -87,13 +87,18 @@ Quatro cantos ocupados, centro livre para a logo. É a composição construtiva 
 | 4 | Oneliner | inferior-esquerdo | ver §4 | Fraunces 300, `clamp(1.5rem, 2.6vw, 2.4rem)` |
 | 5 | Coordenadas | inferior-direito | duas linhas, alinhadas à direita | mono 12px, uppercase, tracking `0.1em` |
 
-> **Revisão de 17/08/2026 — o quinto elemento mudou de conteúdo.** As
-> coordenadas saíram em 31/07 e o canto inferior-direito ficou vazio: a
-> composição de quatro cantos passou a ter três. Ele foi reocupado pelo link
-> `A TESE →` (`/tese`), na mesma tipografia mono das outras duas âncoras. A
-> posição é a mesma prevista aqui; o que mudou foi o que ela carrega — de um
-> dado geográfico decorativo para a única navegação interna do site. Detalhe e
-> justificativa em `docs/superpowers/specs/2026-08-17-a-tese-design.md` §2.
+> **Revisão de 17/08/2026 — entrou um sexto elemento, no topo.** O site ganhou
+> uma segunda rota (`/tese`) e o link para ela mora ao lado do contato, no
+> topo-direito, na mesma mono das outras âncoras e **sem seta** (a `↗` do
+> contato significa "sai do site"). Os dois passam a viver num grupo,
+> `.topoDireita`, porque `.topo` é um `space-between` e três filhos soltos
+> jogariam o link para o meio da tela.
+>
+> O canto **inferior-direito continua vazio** desde que as coordenadas saíram
+> em 31/07: o link chegou a ficar ali e foi movido para o topo. A composição
+> de quatro cantos hoje tem três ocupados — e é assim de propósito, não por
+> esquecimento. Detalhe e justificativa em
+> `docs/superpowers/specs/2026-08-17-a-tese-design.md` §2.
 
 **Margens:** `3rem` no desktop, `1.5rem` abaixo de 720px — igual à prova
 `01_hero_site.html` do design system.

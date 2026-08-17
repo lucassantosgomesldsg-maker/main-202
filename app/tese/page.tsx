@@ -213,22 +213,15 @@ export default function Tese() {
                 )}
 
                 {forma === "fecho" && (
-                  /* A volta primeiro, o contato depois: as duas setas apontam
-                     para fora da leitura em direções opostas, e nesta ordem a
-                     ← nasce à esquerda e a ↗ à direita. Invertidas, as setas
-                     se cruzavam no meio da linha. */
+                  /* Uma porta só: a volta para a home. O contato saiu daqui em
+                     17/08/2026 — ele já está no cabeçalho fixo, presente na
+                     tela inteira desde a primeira até a última seção, e
+                     repeti-lo no fecho transformava a última linha da tese num
+                     pedido. A frase acima não precisa de pedido nenhum. */
                   <div className={estilos.portas}>
                     <Link className={`label ${estilos.porta}`} href="/">
                       ← {t.voltar}
                     </Link>
-                    <a
-                      className={`label ${estilos.porta}`}
-                      href={INSTAGRAM}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {COPY[idioma].contato} ↗
-                    </a>
                   </div>
                 )}
               </div>
