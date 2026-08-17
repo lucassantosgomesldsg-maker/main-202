@@ -831,3 +831,82 @@ test.describe("a abertura com movimento reduzido", () => {
     }
   });
 });
+
+/**
+ * Regressão de 17/08/2026 — o degrau de tamanho da logo.
+ *
+ * `Logo202.module.css` media a logo por `46vw` e TROCAVA para `30vh` dentro de
+ * um `@media (max-height: 600px)`. As duas fórmulas não se encontram no ponto
+ * da troca, então o tamanho saltava ali: numa tela de 1366px de largura a logo
+ * media 629px com 602px de altura e 180px com 599px — 3,5x de diferença para
+ * 3px de viewport. O 1366x768, o notebook mais comum, cai bem nessa fronteira,
+ * e a barra de favoritos do Chrome decide de que lado o visitante vai cair.
+ *
+ * A grade de VIEWPORTS lá em cima não pegava isso, e é bom entender por quê:
+ * "notebook baixo" tem 660px de altura, do lado de cima da fronteira, e o
+ * único viewport abaixo dela ("celular pequeno", 320x568) é estreito demais
+ * para a diferença aparecer — ali o piso do clamp manda, não o `30vh`. Vinte
+ * testes verdes e o bug em produção.
+ *
+ * A correção troca o degrau por `min(46vw, 75vh)`: uma rampa, contínua, sem
+ * ponto de troca. Estes dois testes falham com a regra antiga.
+ *
+ * Medem `getComputedStyle().width` e não `boundingBox()` de propósito — é a
+ * largura de LAYOUT que interessa aqui, e ela não depende da coreografia de
+ * entrada. Por isso também não há `DEPOIS_DA_ENTRADA` neste bloco: um
+ * `setViewportSize` reflui o CSS na hora, e a suíte não paga 4,8s por medida.
+ */
+test.describe("tamanho da logo — a rampa que substituiu o degrau", () => {
+  const LARGURA = 1366;
+
+  /** Largura de layout da logo, em px, no viewport atual. */
+  async function larguraDaLogo(page: Page, height: number) {
+    await page.setViewportSize({ width: LARGURA, height });
+    return page
+      .locator("[data-logo]")
+      .evaluate((el) => parseFloat(getComputedStyle(el).width));
+  }
+
+  test("um pixel de altura não muda o tamanho da logo", async ({ page }) => {
+    await page.goto("/");
+
+    const acima = await larguraDaLogo(page, 601);
+    const abaixo = await larguraDaLogo(page, 599);
+    const variacao = Math.abs(acima - abaixo) / Math.max(acima, abaixo);
+
+    expect(
+      variacao,
+      `a logo saltou de ${Math.round(acima)}px (601px de altura) para ` +
+        `${Math.round(abaixo)}px (599px) — 2px de viewport não podem fazer isso`,
+    ).toBeLessThan(0.05);
+  });
+
+  test("a logo ocupa a mesma fatia da tela em alturas diferentes", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    // A proporção alvo é ~35% da altura, que é o que o desktop 1440x900 já
+    // fazia antes desta mudança. A faixa aceita variação honesta do clamp
+    // (em telas altas quem manda é `46vw`, e a fatia cai um pouco), mas não
+    // aceita nem os 13% do degrau para baixo nem os 46% dele para cima.
+    for (const height of [560, 620, 700, 800, 900]) {
+      const largura = await larguraDaLogo(page, height);
+      const alturaLogo = await page
+        .locator("[data-logo]")
+        .evaluate((el) => el.getBoundingClientRect().height);
+      const fatia = alturaLogo / height;
+
+      expect(
+        fatia,
+        `com ${height}px de altura a logo ficou com ${Math.round(fatia * 100)}%` +
+          ` da tela (${Math.round(largura)}px de largura)`,
+      ).toBeGreaterThanOrEqual(0.22);
+      expect(
+        fatia,
+        `com ${height}px de altura a logo ficou com ${Math.round(fatia * 100)}%` +
+          ` da tela (${Math.round(largura)}px de largura)`,
+      ).toBeLessThanOrEqual(0.38);
+    }
+  });
+});

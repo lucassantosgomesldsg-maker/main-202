@@ -2,13 +2,35 @@
    na Task 6D — a logo passa a ocupar a tela como no jopecuro.com. A regra de
    altura baixa acompanhou na mesma proporção: 7→8rem, 22→30vh, 14→20rem.
    Condição dura: a página continua sem scroll em todos os viewports da Task 9
-   (1440x900, 1366x660, 820x1180, 390x844, 320x568) — medido, não estimado. */
+   (1440x900, 1366x660, 820x1180, 390x844, 320x568) — medido, não estimado.
+
+   17/08/2026 — o `46vw` e o `30vh` viravam um degrau, não uma rampa.
+   O `30vh` morava num `@media (max-height: 600px)`, e as duas fórmulas não se
+   encontram no ponto da troca: com 1366px de largura a logo media 628px a
+   601px de altura e 180px a 599px. Três pixels de viewport, 3,5x de tamanho.
+   O 1366x768 — o notebook mais comum — cai bem nessa fronteira, e a barra de
+   favoritos do Chrome decidia de que lado o visitante caía. Reportado com dois
+   prints da mesma página em telas diferentes.
+
+   A troca: `min(46vw, 75vh)` faz largura e altura disputarem continuamente,
+   sempre vencendo a menor. Sem `@media`, sem ponto de troca, sem salto.
+   O `75vh` sai da proporção que o desktop 1440x900 já praticava — a logo
+   ocupando ~35% da altura da tela (a arte tem razão altura/largura de 0,466,
+   então 0,466 x 75vh = 35vh). Ou seja: não é um tamanho novo, é o tamanho que
+   as telas altas já tinham, agora valendo para todas.
+
+   O piso caiu de 13rem para 11rem porque com o degrau removido ele passa a
+   valer também nas telas baixas, onde antes quem respondia era o `8rem` do
+   @media. Em 320x568 a logo sai de 170px para 176px — 6px, e mede-se para não
+   ter que confiar em mim. Teto e telas altas: intocados.
+
+   Guardado por e2e/layout.spec.ts › "a rampa que substituiu o degrau". */
 .raiz {
   display: flex;
   align-items: flex-end;
   gap: 0.03em;
-  width: clamp(13rem, 46vw, 42rem);
-  font-size: clamp(13rem, 46vw, 42rem); /* referência para o em do ponto */
+  width: clamp(11rem, min(46vw, 75vh), 42rem);
+  font-size: clamp(11rem, min(46vw, 75vh), 42rem); /* referência p/ o em do ponto */
 }
 
 .svg {
@@ -24,11 +46,4 @@
   height: 0.075em;
   border-radius: 50%;
   background: var(--verde-sinal);
-}
-
-@media (max-height: 600px) {
-  .raiz {
-    width: clamp(8rem, 30vh, 20rem);
-    font-size: clamp(8rem, 30vh, 20rem);
-  }
 }
