@@ -6,14 +6,30 @@ export const COPY = {
   pt: {
     onelinerLinhas: ["Potencializamos talentos e", "construímos o futuro."],
     contato: "CONTATO",
+    tese: "A TESE",
   },
   en: {
     onelinerLinhas: ["We amplify talent.", "We build the future."],
     contato: "CONTACT",
+    tese: "THE THESIS",
   },
 } as const satisfies Record<
   Idioma,
-  { onelinerLinhas: readonly [string, string]; contato: string }
+  {
+    onelinerLinhas: readonly [string, string];
+    contato: string;
+    /**
+     * O rótulo do link para `/tese`, no canto inferior direito da home.
+     *
+     * Está duplicado com `TESE[idioma].rotuloPagina` de propósito, e a
+     * duplicação é guardada por teste (`lib/tese.test.ts`). A alternativa era
+     * a home importar `lib/tese.ts` só por causa de duas palavras — e aí a
+     * copy inteira das dez seções entraria no bundle de uma página que existe
+     * para ser uma tela só. Um teste custa menos que isso e pega a mesma
+     * divergência.
+     */
+    tese: string;
+  }
 >;
 
 export const INSTAGRAM = "https://www.instagram.com/202lab.br/";

@@ -17,6 +17,18 @@ premium e brasileira — e tem um único caminho para falar com a gente.
 **Não é** um site institucional. Não tem "sobre nós", "cases", "carreiras" nem blog.
 A referência de escopo é a Long Lake: abre, é aquilo, acabou.
 
+> **Revisto em 17/08/2026.** O "sobre nós" continua não existindo — mas nasceu
+> `/tese`, uma página de posicionamento com dez seções e scroll, especificada em
+> `2026-08-17-a-tese-design.md`. Ela não conta história nem apresenta o time: ela
+> defende um argumento. Cases, carreiras, blog e equipe seguem fora.
+>
+> O que isso arrasta para ESTE documento está marcado em dois lugares: aqui e na
+> §13. **A regra dura não caiu — mudou de endereço**: "a página nunca rola" virou
+> "a HOME nunca rola", e o `html, body { overflow: hidden }` da §11 virou
+> `html:has(.tela), body:has(.tela)`. Os 68 testes de `e2e/layout.spec.ts`
+> continuam guardando `/` sem uma linha alterada, e `e2e/tese.spec.ts` mede os
+> dois lados do interruptor.
+
 ### Critérios de sucesso
 
 1. A página cabe em uma tela, em qualquer resolução, sem barra de rolagem.
@@ -74,6 +86,14 @@ Quatro cantos ocupados, centro livre para a logo. É a composição construtiva 
 | 3 | Logo | centro | SVG `202_Branco.svg` + ponto verde | vetor, não texto |
 | 4 | Oneliner | inferior-esquerdo | ver §4 | Fraunces 300, `clamp(1.5rem, 2.6vw, 2.4rem)` |
 | 5 | Coordenadas | inferior-direito | duas linhas, alinhadas à direita | mono 12px, uppercase, tracking `0.1em` |
+
+> **Revisão de 17/08/2026 — o quinto elemento mudou de conteúdo.** As
+> coordenadas saíram em 31/07 e o canto inferior-direito ficou vazio: a
+> composição de quatro cantos passou a ter três. Ele foi reocupado pelo link
+> `A TESE →` (`/tese`), na mesma tipografia mono das outras duas âncoras. A
+> posição é a mesma prevista aqui; o que mudou foi o que ela carrega — de um
+> dado geográfico decorativo para a única navegação interna do site. Detalhe e
+> justificativa em `docs/superpowers/specs/2026-08-17-a-tese-design.md` §2.
 
 **Margens:** `3rem` no desktop, `1.5rem` abaixo de 720px — igual à prova
 `01_hero_site.html` do design system.
@@ -379,3 +399,13 @@ Registradas por honestidade, não como pendências bloqueantes:
 Explicitamente não faz parte desta entrega: scroll, formulário de contato, página de
 carreiras, blog, cases, equipe, cookies, banner de consentimento, analytics, menu de
 navegação, modo claro, e qualquer segunda página.
+
+> **Atualizado em 17/08/2026.** Duas linhas saíram desta lista, e só duas:
+> "scroll" e "qualquer segunda página". Existe `/tese`
+> (`2026-08-17-a-tese-design.md`), ela rola, e o scroll continua proibido nesta
+> página aqui. Todo o resto da lista segue de pé — inclusive analytics, cookies,
+> formulário de contato e página de equipe.
+>
+> A home ainda **não** linka para a /tese: por decisão do Matheus, a página é
+> construída e iterada primeiro, e a ligação entra depois. Enquanto isso a /tese
+> está no ar e é alcançável só por URL direta.

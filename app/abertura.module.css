@@ -155,7 +155,13 @@
   opacity: 0;
 }
 
-.abertura[data-abertura] :global([data-ima="contato"]) {
+/* O link da /tese entra pelo mesmo lado e na mesma batida do CONTATO, apesar
+   de morar no canto de BAIXO. Os três são navegação — trocar de idioma, sair
+   para o Instagram, ir para a tese — e chegar juntos os lê como um gesto só.
+   Dar a ele um ato próprio roubaria a última batida da frase, que é o clímax
+   da entrada. */
+.abertura[data-abertura] :global([data-ima="contato"]),
+.abertura[data-abertura] :global([data-ima="tese"]) {
   transform: translateX(calc(100% + var(--margem)));
   opacity: 0;
 }
@@ -166,7 +172,8 @@
     var(--t-topo) both;
 }
 
-.abertura[data-abertura="tocando"] :global([data-ima="contato"]) {
+.abertura[data-abertura="tocando"] :global([data-ima="contato"]),
+.abertura[data-abertura="tocando"] :global([data-ima="tese"]) {
   animation: topo-direita var(--d-topo) cubic-bezier(0.16, 1, 0.3, 1)
     var(--t-topo) both;
 }
@@ -201,7 +208,8 @@
    `data-abertura` vs. com `="estatica"` — e só vence por vir depois no
    arquivo. Precisa continuar depois do repouso, não antes. */
 .abertura[data-abertura="estatica"] :global([data-ima="idioma"]),
-.abertura[data-abertura="estatica"] :global([data-ima="contato"]) {
+.abertura[data-abertura="estatica"] :global([data-ima="contato"]),
+.abertura[data-abertura="estatica"] :global([data-ima="tese"]) {
   transform: none;
   opacity: 1;
 }
@@ -223,7 +231,8 @@
   }
 
   .abertura[data-abertura] :global([data-ima="idioma"]),
-  .abertura[data-abertura] :global([data-ima="contato"]) {
+  .abertura[data-abertura] :global([data-ima="contato"]),
+  .abertura[data-abertura] :global([data-ima="tese"]) {
     animation: none !important;
     transform: none !important;
     opacity: 1 !important;

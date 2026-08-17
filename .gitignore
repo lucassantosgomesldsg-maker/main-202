@@ -45,3 +45,7 @@ next-env.d.ts
 
 # scratch / planning (also self-ignored via .superpowers/sdd/.gitignore)
 .superpowers/
+
+# material de referência que fica só na máquina — o deck que originou a copy da
+# /tese vive aqui, mas não entra no repo (decisão do Matheus, 17/08/2026)
+202.pdf

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type CSSProperties } from "react";
+import Link from "next/link";
 import Palco from "@/components/Palco";
 import SeletorIdioma from "@/components/SeletorIdioma";
 // O alias `as useMotionUmaVez` não é cosmético: a regra react-hooks só
@@ -10,15 +11,15 @@ import SeletorIdioma from "@/components/SeletorIdioma";
 // lint, tsc e build, e derrubava a página em runtime. O export segue em
 // português (convenção do projeto); só o identificador local muda.
 import { usaMotionUmaVez as useMotionUmaVez } from "@/lib/usaMotionUmaVez";
+// Mesmo motivo do alias acima.
+import { usaIdioma as useIdioma } from "@/lib/usaIdioma";
 import { DURACAO_TOTAL_MAXIMA_MS, TEMPOS } from "@/lib/abertura";
-import { COPY, INSTAGRAM, titulo, type Idioma } from "@/lib/copy";
+import { COPY, INSTAGRAM, titulo } from "@/lib/copy";
 import FraseDigitada from "@/components/FraseDigitada";
 import estilos from "./abertura.module.css";
 
-const CHAVE_IDIOMA = "202:idioma";
-
 export default function Home() {
-  const [idioma, setIdioma] = useState<Idioma>("pt");
+  const [idioma, trocarIdioma] = useIdioma();
   const t = COPY[idioma];
   const jaRodou = useMotionUmaVez();
 
@@ -65,28 +66,6 @@ export default function Home() {
     }, DURACAO_TOTAL_MAXIMA_MS);
     return () => clearTimeout(fim);
   }, [jaRodou]);
-
-  // restaura a escolha anterior; nunca detecta o idioma do navegador
-  useEffect(() => {
-    const guardado = window.localStorage.getItem(CHAVE_IDIOMA);
-    // Proposital, não um efeito perdido: o estado PRECISA nascer "pt" pro
-    // HTML do servidor bater com o primeiro render do cliente (hydration),
-    // e só localStorage (inexistente no servidor) diz se deve virar "en".
-    // Isto é sincronizar React com um sistema externo — o próprio caso de
-    // uso que a doc da regra aceita — não um derivado de outro estado
-    // React. Já confirmado como não-defeito em duas revisões anteriores.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (guardado === "en" || guardado === "pt") setIdioma(guardado);
-  }, []);
-
-  useEffect(() => {
-    document.documentElement.lang = idioma === "pt" ? "pt-BR" : "en";
-  }, [idioma]);
-
-  function trocarIdioma(novo: Idioma) {
-    setIdioma(novo);
-    window.localStorage.setItem(CHAVE_IDIOMA, novo);
-  }
 
   return (
     <main
@@ -138,6 +117,22 @@ export default function Home() {
             é components/FraseDigitada — inclusive a digitação, que é CSS puro
             e não depende de JavaScript. */}
         <FraseDigitada idioma={idioma} estatica={estatica} />
+
+        {/* O quarto canto, que ficou vazio até 17/08/2026. Aqui, e não no
+            topo, por dois motivos: o `.base` já era um flex `space-between`
+            desenhado para um segundo filho (ver o comentário em globals.css
+            sobre a regra de 720px, que volta agora), e a leitura fica na ordem
+            certa — a frase diz o que a 202 faz, e o link ao lado dela oferece
+            o porquê.
+
+            `→` e não `↗`: a seta diagonal é do CONTATO, que sai do site. Esta
+            fica dentro dele.
+
+            `data-ima` é só uma marca lida por lib/usaLanterna: qualquer
+            elemento com o atributo vira ímã, sem lista para atualizar. */}
+        <Link className="label tese" data-ima="tese" href="/tese">
+          {t.tese} →
+        </Link>
       </footer>
     </main>
   );

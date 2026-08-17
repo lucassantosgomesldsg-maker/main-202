@@ -1,0 +1,18 @@
+.marca {
+  display: block;
+  /* Largura, e não altura: o viewBox da logo é largo e baixo, então travar a
+     largura é o que dá controle real sobre o quanto ela ocupa no topo. */
+  width: 3.25rem;
+  color: var(--cinza-texto);
+  transition: color 0.25s;
+}
+
+.marca:hover {
+  color: var(--branco-202);
+}
+
+.svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
