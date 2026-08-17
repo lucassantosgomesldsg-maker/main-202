@@ -1,0 +1,96 @@
+/* A régua fica presa à viewport, centrada na vertical. Abaixo de 1100px ela
+   some inteira: os rótulos precisam de uma calha de ~11rem que simplesmente
+   não existe em tela estreita, e uma régua sem rótulo vira enfeite. O
+   conteúdo da tese não se apoia nela para nada — ela indica e navega. */
+.regua {
+  position: fixed;
+  left: var(--margem);
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 3;
+  display: none;
+}
+
+@media (min-width: 1100px) {
+  .regua {
+    display: block;
+  }
+}
+
+.lista {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  /* O fio contínuo com a gradação fina mora AQUI, no fundo da lista, e não em
+     cada item: assim os tracinhos secundários têm passo constante e não se
+     desalinham quando um item muda de altura. 6px de passo = quatro traços
+     entre duas seções, que é o que faz o fio ler como escala e não como
+     pontilhado. */
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      var(--fio-estrutura) 0 1px,
+      transparent 1px 6px
+    )
+    left top / 1px 100% no-repeat;
+}
+
+.item {
+  display: flex;
+}
+
+.marca {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  /* Alvo de clique confortável sem inflar o desenho: o traço e o rótulo são
+     pequenos, o padding é que dá os 44px de altura. */
+  padding: 0.55rem 0.75rem 0.55rem 0;
+  color: var(--cinza-texto);
+}
+
+.traco {
+  width: 1.25rem;
+  height: 1px;
+  background: var(--fio-estrutura);
+  transition: width 0.28s ease, background-color 0.28s ease;
+}
+
+.nome {
+  font-family: var(--fonte-mono), ui-monospace, monospace;
+  font-size: 0.625rem;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateX(-0.25rem);
+  transition: opacity 0.28s ease, transform 0.28s ease;
+}
+
+/* Lida agora: o traço cresce e clareia, e só então o nome aparece. Duas
+   propriedades mudando na mesma marca é o suficiente — não precisa de ponto,
+   de cor de destaque nem de peso diferente. */
+.marca[data-ativa="sim"] .traco {
+  width: 2.5rem;
+  background: var(--branco-202);
+}
+
+.marca[data-ativa="sim"] .nome {
+  opacity: 1;
+  transform: none;
+  color: var(--branco-202);
+}
+
+/* O nome também aparece no hover e no foco de teclado — sem isso a régua é
+   navegável mas ilegível para quem chega por Tab. */
+.marca:hover .nome,
+.marca:focus-visible .nome {
+  opacity: 1;
+  transform: none;
+}
+
+.marca:hover .traco,
+.marca:focus-visible .traco {
+  width: 2rem;
+  background: var(--cinza-texto);
+}

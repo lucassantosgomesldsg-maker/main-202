@@ -1,0 +1,559 @@
+/* A folha compartilhada dos cinco instrumentos. O que garante que eles leiam
+   como um sistema, e não como cinco gráficos avulsos, é esta lista curta de
+   constantes — um fio, uma escala de mono, um ritmo de espaço — usada por
+   todos. */
+.instrumento {
+  --fio: 1px;
+
+  width: 100%;
+  max-width: 54rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.titulo {
+  color: var(--cinza-texto);
+  font-size: 0.6875rem;
+}
+
+.nota {
+  font-family: var(--fonte-corpo), system-ui, sans-serif;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--cinza-texto);
+}
+
+/* ── 1 · A linha do tempo ───────────────────────────────────────────────── */
+
+.tempo {
+  position: relative;
+  height: 8.5rem;
+  /* A caixa é medida em porcentagem de 54 meses. As marcas nas pontas são
+     puxadas para dentro por transform (ver .marca), então nada vaza. */
+
+  /* O relógio do instrumento, herdado por tudo que está dentro dele.
+     `--corrida` é o tempo que a fronteira leva para atravessar os 54 meses;
+     `--largada` é o respiro para o eixo existir antes de alguém correr sobre
+     ele. Cada elemento entra em `--largada + --corrida × --fracao`, e
+     `--fracao` é o MESMO número que define o `left` dele (ver `em()` no
+     componente). */
+  --largada: 0.5s;
+  --corrida: 2.8s;
+}
+
+/* O eixo é o chão do instrumento: precisa ser lido como uma linha inteira, e
+   não pressentido. Em `--fio-estrutura` ele existia (medido: 864×1px,
+   rgb(51,51,46)) e mesmo assim sumia ao lado da barra da graduação, que é bem
+   mais clara — a hierarquia saía invertida, com o dado brilhando sobre um
+   chão invisível. Meio tom do cinza de texto resolve: o eixo aparece, e
+   continua abaixo da graduação e das renovações na ordem de leitura. */
+.eixo {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 3rem;
+  height: var(--fio);
+  background: var(--cinza-texto);
+  opacity: 0.5;
+  transform-origin: left center;
+}
+
+/* A barra de progresso que faltava sobre o eixo: a fronteira atravessando os
+   54 meses. 2px contra 1px do eixo de propósito — precisa ler como algo que
+   corre POR CIMA do eixo, e não como o eixo mudando de cor. Quando ela termina
+   inteira e a barra da graduação, abaixo, parou em 48, a sobra à direita deixa
+   de ser um pedaço de eixo vazio e passa a ser tempo que a fronteira andou
+   sozinha. */
+.percurso {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(3rem - 0.5px);
+  height: 2px;
+  background: var(--verde-sinal);
+  transform-origin: left center;
+}
+
+/* Verde é a fronteira: estes três traços são o único verde do instrumento. */
+.renovacao {
+  position: absolute;
+  top: 0.5rem;
+  width: var(--fio);
+  height: 2.5rem;
+  background: var(--verde-sinal);
+  transform-origin: bottom center;
+}
+
+.unidade {
+  position: absolute;
+  top: 0.8rem;
+  left: 0;
+  color: var(--cinza-texto);
+  font-size: 0.625rem;
+}
+
+.marca {
+  position: absolute;
+  top: 3.6rem;
+  transform: translateX(-50%);
+  color: var(--cinza-texto);
+  font-size: 0.6875rem;
+}
+
+/* A última marca (54) encosta na borda direita da caixa: puxa inteira para
+   dentro em vez de centrar, senão vaza metade para fora do instrumento. */
+.marca[data-fim="sim"] {
+  transform: translateX(-100%);
+}
+
+.graduacao {
+  position: absolute;
+  top: 5.4rem;
+  left: 0;
+  height: 1rem;
+  border-left: var(--fio) solid var(--cinza-texto);
+  border-right: var(--fio) solid var(--cinza-texto);
+  border-bottom: var(--fio) solid var(--cinza-texto);
+  transform-origin: left center;
+}
+
+/* Irmão da barra, e não filho: dentro dela era filho de um elemento em
+   `scaleX` e passava a animação inteira espremido na horizontal. O `left` vem
+   do componente (o meio da barra), daí a ausência dele aqui. */
+.graduacaoRotulo {
+  position: absolute;
+  top: 6.9rem;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  color: var(--cinza-texto);
+  font-size: 0.6875rem;
+}
+
+.conclusao {
+  color: var(--branco-202);
+  font-size: 0.6875rem;
+  line-height: 1.6;
+  margin-top: 0.5rem;
+}
+
+/* ── 2 · O descompasso ──────────────────────────────────────────────────── */
+
+.grafico {
+  width: 100%;
+  height: clamp(9rem, 22vh, 13rem);
+  display: block;
+  /* preserveAspectRatio="none" estica o desenho na horizontal: as duas curvas
+     precisam ocupar a mesma largura do texto acima delas, e nenhuma leitura
+     depende do ângulo exato — depende da distância entre as duas. */
+  overflow: visible;
+}
+
+.vao {
+  fill: var(--verde-sinal);
+  fill-opacity: 0.07;
+  stroke: none;
+}
+
+/* A frente que varre o gráfico. Em repouso ela está aberta — sem movimento,
+   o desenho aparece inteiro. `transform-origin: left` é obrigatório: em SVG a
+   origem padrão é o CENTRO da viewBox, e `scaleX(0)` colapsaria o recorte para
+   o meio do gráfico em vez de para a margem esquerda. */
+.varredura {
+  transform-origin: left;
+}
+
+.escada {
+  fill: none;
+  stroke: var(--cinza-texto);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.continua {
+  fill: none;
+  stroke: var(--verde-sinal);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.legendas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 3rem;
+}
+
+.legenda {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  position: relative;
+  padding-left: 1.25rem;
+}
+
+/* O quadradinho de legenda repete a cor da curva correspondente — é o que
+   liga o desenho ao nome sem precisar de linha de chamada. */
+.legenda::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.4rem;
+  width: 0.5rem;
+  height: 0.5rem;
+}
+
+.legenda[data-tipo="fronteira"]::before {
+  background: var(--verde-sinal);
+}
+
+.legenda[data-tipo="instituicao"]::before {
+  background: var(--cinza-texto);
+}
+
+.legendaNome {
+  color: var(--branco-202);
+  font-size: 0.6875rem;
+}
+
+.legendaNota {
+  font-family: var(--fonte-corpo), system-ui, sans-serif;
+  font-size: 0.8125rem;
+  color: var(--cinza-texto);
+}
+
+/* ── 3 · O que supera o quê ─────────────────────────────────────────────── */
+
+.comparacao {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2.5rem;
+}
+
+@media (min-width: 860px) {
+  .comparacao {
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+  }
+
+  /* O fio entre as duas colunas é a fronteira. Ele mora na borda esquerda da
+     coluna da direita, e só existe quando há duas colunas. */
+  .comparacao .lado[data-lado="supera"] {
+    border-left: var(--fio) solid var(--fio-estrutura);
+    padding-left: 3rem;
+  }
+
+  .comparacao .lado[data-lado="superado"] {
+    padding-right: 3rem;
+  }
+}
+
+.lado {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.ladoRotulo {
+  font-size: 0.6875rem;
+  color: var(--cinza-texto);
+}
+
+.ladoValor {
+  font-family: var(--fonte-display), Georgia, serif;
+  font-weight: 300;
+  font-size: clamp(1.375rem, 2.4vw, 1.875rem);
+  font-variation-settings: "opsz" 144;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+/* Recuando, não apagado: `--cinza-linha` puro deixava a frase ilegível, e uma
+   frase que não se lê não pode ser comparada com nada — a seção perdia metade
+   do argumento. Cinza de texto a 50% ainda lê, e ainda cede o lugar. O risco
+   usa `currentColor`, então esmaece junto. */
+.lado[data-lado="superado"] .ladoValor {
+  color: var(--cinza-texto);
+  opacity: 0.5;
+}
+
+.lado[data-lado="supera"] .ladoValor {
+  color: var(--branco-202);
+}
+
+/* O risco não é decoração: o lado superado está sendo reabsorvido pelo fundo,
+   e o traço é o que mostra isso acontecendo. Usa a cor do texto do próprio
+   lado, então clareia e escurece junto com ele. */
+.riscado {
+  position: relative;
+}
+
+.riscado::after {
+  content: "";
+  position: absolute;
+  left: -0.25rem;
+  right: -0.25rem;
+  top: 55%;
+  height: var(--fio);
+  background: currentColor;
+}
+
+/* ── 4 · Os pilares ─────────────────────────────────────────────────────── */
+
+/* `--fio` é redeclarado aqui, e não herdado: os pilares e as frentes são os
+   dois instrumentos que NÃO vivem dentro de um `<figure class="instrumento">`
+   — eles são listas, não figuras. Sem esta linha, `border-top: var(--fio)
+   solid …` vira declaração inválida e o navegador descarta a borda inteira,
+   em silêncio. Foi exatamente esse o defeito da primeira versão: a grade das
+   quatro frentes simplesmente não existia na tela. */
+.pilares {
+  --fio: 1px;
+
+  list-style: none;
+  width: 100%;
+  max-width: 60rem;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2.5rem;
+}
+
+@media (min-width: 860px) {
+  .pilares {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 3rem;
+  }
+}
+
+.pilar {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding-top: 1.25rem;
+  border-top: var(--fio) solid var(--fio-estrutura);
+}
+
+.pilarNome {
+  font-family: var(--fonte-display), Georgia, serif;
+  font-weight: 300;
+  font-size: clamp(1.5rem, 2.6vw, 2rem);
+  font-variation-settings: "opsz" 144;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  color: var(--branco-202);
+}
+
+.pilarDefinicao {
+  font-family: var(--fonte-corpo), system-ui, sans-serif;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--cinza-texto);
+  max-width: 32ch;
+}
+
+/* ── 5 · As frentes ─────────────────────────────────────────────────────── */
+
+/* Um fio por linha, e só: o de cima mora no contêiner, o de baixo em cada
+   linha. Nenhum é desenhado duas vezes (que sairia com o dobro da espessura
+   entre linhas), e as linhas continuam TRANSPARENTES — a malha do fundo
+   atravessa a lista em vez de ser tapada por retângulos pretos. */
+.frentes {
+  /* ver o comentário em .pilares sobre por que `--fio` é redeclarado */
+  --fio: 1px;
+
+  list-style: none;
+  width: 100%;
+  max-width: 62rem;
+  border-top: var(--fio) solid var(--fio-estrutura);
+}
+
+.frente {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.4rem;
+  padding: 1rem 0;
+  border-bottom: var(--fio) solid var(--fio-estrutura);
+}
+
+/* Três colunas alinhadas pela linha de base: a coluna de siglas vira uma
+   régua vertical de mono, que é o que dá a essas cinco linhas a mesma
+   aparência de instrumento dos desenhos das outras seções. */
+@media (min-width: 760px) {
+  .frente {
+    grid-template-columns: 6.5rem minmax(11rem, 17rem) minmax(0, 1fr);
+    align-items: baseline;
+    gap: 0 2rem;
+    padding: 1.125rem 0;
+  }
+}
+
+.frenteTag {
+  color: var(--cinza-texto);
+  font-size: 0.625rem;
+}
+
+.frenteNome {
+  font-family: var(--fonte-display), Georgia, serif;
+  font-weight: 300;
+  font-size: clamp(1rem, 1.5vw, 1.25rem);
+  font-variation-settings: "opsz" 144;
+  line-height: 1.25;
+  color: var(--branco-202);
+}
+
+.frenteTexto {
+  font-family: var(--fonte-corpo), system-ui, sans-serif;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--cinza-texto);
+  /* Larga o bastante para caber em duas linhas na terceira coluna: em 34ch a
+     mesma frase virava quatro linhas e cada frente ficava com o dobro da
+     altura, o que empurrava a quinta para fora da dobra. */
+  max-width: 52ch;
+}
+
+/* ── Movimento ───────────────────────────────────────────────────────────
+   Os dois instrumentos que se movem tocam no TEMPO, não no scroll.
+
+   A primeira versão desenhava a linha do tempo com `animation-timeline:
+   view()`. Duas coisas quebravam nisso, e as duas são fatais num instrumento
+   de medida. O movimento herda a mão de quem rola, então sai aos trancos — e
+   um gráfico aos trancos parece defeito. Pior: parar no meio do caminho é
+   normal ao ler, e cada parada congela um quadro intermediário com a barra da
+   graduação cortada e as renovações pela metade. Quem parou lê aquilo como o
+   resultado, e o resultado está errado.
+
+   Quem dispara agora é `usaTocarAoVer` (lib/usaTocarAoVer.ts), escrevendo
+   `data-toque` no `<figure>`. Os três valores, e por que os três são estados
+   corretos da página:
+
+   • **ausente** — sem JavaScript, sem `IntersectionObserver` ou com movimento
+     reduzido. É por isso que o estado final mora nas regras base lá em cima e
+     não numa keyframe: quem nunca vê a animação vê o desenho pronto.
+   • **"armado"** — escrito antes da primeira pintura, então o estado final não
+     pisca. O desenho está vazio, esperando a hora.
+   • **"tocando"** — roda uma vez, do começo ao fim.
+
+   O `fill-mode: both` de cada animação faz o trabalho nas duas pontas: segura
+   o estado inicial durante o atraso e retém o final depois. Sem ele, tudo
+   piscaria visível no instante entre "tocando" e o começo da própria faixa. */
+
+@keyframes crescerX {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+@keyframes crescerY {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+
+@keyframes surgirFio {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+
+/* ── A entrada dos sete ──────────────────────────────────────────────────
+   O instrumento aparece quando ele aparece na tela, e não conforme a página
+   rola. Isto substitui a revelação por scroll que a caixa dele tinha em
+   `tese.module.css`, e não é preferência: medido a 1440×900, com a seção
+   parada na posição natural de leitura, a caixa do instrumento ficava em
+   **opacidade 0,40** — o desenho era o elemento mais apagado da tela, abaixo
+   do texto que ele existe para provar.
+
+   A causa é geométrica. Numa faixa `cover`, cada elemento é medido pelo
+   próprio trajeto pela tela, e o instrumento é o elemento mais baixo da
+   seção: quando o leitor para, ele andou menos que o texto acima dele e ainda
+   está no meio da própria faixa. O escalonamento por `--ordem` piorava isso —
+   dava ao mais atrasado a faixa mais tardia. */
+
+.instrumento[data-toque="armado"],
+.pilares[data-toque="armado"],
+.frentes[data-toque="armado"] {
+  opacity: 0;
+}
+
+.instrumento[data-toque="tocando"],
+.pilares[data-toque="tocando"],
+.frentes[data-toque="tocando"] {
+  animation: chegar 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes chegar {
+  from {
+    opacity: 0;
+    transform: translateY(1.25rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ── armado: o desenho vazio, antes da primeira pintura ── */
+
+[data-toque="armado"] .eixo,
+[data-toque="armado"] .percurso,
+[data-toque="armado"] .graduacao {
+  transform: scaleX(0);
+}
+
+[data-toque="armado"] .renovacao {
+  transform: scaleY(0);
+}
+
+[data-toque="armado"] .marca,
+[data-toque="armado"] .graduacaoRotulo {
+  opacity: 0;
+}
+
+[data-toque="armado"] .varredura {
+  transform: scaleX(0);
+}
+
+/* ── tocando: a linha do tempo ── */
+
+/* O chão primeiro, rápido: ninguém corre sobre um eixo que ainda não existe. */
+[data-toque="tocando"] .eixo {
+  animation: crescerX var(--largada) linear both;
+}
+
+[data-toque="tocando"] .percurso {
+  animation: crescerX var(--corrida) linear var(--largada) both;
+}
+
+/* A graduação corre à MESMA velocidade da fronteira — mesma `--corrida`, só
+   que multiplicada pela fração do percurso que ela cobre. É essa igualdade de
+   velocidade que faz a barra parar sozinha em 48 enquanto a verde continua até
+   54. Se a duração fosse `--corrida` inteira, as duas terminariam juntas e o
+   desenho afirmaria que o diploma acompanha a fronteira — o contrário exato do
+   que a seção diz. */
+[data-toque="tocando"] .graduacao {
+  animation: crescerX calc(var(--corrida) * var(--fracao)) linear var(--largada)
+    both;
+}
+
+/* Cada renovação estala no mês em que acontece, quando a barra verde passa por
+   cima dela. Rápida e com saída elástica: é um evento, não um crescimento. */
+[data-toque="tocando"] .renovacao {
+  animation: crescerY 0.28s cubic-bezier(0.16, 1, 0.3, 1)
+    calc(var(--largada) + var(--corrida) * var(--fracao)) both;
+}
+
+[data-toque="tocando"] .marca,
+[data-toque="tocando"] .graduacaoRotulo {
+  animation: surgirFio 0.4s linear
+    calc(var(--largada) + var(--corrida) * var(--fracao)) both;
+}
+
+/* ── tocando: o descompasso ── */
+
+/* Uma animação só, num recorte, revelando as três camadas de uma vez. A
+   disputa é o instrumento: dá para ver a cinza ficando para trás enquanto
+   acontece, o que o desenho parado só consegue insinuar. E o vão cresce junto,
+   em vez de aparecer no fim — a área entre as duas abrindo é o argumento da
+   seção, e ele merece ser visto acontecendo.
+
+   `linear` porque a frente é o tempo passando, e tempo não desacelera no fim. */
+[data-toque="tocando"] .varredura {
+  animation: crescerX 2.2s linear 0.25s both;
+}

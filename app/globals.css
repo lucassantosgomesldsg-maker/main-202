@@ -21,6 +21,16 @@
   --cinza-linha: #262626;
   --verde-sinal: #c6ff3e;
 
+  /* O fio que precisa ser VISTO, não só pressentido.
+     `--cinza-linha` foi desenhado para separar caixas, e nisso ele é ótimo:
+     sobre o preto #0a0a0a dá ~1,3:1 de contraste, some sozinho e não disputa
+     atenção. Mas a /tese usa fio como DESENHO — o eixo da linha do tempo, o
+     razão das frentes, a régua lateral — e nessa função ele
+     desaparecia por completo numa tela de escritório, deixando o instrumento
+     sem estrutura. Este valor não é cor nova na marca: é o mesmo #33332E que
+     o deck 202.pdf já usa nas linhas dos slides. A home não usa este token. */
+  --fio-estrutura: #33332e;
+
   /* Verde de fósforo de terminal antigo. NÃO é cor de marca e não deve virar
      uma: o Verde Sinal (--verde-sinal, #c6ff3e) puxa para o amarelo-limão e
      não lê como código. Só existe debaixo da lanterna.
@@ -64,7 +74,28 @@
 
 html, body {
   height: 100%;
+}
+
+/* A regra dura do repo — "a página nunca rola" — não mudou de valor, mudou de
+   endereço: ela vale para a HOME, e a home é a única coisa na árvore que
+   desenha `.tela`. Antes de existir uma segunda página isso era a mesma frase
+   escrita em `html, body`; com /tese no repo, um `overflow: hidden` no
+   documento inteiro tornaria a tese ilegível abaixo da primeira dobra.
+   `e2e/layout.spec.ts` continua guardando `/` exatamente como antes: ele mede
+   scroll de verdade (`scrollTo` + `scrollY`), então se este seletor parar de
+   casar um dia, o teste quebra — que é o comportamento desejado.
+   Se `:has()` faltar (navegador anterior a 2023), a home ainda não rola: o
+   conteúdo dela cabe em `100dvh` por construção, e `overflow: hidden` só
+   existia como cinto além do suspensório. */
+html:has(.tela), body:has(.tela) {
   overflow: hidden;
+}
+
+/* Âncoras da régua da tese: o cabeçalho é fixo, então o alvo precisa parar
+   abaixo dele em vez de encostar no topo da viewport. */
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: calc(var(--margem) * 2);
 }
 
 body {
@@ -123,8 +154,10 @@ a:focus-visible, button:focus-visible {
   line-height: 1.7;
 }
 
-.contato { transition: color 0.25s; }
-.contato:hover { color: var(--branco-202); }
+.contato,
+.tese { transition: color 0.25s; }
+.contato:hover,
+.tese:hover { color: var(--branco-202); }
 
 .oneliner {
   font-family: var(--fonte-display), Georgia, serif;
@@ -135,21 +168,32 @@ a:focus-visible, button:focus-visible {
   letter-spacing: -0.01em;
 }
 
-/* O `@media (max-width: 720px)` que empilhava `.base` em coluna saiu em
-   31/07/2026. Ele existia para separar o oneliner das coordenadas no celular;
-   com as coordenadas fora da página, `.base` tem UM filho só, e aí nada do que
-   a regra fazia tem efeito: `flex-direction` não muda a posição de um item
-   único (o container tem altura de conteúdo, então o `align-items` do eixo
-   cruzado não tem folga para distribuir), `justify-content: space-between`
-   com um item o deixa no início em qualquer direção, e `gap` só existe ENTRE
-   filhos. Conferido no navegador em 390x844, 320x568 e 720x800: a caixa de
-   `.base` e a de `.oneliner` saem idênticas ao centésimo de pixel com e sem a
-   regra. Se algum dia `.base` ganhar um segundo filho, a regra precisa voltar. */
+/* Esta regra saiu em 31/07/2026, quando `.base` ficou com UM filho só, e
+   VOLTOU em 17/08/2026, quando o link para a /tese entrou como segundo — o
+   comentário antigo previa exatamente isso.
+
+   Sem ela, numa tela estreita a frase de display e o link de mono disputam a
+   mesma linha: o `space-between` espreme o oneliner até ele quebrar em quatro
+   linhas. Empilhado, cada um fica com a largura inteira. */
+@media (max-width: 720px) {
+  .base {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1.1rem;
+  }
+}
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
+  }
+
+  /* `scroll-behavior` não é animação nem transição: o bloco acima não a
+     alcança, e um salto de âncora com rolagem suave é exatamente o tipo de
+     movimento não solicitado que essa preferência recusa. */
+  html {
+    scroll-behavior: auto;
   }
 }

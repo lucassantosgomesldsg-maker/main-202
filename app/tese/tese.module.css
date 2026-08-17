@@ -1,0 +1,279 @@
+/* ── O fundo ───────────────────────────────────────────────────────────────
+   A malha da home, mais apagada. `--padrao-repouso` é lido por
+   components/Malha.tsx uma vez por montagem, direto do elemento — então
+   redeclarar o token aqui muda a trama desta página sem tocar na home.
+
+   Por que apagar: na home a malha é o conteúdo, e não há uma linha de texto
+   para ler sobre ela. Aqui há dez telas de argumento em cima dela. #101010
+   contra o preto #0a0a0a é ~2% de diferença de luminância: a trama continua
+   presente quando a lanterna passa, e some debaixo do texto. */
+.fundo {
+  --padrao-repouso: #101010;
+  z-index: 0;
+}
+
+/* ── O cabeçalho ───────────────────────────────────────────────────────────
+   Fixo, porque a página rola e o caminho de volta não pode sumir. O degradê
+   é o que separa o topo do texto que passa por baixo dele — sem `backdrop-
+   filter`, que borraria a malha e criaria uma faixa de aparência diferente do
+   resto do fundo. */
+.topo {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 4;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 2rem;
+  padding: var(--margem) var(--margem) 2.5rem;
+  background: linear-gradient(
+    to bottom,
+    var(--preto-202) 0%,
+    rgba(10, 10, 10, 0.85) 45%,
+    transparent 100%
+  );
+  pointer-events: none;
+}
+
+/* O degradê cobre a largura toda e não pode interceptar clique; os filhos
+   voltam a receber. */
+.topo > * {
+  pointer-events: auto;
+}
+
+.topoDireita {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+.contato {
+  transition: color 0.25s;
+}
+
+.contato:hover {
+  color: var(--branco-202);
+}
+
+/* ── O corpo ───────────────────────────────────────────────────────────────
+   Uma seção por tela. `min-height`, e não `height`: numa janela baixa o
+   conteúdo precisa poder crescer e empurrar a próxima seção para baixo, em vez
+   de ser cortado. Esta página rola — é a única do site que pode. */
+.tese {
+  position: relative;
+  z-index: 1;
+}
+
+/* O respiro vertical é calculado, não escolhido: numa janela de 900px de
+   altura (notebook com barra de favoritos, o caso mais apertado que importa) a
+   seção mais cheia é a da linha do tempo — rótulo, statement de três linhas,
+   parágrafo de três linhas e o instrumento. Com 2,75× a margem sobrando em
+   cima e embaixo ela estourava a dobra e a conclusão do gráfico ficava
+   cortada. 2,25× é o maior valor em que ela ainda cabe inteira. */
+.secao {
+  position: relative;
+  min-height: 100dvh;
+  display: grid;
+  align-content: center;
+  padding: calc(var(--margem) * 2.25) var(--margem);
+}
+
+/* A calha da régua. Só existe onde a régua existe (≥1100px, ver
+   Regua.module.css) — abaixo disso o texto usa a margem inteira. */
+@media (min-width: 1100px) {
+  .secao {
+    padding-left: calc(var(--margem) + 11rem);
+  }
+}
+
+.dentro {
+  width: 100%;
+  max-width: 66rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.rotulo {
+  color: var(--cinza-texto);
+}
+
+/* ── O statement ───────────────────────────────────────────────────────────
+   A voz da página. Fraunces 300 no tamanho óptico de display: é a mesma fonte
+   e o mesmo peso do oneliner da home, três vezes maior, porque aqui ela não
+   legenda a logo — ela é o argumento. */
+.statement {
+  font-family: var(--fonte-display), Georgia, serif;
+  font-weight: 300;
+  font-size: clamp(1.875rem, 4.4vw, 3.5rem);
+  font-variation-settings: "opsz" 144;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  color: var(--branco-202);
+  text-wrap: balance;
+}
+
+.secao[data-forma="capa"] .statement {
+  font-size: clamp(2.125rem, 5.6vw, 4.5rem);
+}
+
+/* Cada linha é um bloco porque a quebra é escrita em lib/tese.ts, não sorteada
+   pela largura do viewport. Em tela estreita a linha ainda quebra sozinha, que
+   é o comportamento certo — o controle explícito é um piso, não uma jaula. */
+.linha {
+  display: block;
+}
+
+/* O ponto verde: a pontuação da tese. Um por seção, desenhado pelo componente
+   e nunca digitado dentro da copy. É círculo em CSS e não o caractere "●"
+   porque glifo depende de fonte — e a Fraunces desenha esse caractere num
+   tamanho que não é o que este ponto precisa ter. */
+.ponto {
+  display: inline-block;
+  width: 0.28em;
+  height: 0.28em;
+  margin-left: 0.14em;
+  vertical-align: baseline;
+  border-radius: 50%;
+  background: var(--verde-sinal);
+}
+
+.apoio {
+  font-family: var(--fonte-corpo), system-ui, sans-serif;
+  font-size: clamp(0.9375rem, 1.05vw, 1.0625rem);
+  line-height: 1.65;
+  color: var(--cinza-texto);
+  max-width: 52ch;
+}
+
+.caixaInstrumento {
+  margin-top: 1.5rem;
+}
+
+/* ── A capa ────────────────────────────────────────────────────────────────
+   Ancorada embaixo, à esquerda: a home é centrada, e as duas páginas não podem
+   abrir com o mesmo enquadramento. */
+.secao[data-forma="capa"] {
+  align-content: end;
+  /* Folga extra embaixo para o `ROLE ↓`, que é posicionado por cima e não
+     empurra nada. Sem ela, no celular ele encosta na última linha do
+     parágrafo de apoio. */
+  padding-bottom: calc(var(--margem) * 3.5);
+}
+
+.role {
+  position: absolute;
+  right: var(--margem);
+  bottom: calc(var(--margem) * 1.75);
+  color: var(--cinza-texto);
+}
+
+/* ── A missão ──────────────────────────────────────────────────────────────
+   A única tela centrada da página, e é onde a tese chega. Depois de nove telas
+   ancoradas à esquerda, centrar é uma mudança de postura que se sente sem
+   precisar de nenhum outro recurso. */
+.secao[data-forma="centro"] {
+  justify-items: center;
+}
+
+.secao[data-forma="centro"] .dentro {
+  align-items: center;
+  text-align: center;
+  max-width: 52rem;
+}
+
+/* ── O fecho ───────────────────────────────────────────────────────────────
+   Duas portas, sem convite: a própria home e o contato dela.
+
+   Havia um parágrafo entre a frase e as portas ("se você leu até aqui e
+   concorda…"). Saiu em 17/08/2026: a página inteira já é o convite, e explicar
+   isso na última linha enfraquece a frase que vem logo acima — a única da tese
+   que não precisa de apoio nenhum. */
+.portas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 2.5rem;
+  margin-top: 1.5rem;
+}
+
+.porta {
+  color: var(--branco-202);
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid var(--fio-estrutura);
+  transition: border-color 0.25s;
+}
+
+.porta:hover {
+  border-color: var(--verde-sinal);
+}
+
+/* ── Movimento ─────────────────────────────────────────────────────────────
+   Dois regimes e um repouso. Ver o comentário em app/tese/page.tsx sobre por
+   que o fecho não anima. */
+
+@keyframes entrar {
+  from {
+    opacity: 0;
+    transform: translateY(1.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes revelar {
+  from {
+    opacity: 0;
+    transform: translateY(1.25rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* A capa já está na tela quando a página carrega: ela se monta no relógio,
+   escalonada por `--ordem`. */
+.entra {
+  animation: entrar 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--ordem, 0) * 110ms + 140ms);
+}
+
+/* Estado final explícito, e não uma regra vazia: uma regra sem declaração pode
+   ser removida na minificação, e aí `estilos.parado` viria `undefined` e o
+   className viraria a string "undefined". */
+.parado {
+  opacity: 1;
+}
+
+.revela {
+  opacity: 1;
+}
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    /* A faixa é medida em `cover` — o trajeto inteiro do elemento pela tela —
+       e termina bem antes da metade, para o texto estar inteiro no lugar quando
+       chega ao centro da leitura. `both` retém o estado final: passada a
+       faixa, o elemento fica visível para sempre, inclusive se o visitante
+       rolar de volta. */
+    .revela {
+      animation: revelar linear both;
+      animation-timeline: view();
+      animation-range: cover calc(8% + var(--ordem, 0) * 3%) cover
+        calc(34% + var(--ordem, 0) * 3%);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* O bloco global de globals.css zera a DURAÇÃO das animações, mas não o
+     atraso — e com `both` o elemento ficaria retido no quadro inicial
+     (opacidade 0) por até meio segundo antes de estalar na tela. Para quem
+     pediu menos movimento isso é pior que a animação. Aqui não há entrada
+     nenhuma: a capa já nasce montada. */
+  .entra {
+    animation: none;
+  }
+}
