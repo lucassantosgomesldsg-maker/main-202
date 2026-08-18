@@ -48,6 +48,18 @@ export const metadata: Metadata = {
   // diferentes disputando entre si. O caminho é relativo de propósito:
   // `metadataBase` acima o completa, então o domínio vive num lugar só.
   alternates: { canonical: "/" },
+  // Prova de posse do site para o Google Search Console, na propriedade de
+  // prefixo de URL `https://202lab.com.br` (a de tipo "Domínio" só aceita
+  // registro DNS, e a conta do Registro.br não é do Lucas).
+  //
+  // Não é segredo: o valor existe para ser lido por qualquer um no HTML da
+  // home — é assim que ele funciona. Sozinho não dá acesso a nada; quem já
+  // não estiver logado na conta certa do Search Console não faz nada com ele.
+  //
+  // NÃO REMOVER depois de verificado. O Google revalida a etiqueta de tempos
+  // em tempos, e tirá-la faz a propriedade cair — junto com o histórico de
+  // desempenho dela.
+  verification: { google: "EDd8Sp9hbWOOsSr5IBa-TXxwBmnyJA4thGd27LpSOhA" },
   openGraph: {
     title: titulo("pt"),
     description: DESCRICAO_BUSCA,
