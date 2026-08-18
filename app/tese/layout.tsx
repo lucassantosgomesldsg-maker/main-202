@@ -15,18 +15,30 @@ const resumo = abertura.titulo.join(" ");
  */
 export const metadata: Metadata = {
   description: resumo,
+  alternates: { canonical: "/tese" },
   openGraph: {
     title: `202Lab — ${TESE.pt.rotuloPagina}`,
     description: resumo,
-    url: "https://202lab.com.br/tese",
+    url: "/tese",
     siteName: "202Lab",
     locale: "pt_BR",
     type: "article",
+    // Sem esta linha a /tese era compartilhada SEM imagem nenhuma — conferido
+    // no site no ar. A imagem da raiz (app/opengraph-image.tsx) não chega
+    // aqui: declarar um objeto `openGraph` próprio SUBSTITUI o do layout pai
+    // inteiro, e a imagem que o pai tinha vai junto. Apontar de volta para a
+    // rota da raiz reaproveita o mesmo card (logo + oneliner), que é
+    // institucional e serve às duas páginas — não é imagem provisória.
+    images: ["/opengraph-image"],
   },
   twitter: {
     card: "summary_large_image",
     title: `202Lab — ${TESE.pt.rotuloPagina}`,
     description: resumo,
+    // Explícito, e não confiando em herdar de `openGraph` acima: um
+    // `summary_large_image` sem imagem é a única combinação que degrada para
+    // pior que o card simples — a rede mostra a moldura grande vazia.
+    images: ["/opengraph-image"],
   },
 };
 
