@@ -35,6 +35,12 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# A exceção que o comentário acima previa. `.env.example` não tem valor
+# nenhum dentro — só os NOMES das variáveis que a Vercel precisa ter
+# (spec da inscrição, §14). Sem esta linha o arquivo existe no disco de
+# quem o escreveu e não chega em mais ninguém, que é o pior dos dois
+# mundos: parece entregue e não está.
+!.env.example
 
 # vercel
 .vercel

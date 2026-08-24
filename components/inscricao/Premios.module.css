@@ -1,0 +1,101 @@
+/* ── As linhas do repeater ─────────────────────────────────────────────────
+   Uma grade de duas colunas — campo e botão de remover — em vez de um flex,
+   porque o contador precisa cair numa terceira faixa alinhada à direita do
+   campo, e não ao lado do `×`. */
+.lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  list-style: none;
+}
+
+.linha {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.5rem;
+  align-items: start;
+}
+
+.contador {
+  grid-column: 1 / -1;
+  justify-self: end;
+  font-family: var(--fonte-mono), ui-monospace, monospace;
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  color: var(--branco-202);
+  font-variant-numeric: tabular-nums;
+}
+
+.contador[data-estado="passou"] {
+  color: var(--vermelho-erro, #ff6b5e);
+}
+
+/* ── Remover ───────────────────────────────────────────────────────────────
+   44px de alvo para uma cruz de 10px: o desenho é pequeno para não competir
+   com o campo, mas o dedo precisa do quadrado inteiro. O `×` é dois traços
+   cruzados e não o caractere "×" — assim ele herda a espessura de fio do resto
+   da página e nunca depende de qual fonte carregou. */
+.remover {
+  width: 2.75rem;
+  height: 2.75rem;
+  display: grid;
+  place-items: center;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  cursor: pointer;
+  color: var(--cinza-texto);
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.remover:hover {
+  color: var(--branco-202);
+  border-color: var(--fio-estrutura);
+}
+
+.cruz {
+  position: relative;
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+.cruz::before,
+.cruz::after {
+  content: "";
+  position: absolute;
+  inset: 50% 0 auto 0;
+  height: 1px;
+  background: currentColor;
+}
+
+.cruz::before {
+  transform: rotate(45deg);
+}
+
+.cruz::after {
+  transform: rotate(-45deg);
+}
+
+/* ── Adicionar ─────────────────────────────────────────────────────────────
+   Botão de texto, em mono caixa-alta como todos os botões do site. Alinhado à
+   esquerda e discreto: ele é uma ação secundária de um campo opcional, e nada
+   nele pode disputar com o AVANÇAR. */
+.adicionar {
+  align-self: flex-start;
+  margin-top: 0.75rem;
+  min-height: 2.75rem;
+  padding: 0 0.75rem 0 0;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  font-family: var(--fonte-mono), ui-monospace, monospace;
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--cinza-texto);
+  transition: color 0.15s;
+}
+
+.adicionar:hover {
+  color: var(--branco-202);
+}

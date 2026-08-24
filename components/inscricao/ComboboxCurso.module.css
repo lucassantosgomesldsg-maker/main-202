@@ -1,0 +1,63 @@
+/* ── A caixa do combobox ───────────────────────────────────────────────────
+   `position: relative` só para ancorar a lista. O input em si é o mesmo
+   `.controle` de Campos.module.css — de propósito: o campo de curso não pode
+   parecer diferente dos outros só porque por dentro ele é outra coisa. */
+.caixa {
+  position: relative;
+}
+
+/* ── A lista ───────────────────────────────────────────────────────────────
+   Flutua sobre o campo seguinte em vez de empurrá-lo: uma lista que empurra o
+   conteúdo faz a página saltar a cada tecla digitada.
+
+   `max-height` em rem, com rolagem própria: com a busca vazia são 44 opções, e
+   uma lista de 44 itens sem teto cobre a tela inteira do celular.
+
+   O `[hidden]` explícito não é redundância: o atributo `hidden` do HTML vale
+   `display: none` na folha do navegador, e qualquer `display` declarado numa
+   classe vence esse padrão. Sem esta linha, a lista fechada continuaria
+   desenhada. */
+.lista {
+  position: absolute;
+  z-index: 5;
+  inset: calc(100% + 2px) 0 auto 0;
+  max-height: 15rem;
+  overflow-y: auto;
+  list-style: none;
+  background: var(--preto-202);
+  border: 1px solid var(--verde-sinal);
+  border-radius: 2px;
+}
+
+.lista[hidden] {
+  display: none;
+}
+
+.opcao {
+  display: flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+  font-family: var(--fonte-corpo), Georgia, serif;
+  font-size: 0.9375rem;
+  line-height: 1.35;
+  color: var(--cinza-texto);
+  cursor: pointer;
+}
+
+.opcao + .opcao {
+  border-top: 1px solid #1a1a18;
+}
+
+/* O realce é o cursor DENTRO do campo em foco, e não um segundo elemento ativo
+   disputando com ele: a borda verde do campo e a barra verde da opção realçada
+   são a mesma peça, contínua. Fora daqui o verde não aparece na lista. */
+.opcao[data-realce="true"] {
+  color: var(--branco-202);
+  background: #16160f;
+  box-shadow: inset 2px 0 0 var(--verde-sinal);
+}
+
+.opcao:hover {
+  color: var(--branco-202);
+}

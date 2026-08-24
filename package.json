@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "fonte:malha": "node scripts/gerar-fonte-malha.mjs"
+    "fonte:malha": "node scripts/gerar-fonte-malha.mjs",
+    "supabase:conferir": "node scripts/conferir-supabase.mjs"
   },
   "dependencies": {
     "next": "16.2.12",

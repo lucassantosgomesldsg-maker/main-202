@@ -1,0 +1,207 @@
+/* ── Telas de texto: abertura e confirmação ────────────────────────────────
+   As duas únicas telas sem campo nenhum. `align-items: flex-start` porque o
+   botão delas usa a mesma classe `.primario` do AVANÇAR — sem isto, o
+   `flex: 1` que ele recebe dentro da navegação faria o COMEÇAR esticar até a
+   largura inteira da coluna, que é peso demais para a primeira coisa que a
+   pessoa vê. */
+.tela {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 2rem 0 0;
+}
+
+.rotuloTela {
+  margin-bottom: 0.5rem;
+}
+
+/* ── Títulos ───────────────────────────────────────────────────────────────
+   Fraunces 300 no tamanho óptico de display, a mesma voz do oneliner da home e
+   do statement da /tese. Menor do que lá: aqui o título abre uma tela de
+   preencher, não é o argumento. */
+.titulo {
+  font-family: var(--fonte-display), Georgia, serif;
+  font-weight: 300;
+  font-variation-settings: "opsz" 144;
+  font-size: clamp(1.75rem, 5vw, 2.75rem);
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  color: var(--branco-202);
+}
+
+.tituloBloco {
+  font-family: var(--fonte-display), Georgia, serif;
+  font-weight: 300;
+  font-variation-settings: "opsz" 144;
+  font-size: clamp(1.5rem, 4.2vw, 2rem);
+  line-height: 1.12;
+  letter-spacing: -0.01em;
+  color: var(--branco-202);
+  margin-bottom: 2rem;
+}
+
+.linha {
+  font-family: var(--fonte-corpo), Georgia, serif;
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  color: var(--cinza-texto);
+  max-width: 34rem;
+}
+
+/* ── O bloco ───────────────────────────────────────────────────────────────
+   Um deslocamento curto de entrada, e nada mais. Não é um carrossel: o
+   formulário não desliza de tela cheia, ele troca de conteúdo.
+
+   O estado final é declarado explicitamente no bloco de reduced-motion, e não
+   deixado a cargo do `both`: uma regra vazia pode ser removida na minificação,
+   e quem pediu menos movimento não pode acabar vendo menos conteúdo. */
+@keyframes entraBloco {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.bloco {
+  display: block;
+  animation: entraBloco 200ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bloco {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.forma {
+  display: block;
+}
+
+/* ── O campo-armadilha ─────────────────────────────────────────────────────
+   Fora da tela, e NUNCA `display: none` nem `visibility: hidden`: robô que
+   presta atenção ignora campo escondido por display, e o honeypot perderia a
+   função em silêncio — que é o único jeito de ninguém perceber que ele parou
+   de funcionar. Fora de tela ele continua "existindo" para quem lê o HTML e
+   preenche tudo. `aria-hidden` e `tabindex="-1"` estão no JSX. */
+.armadilha {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+/* ── O aviso de envio ──────────────────────────────────────────────────────
+   Um por vez, com `role="alert"` no JSX. Este é o único alerta assertivo da
+   página: os erros de campo chegam pelo `aria-describedby` quando o foco pousa
+   neles, porque cinco alertas simultâneos se atropelam e nenhum é ouvido. */
+.aviso {
+  margin-top: 1.5rem;
+  padding: 0.875rem 1rem;
+  border: 1px solid var(--vermelho-erro, #ff6b5e);
+  border-radius: 2px;
+  font-family: var(--fonte-corpo), Georgia, serif;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--vermelho-erro, #ff6b5e);
+}
+
+/* ── A navegação ───────────────────────────────────────────────────────────
+   VOLTAR à esquerda e o botão de avançar ocupando o resto. No celular isso põe
+   a ação principal debaixo do polegar e deixa a secundária no canto — a ordem
+   inversa faria o dedo esbarrar em VOLTAR ao mirar o AVANÇAR. */
+.navegacao {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--fio-estrutura);
+}
+
+.navegacao .primario {
+  flex: 1;
+}
+
+/* ── Botões ────────────────────────────────────────────────────────────────
+   O verde cheio é o terceiro e último uso de `--verde-sinal` na página (com o
+   campo em foco e o passo atual). Ele é o único bloco de cor: os outros dois
+   são fios de 1 e 2px, então mesmo com os três na tela ao mesmo tempo não há
+   dois verdes disputando — há um objeto verde e duas linhas verdes.
+
+   3rem de altura, acima dos 44px do alvo mínimo de toque. */
+.primario {
+  min-height: 3rem;
+  padding: 0 1.5rem;
+  background: var(--verde-sinal);
+  color: var(--preto-202);
+  border: 1px solid var(--verde-sinal);
+  border-radius: 2px;
+  cursor: pointer;
+  font-family: var(--fonte-mono), ui-monospace, monospace;
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.primario:hover:not(:disabled) {
+  background: transparent;
+  color: var(--verde-sinal);
+}
+
+.primario:disabled {
+  background: transparent;
+  border-color: var(--fio-estrutura);
+  color: var(--cinza-texto);
+  cursor: default;
+}
+
+.secundario {
+  flex: none;
+  min-height: 3rem;
+  padding: 0 1.25rem;
+  background: none;
+  border: 1px solid var(--fio-estrutura);
+  border-radius: 2px;
+  cursor: pointer;
+  font-family: var(--fonte-mono), ui-monospace, monospace;
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--cinza-texto);
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.secundario:hover:not(:disabled) {
+  color: var(--branco-202);
+  border-color: var(--cinza-texto);
+}
+
+.secundario:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ── A porta para a /tese ──────────────────────────────────────────────────
+   A única saída da página, e só na confirmação: a pessoa acabou de dizer que
+   quer entrar, e este é o minuto de maior atenção que a 202 vai ter dela. Na
+   abertura não há saída nenhuma de propósito — a página tem uma função. */
+.saida {
+  margin-top: 1rem;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid var(--fio-estrutura);
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.saida:hover {
+  color: var(--branco-202);
+  border-bottom-color: var(--branco-202);
+}

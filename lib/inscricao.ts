@@ -1,0 +1,1631 @@
+/**
+ * A fundação da página /trilha/inscricao: as listas, a copy, os limites e a
+ * validação.
+ *
+ * Vive num arquivo só, e não espalhado entre a página e a rota de API, por dois
+ * motivos que se sustentam sozinhos.
+ *
+ * O primeiro é a regra do repo — **nenhum texto de marca no JSX**. Rótulo de
+ * campo, placeholder, mensagem de erro e texto de botão são copy tanto quanto o
+ * statement da /tese, e a spec (§5) diz explicitamente que o Matheus tem de
+ * conseguir editar as opções sem abrir um `.tsx`. Se uma string visível nascer
+ * dentro de um componente, ela some do alcance dele.
+ *
+ * O segundo é a **validação única**. `validarInscricao` roda no navegador,
+ * antes de enviar, e roda de novo dentro da Route Handler, contra um payload
+ * que pode ter vindo de qualquer lugar. São os mesmos limites e as mesmas
+ * frases nos dois lados de propósito: duas cópias das regras divergem — sempre
+ * divergem — e o defeito que isso produz é o pior tipo, o formulário que deixa
+ * enviar e o servidor recusa sem dizer por quê. Por isso a função recebe
+ * `unknown` e não um tipo já confiável: no servidor ela **não tem** um tipo
+ * confiável para receber.
+ *
+ * Os `id` das opções são separados do rótulo visível onde o banco guarda algo
+ * diferente do que a pessoa lê. Não é indireção gratuita: `nivel_ai` e
+ * `empreendedorismo` são `smallint` no schema (§6.3), e as listas de frase
+ * longa (situação, disponibilidade, AI no trabalho) viram token curto porque o
+ * painel de BI agrupa por elas — consertar uma vírgula do rótulo não pode
+ * reparticionar o gráfico da semana passada. Onde o schema manda guardar o
+ * próprio nome (`instituicao`, `curso`), o `id` **é** o nome.
+ */
+
+/* ── Formas das opções ────────────────────────────────────────────────────── */
+
+/** Uma opção guardada como texto: `id` vai para o banco, `rotulo` para a tela. */
+export type Opcao = {
+  readonly id: string;
+  readonly rotulo: string;
+};
+
+/** Uma opção guardada como número (`smallint` no schema). A ordem é o dado. */
+export type OpcaoNumerica = {
+  readonly valor: number;
+  readonly rotulo: string;
+};
+
+/** Uma ferramenta de AI. `exclusiva` marca a opção que anula todas as outras. */
+export type Ferramenta = Opcao & {
+  readonly exclusiva?: boolean;
+};
+
+/** Uma situação de hoje. `trabalha` é o que decide se `ai_trabalho` é perguntado. */
+export type Situacao = Opcao & {
+  readonly trabalha: boolean;
+};
+
+/** Uma UF. `sigla` é o que o banco guarda (`char(2)`), `nome` é o que se lê. */
+export type Estado = {
+  readonly sigla: string;
+  readonly nome: string;
+};
+
+/** Ano de conclusão. `valor: null` é "já formei" — e `null` é o que vai ao banco. */
+export type Conclusao = {
+  readonly id: string;
+  readonly valor: number | null;
+  readonly rotulo: string;
+};
+
+/* ── §5.1 Instituições ────────────────────────────────────────────────────── */
+
+/**
+ * As nove, em ordem alfabética, mais `Outra`.
+ *
+ * Alfabética e não "por prestígio": a lista existe para ser varrida com o olho
+ * em dois segundos, e qualquer outra ordem obriga a ler todas. O `id` é o
+ * próprio nome porque o schema (§6.3) diz "um dos 9 ou `OUTRA`" — é essa coluna
+ * que o BI agrupa, e ela fica legível no painel do Supabase sem tradução.
+ */
+export const INSTITUICOES: readonly Opcao[] = [
+  { id: "FGV", rotulo: "FGV" },
+  { id: "IME", rotulo: "IME" },
+  { id: "Insper", rotulo: "Insper" },
+  { id: "Inteli", rotulo: "Inteli" },
+  { id: "ITA", rotulo: "ITA" },
+  { id: "Link", rotulo: "Link" },
+  { id: "Unicamp", rotulo: "Unicamp" },
+  { id: "Unifesp", rotulo: "Unifesp" },
+  { id: "USP", rotulo: "USP" },
+  { id: "OUTRA", rotulo: "Outra" },
+] as const;
+
+/* ── §5.2 Unidades da USP ─────────────────────────────────────────────────── */
+
+/**
+ * Só aparece quando a instituição é `USP`.
+ *
+ * Os rótulos estão na **forma longa** por decisão do Matheus de 20/08/2026, que
+ * resolve a pergunta em aberto da §15.1 da spec. O motivo é o público: "San
+ * Fran" e "Med Pinheiros" são apelidos que só funcionam para quem já está
+ * dentro, e a página vai ser aberta por gente de fora de São Paulo. O apelido
+ * fica na frente, que é como quem é de dentro procura; o curso entra entre
+ * parênteses, para quem não é.
+ *
+ * O `id` é token curto e não o rótulo justamente porque o rótulo ainda pode
+ * mudar de forma — trocar "(Economia e Administração)" por outra coisa não pode
+ * partir a série histórica.
+ */
+export const UNIDADES_USP: readonly Opcao[] = [
+  { id: "POLI", rotulo: "POLI (Engenharia)" },
+  { id: "MEDICINA", rotulo: "Medicina (Pinheiros)" },
+  { id: "FEA", rotulo: "FEA (Economia e Administração)" },
+  { id: "SAN_FRAN", rotulo: "San Fran (Direito)" },
+  { id: "OUTRA", rotulo: "Outra" },
+] as const;
+
+/* ── §5.3 Cursos ──────────────────────────────────────────────────────────── */
+
+/**
+ * Os cursos, em ordem alfabética, mais `Outro`.
+ *
+ * A lista é longa demais para um `select` cru — a spec pede busca por digitação
+ * (§4.2), e duas letras já filtram. Como em `INSTITUICOES`, o `id` é o próprio
+ * nome: é assim que o painel agrupa, e "Eng. de Produção" no gráfico vale mais
+ * do que `ENG_PRODUCAO`.
+ *
+ * A §15.3 da spec anota que esta lista é rascunho e deve ser revista pelo
+ * Matheus antes do go-live — em particular se Link e Inteli têm cursos com nome
+ * próprio que não estão aqui. Nada no código depende de um item específico:
+ * acrescentar uma linha aqui basta.
+ */
+export const CURSOS: readonly Opcao[] = [
+  { id: "Administração", rotulo: "Administração" },
+  { id: "Arquitetura e Urbanismo", rotulo: "Arquitetura e Urbanismo" },
+  { id: "Biomedicina", rotulo: "Biomedicina" },
+  { id: "Ciência da Computação", rotulo: "Ciência da Computação" },
+  { id: "Ciência de Dados", rotulo: "Ciência de Dados" },
+  { id: "Ciências Atuariais", rotulo: "Ciências Atuariais" },
+  { id: "Ciências Contábeis", rotulo: "Ciências Contábeis" },
+  { id: "Ciências Econômicas", rotulo: "Ciências Econômicas" },
+  { id: "Ciências Sociais", rotulo: "Ciências Sociais" },
+  { id: "Design", rotulo: "Design" },
+  { id: "Direito", rotulo: "Direito" },
+  { id: "Educação Física", rotulo: "Educação Física" },
+  { id: "Enfermagem", rotulo: "Enfermagem" },
+  { id: "Eng. Aeronáutica", rotulo: "Eng. Aeronáutica" },
+  { id: "Eng. Ambiental", rotulo: "Eng. Ambiental" },
+  { id: "Eng. Civil", rotulo: "Eng. Civil" },
+  { id: "Eng. de Computação", rotulo: "Eng. de Computação" },
+  { id: "Eng. de Controle e Automação", rotulo: "Eng. de Controle e Automação" },
+  { id: "Eng. de Materiais", rotulo: "Eng. de Materiais" },
+  { id: "Eng. de Produção", rotulo: "Eng. de Produção" },
+  { id: "Eng. de Software", rotulo: "Eng. de Software" },
+  { id: "Eng. Elétrica", rotulo: "Eng. Elétrica" },
+  { id: "Eng. Mecânica", rotulo: "Eng. Mecânica" },
+  { id: "Eng. Mecatrônica", rotulo: "Eng. Mecatrônica" },
+  { id: "Eng. Naval", rotulo: "Eng. Naval" },
+  { id: "Eng. Química", rotulo: "Eng. Química" },
+  // A engenharia sem sobrenome, e não um esquecimento: quem entra no ciclo
+  // básico da Poli ou da Unicamp ainda não tem habilitação, e as específicas
+  // acima obrigariam essa pessoa a escolher um curso que ela não faz. Vem
+  // depois de todas as `Eng. …` porque o ponto ordena antes da letra.
+  { id: "Engenharia", rotulo: "Engenharia" },
+  { id: "Estatística", rotulo: "Estatística" },
+  { id: "Farmácia", rotulo: "Farmácia" },
+  { id: "Física", rotulo: "Física" },
+  { id: "Fisioterapia", rotulo: "Fisioterapia" },
+  { id: "Geologia", rotulo: "Geologia" },
+  { id: "Jornalismo", rotulo: "Jornalismo" },
+  { id: "Letras", rotulo: "Letras" },
+  { id: "Matemática", rotulo: "Matemática" },
+  { id: "Matemática Aplicada", rotulo: "Matemática Aplicada" },
+  { id: "Medicina", rotulo: "Medicina" },
+  { id: "Medicina Veterinária", rotulo: "Medicina Veterinária" },
+  { id: "Nutrição", rotulo: "Nutrição" },
+  { id: "Odontologia", rotulo: "Odontologia" },
+  { id: "Psicologia", rotulo: "Psicologia" },
+  { id: "Publicidade e Propaganda", rotulo: "Publicidade e Propaganda" },
+  { id: "Química", rotulo: "Química" },
+  { id: "Relações Internacionais", rotulo: "Relações Internacionais" },
+  { id: "Sistemas de Informação", rotulo: "Sistemas de Informação" },
+  { id: "OUTRO", rotulo: "Outro" },
+] as const;
+
+/* ── §4.2 Ano atual e conclusão prevista ──────────────────────────────────── */
+
+/**
+ * O ano em que a pessoa está.
+ *
+ * `Trancado` e `Já formado` existem porque a pergunta seguinte (conclusão
+ * prevista) precisa fazer sentido para os dois casos — e porque um formulário
+ * que só oferece "1º a 6º" força quem trancou a mentir.
+ */
+export const ANOS_ATUAIS: readonly Opcao[] = [
+  { id: "1", rotulo: "1º ano" },
+  { id: "2", rotulo: "2º ano" },
+  { id: "3", rotulo: "3º ano" },
+  { id: "4", rotulo: "4º ano" },
+  { id: "5", rotulo: "5º ano" },
+  { id: "6", rotulo: "6º ano" },
+  { id: "TRANCADO", rotulo: "Trancado" },
+  { id: "FORMADO", rotulo: "Já formado" },
+] as const;
+
+/**
+ * O ano de conclusão. É o único dos dois campos que não envelhece (§4.2).
+ *
+ * "Já formei" guarda `null`, e não um número sentinela como `0` ou `9999`:
+ * `conclusao_prevista` é `smallint, null` no schema, e `null` é a única forma
+ * de o painel calcular "média de anos até a formatura" sem filtrar lixo antes.
+ * O `id` existe porque um `<select>` só devolve string — a interface manda o
+ * `id`, e `validarInscricao` traduz para o `valor`.
+ */
+export const CONCLUSOES_PREVISTAS: readonly Conclusao[] = [
+  { id: "2026", valor: 2026, rotulo: "2026" },
+  { id: "2027", valor: 2027, rotulo: "2027" },
+  { id: "2028", valor: 2028, rotulo: "2028" },
+  { id: "2029", valor: 2029, rotulo: "2029" },
+  { id: "2030", valor: 2030, rotulo: "2030" },
+  { id: "2031", valor: 2031, rotulo: "2031" },
+  { id: "2032", valor: 2032, rotulo: "2032" },
+  { id: "2033", valor: 2033, rotulo: "2033" },
+  { id: "FORMEI", valor: null, rotulo: "Já formei" },
+] as const;
+
+/* ── §5.4 Nível de AI ─────────────────────────────────────────────────────── */
+
+/**
+ * A escala de cinco degraus, guardada como `0`–`4`.
+ *
+ * Cada degrau é uma frase sobre o que a pessoa **faz**, e não um adjetivo:
+ * "iniciante / intermediário / avançado" mede autoconfiança, e nota de 1 a 10
+ * empilha metade das respostas no 7. O checklist de ferramentas (§5.5) serve de
+ * contraprova — quem se declara no degrau 4 e marca só ChatGPT está dizendo
+ * outra coisa.
+ */
+export const NIVEIS_AI: readonly OpcaoNumerica[] = [
+  { valor: 0, rotulo: "Nunca usei, ou usei uma ou duas vezes" },
+  { valor: 1, rotulo: "Uso de vez em quando, para tirar dúvida" },
+  {
+    valor: 2,
+    rotulo:
+      "Uso quase todo dia no estudo ou no trabalho, e sei escrever um bom prompt",
+  },
+  {
+    valor: 3,
+    rotulo:
+      "Já construí algo com AI além do chat — automação, integração via API, agente, ou programo com AI dentro do editor",
+  },
+  {
+    valor: 4,
+    rotulo:
+      "É o meu trabalho, ou perto disso — construo produto ou sistema com AI, ou levo isso para outras pessoas",
+  },
+] as const;
+
+/* ── §5.5 Ferramentas de AI ───────────────────────────────────────────────── */
+
+/**
+ * Múltipla escolha, mínimo uma.
+ *
+ * `Nenhuma dessas` é **exclusiva**, e a exclusividade é validada aqui e não só
+ * no clique: marcar a caixa desmarca as outras na interface, mas um payload
+ * montado à mão pode chegar com as duas coisas, e "nenhuma ferramenta + ChatGPT"
+ * no banco é um dado que ninguém consegue interpretar depois.
+ *
+ * O `id` é token curto porque esta coluna é `text[]` justamente para ser
+ * agregada com `unnest` (§6.3) — o nome comercial de uma ferramenta muda, o
+ * eixo do gráfico não pode mudar junto.
+ */
+export const FERRAMENTAS_AI: readonly Ferramenta[] = [
+  { id: "CHATGPT", rotulo: "ChatGPT" },
+  { id: "CLAUDE", rotulo: "Claude" },
+  { id: "GEMINI", rotulo: "Gemini" },
+  { id: "COPILOT", rotulo: "Copilot no editor" },
+  { id: "EDITOR_AGENTE", rotulo: "Cursor / Windsurf / Claude Code" },
+  { id: "AUTOMACAO", rotulo: "n8n / Make / Zapier com AI" },
+  { id: "API", rotulo: "API da OpenAI, Anthropic ou Google" },
+  { id: "IMAGEM", rotulo: "Geração de imagem (Midjourney, etc.)" },
+  { id: "NOTEBOOKLM", rotulo: "NotebookLM" },
+  { id: "PERPLEXITY", rotulo: "Perplexity" },
+  { id: "PROPRIA", rotulo: "Alguma que eu mesmo construí" },
+  { id: "NENHUMA", rotulo: "Nenhuma dessas", exclusiva: true },
+] as const;
+
+/* ── §4.3 AI nos estudos ──────────────────────────────────────────────────── */
+
+/** Frequência, e não intensidade: é a pergunta que a pessoa sabe responder. */
+export const AI_ESTUDOS: readonly Opcao[] = [
+  { id: "NUNCA", rotulo: "Nunca" },
+  { id: "AS_VEZES", rotulo: "Às vezes" },
+  { id: "QUASE_TODO_DIA", rotulo: "Quase todo dia" },
+  { id: "PRINCIPAL", rotulo: "É o meu principal jeito de estudar" },
+] as const;
+
+/* ── §5.6 Situação hoje ───────────────────────────────────────────────────── */
+
+/**
+ * O que a pessoa faz hoje, e se isso conta como trabalho.
+ *
+ * `trabalha` **já foi** o interruptor de `ai_trabalho` (§5.7). Desde 21/08/2026
+ * não é mais: a pergunta sobre AI é feita a todo mundo, trabalhe ou não. A flag
+ * fica como o que sempre foi por baixo — a classificação de cada situação — e é
+ * dela que o painel tira "quantos inscritos já estão dentro de uma organização"
+ * sem alguém recompor a lista à mão numa consulta. A régua é larga: só
+ * `Só estudo` fica de fora, e iniciação científica entra porque tem orientador
+ * esperando entrega.
+ */
+export const SITUACOES: readonly Situacao[] = [
+  { id: "SO_ESTUDO", rotulo: "Só estudo", trabalha: false },
+  { id: "ESTAGIO", rotulo: "Estágio", trabalha: true },
+  { id: "CLT_PJ", rotulo: "CLT ou PJ", trabalha: true },
+  { id: "FREELA", rotulo: "Freelancer", trabalha: true },
+  { id: "PESQUISA", rotulo: "Iniciação científica ou pesquisa", trabalha: true },
+  { id: "EMPRESA_PROPRIA", rotulo: "Tenho empresa própria", trabalha: true },
+  { id: "OUTRO", rotulo: "Outro", trabalha: true },
+] as const;
+
+/* ── §5.7 AI no trabalho ──────────────────────────────────────────────────── */
+
+/**
+ * Perguntada a **todo mundo**, e diferente de "nível de AI" de propósito.
+ *
+ * Usar AI sob pressão de entrega, num lugar onde outra pessoa depende do
+ * resultado, é outro dado — e o último degrau é o mais informativo do
+ * formulário inteiro.
+ *
+ * Era condicional a trabalhar até 21/08/2026. Deixou de ser porque a condição
+ * comprava um clique a menos e pagava com um buraco: quem só estuda também
+ * entrega — monitoria, iniciação, trabalho de grupo, TCC — e o formulário não
+ * tinha como saber disso. Os rótulos dizem "onde eu estou" e "meu time ou
+ * grupo", e não "o time", justamente para caber nos dois casos sem obrigar
+ * ninguém a traduzir a pergunta antes de responder.
+ */
+export const AI_TRABALHO: readonly Opcao[] = [
+  { id: "NAO_USO", rotulo: "Não uso" },
+  { id: "NAO_OFICIAL", rotulo: "Uso, mas não é oficial" },
+  { id: "ACEITO", rotulo: "Uso, e é aceito onde eu estou" },
+  { id: "CENTRAL", rotulo: "É central para o que eu entrego" },
+  { id: "IMPLANTEI", rotulo: "Eu levei AI para o meu time ou grupo" },
+] as const;
+
+/* ── §5.8 Empreendedorismo ────────────────────────────────────────────────── */
+
+/**
+ * Uma escada, guardada como `0`–`5`, e a ordem é a informação.
+ *
+ * Cada degrau pressupõe o anterior — de "nunca pensei nisso" a "já levantei
+ * investimento". É isso que deixa agrupar no BI sem inventar critério depois:
+ * "quem já teve receita" é `>= 4`, e não uma lista de rótulos que alguém
+ * recompõe à mão a cada consulta.
+ */
+export const EMPREENDEDORISMO: readonly OpcaoNumerica[] = [
+  { valor: 0, rotulo: "Nunca pensei nisso" },
+  { valor: 1, rotulo: "Já pensei, nunca tirei do papel" },
+  { valor: 2, rotulo: "Já tentei algo que não foi para a frente" },
+  { valor: 3, rotulo: "Tenho algo rodando hoje, ainda sem receita" },
+  { valor: 4, rotulo: "Já tive receita, com cliente pagante" },
+  { valor: 5, rotulo: "Já levantei investimento" },
+] as const;
+
+/* ── §4.5 Disponibilidade ─────────────────────────────────────────────────── */
+
+/**
+ * Faixa, e não número.
+ *
+ * "10–20h" é uma resposta honesta; "14h" é chute com cara de precisão. E faixa
+ * é um clique, o que importa num formulário que promete três minutos.
+ */
+export const DISPONIBILIDADES: readonly Opcao[] = [
+  { id: "ATE_5H", rotulo: "Até 5h por semana" },
+  { id: "DE_5_A_10H", rotulo: "5 a 10h por semana" },
+  { id: "DE_10_A_20H", rotulo: "10 a 20h por semana" },
+  { id: "DE_20_A_30H", rotulo: "20 a 30h por semana" },
+  { id: "MAIS_DE_30H", rotulo: "Mais de 30h por semana" },
+] as const;
+
+/* ── §5.9 Como conheceu a 202 ─────────────────────────────────────────────── */
+
+/**
+ * `INDICACAO` abre o campo "quem te indicou".
+ *
+ * É a única informação do formulário que **só dá para coletar na hora**:
+ * perguntar depois, na conversa, ninguém lembra. E é ela que mostra quais
+ * pessoas estão trazendo outras.
+ */
+export const ORIGENS: readonly Opcao[] = [
+  { id: "INDICACAO", rotulo: "Indicação de alguém" },
+  { id: "LINKEDIN", rotulo: "LinkedIn" },
+  { id: "INSTAGRAM", rotulo: "Instagram" },
+  { id: "EVENTO", rotulo: "Evento ou palestra" },
+  { id: "COMUNIDADE", rotulo: "Grupo ou comunidade" },
+  { id: "JA_CONHECIA", rotulo: "Já conhecia a 202" },
+  { id: "OUTRO", rotulo: "Outro" },
+] as const;
+
+/* ── §4.1 Estados e idade ─────────────────────────────────────────────────── */
+
+/**
+ * As 27 UFs, ordenadas por **nome** e não por sigla.
+ *
+ * Quem procura o próprio estado numa lista procura por "São Paulo", não por
+ * "SP" — e uma lista ordenada por sigla joga o Amazonas (AM) na frente do Acre
+ * (AC) invertido, Alagoas no meio dos Amapás, e obriga a ler as 27.
+ */
+export const ESTADOS: readonly Estado[] = [
+  { sigla: "AC", nome: "Acre" },
+  { sigla: "AL", nome: "Alagoas" },
+  { sigla: "AP", nome: "Amapá" },
+  { sigla: "AM", nome: "Amazonas" },
+  { sigla: "BA", nome: "Bahia" },
+  { sigla: "CE", nome: "Ceará" },
+  { sigla: "DF", nome: "Distrito Federal" },
+  { sigla: "ES", nome: "Espírito Santo" },
+  { sigla: "GO", nome: "Goiás" },
+  { sigla: "MA", nome: "Maranhão" },
+  { sigla: "MT", nome: "Mato Grosso" },
+  { sigla: "MS", nome: "Mato Grosso do Sul" },
+  { sigla: "MG", nome: "Minas Gerais" },
+  { sigla: "PA", nome: "Pará" },
+  { sigla: "PB", nome: "Paraíba" },
+  { sigla: "PR", nome: "Paraná" },
+  { sigla: "PE", nome: "Pernambuco" },
+  { sigla: "PI", nome: "Piauí" },
+  { sigla: "RJ", nome: "Rio de Janeiro" },
+  { sigla: "RN", nome: "Rio Grande do Norte" },
+  { sigla: "RS", nome: "Rio Grande do Sul" },
+  { sigla: "RO", nome: "Rondônia" },
+  { sigla: "RR", nome: "Roraima" },
+  { sigla: "SC", nome: "Santa Catarina" },
+  { sigla: "SP", nome: "São Paulo" },
+  { sigla: "SE", nome: "Sergipe" },
+  { sigla: "TO", nome: "Tocantins" },
+] as const;
+
+/**
+ * A idade é **escrita**, e não escolhida numa lista (decisão do Matheus de
+ * 21/08/2026).
+ *
+ * O que se perde é o guarda-corpo do `<select>`, que só produzia número da
+ * lista. O que se ganha é a idade de verdade: o `31+` de antes achatava todo
+ * mundo acima de 30 num valor só, e o painel não conseguia distinguir quem tem
+ * 31 de quem tem 45.
+ *
+ * A faixa aceita é larga de propósito — ela é um **corretor de engano de
+ * digitação**, não uma regra de quem pode se inscrever. O erro clássico de
+ * campo de idade é receber o ano de nascimento, e é isso que o teto de 99 pega.
+ * Uma faixa apertada em cima da idade "esperada" recusaria gente real por não
+ * caber num palpite nosso.
+ */
+
+/* ── O formulário preenchido ──────────────────────────────────────────────── */
+
+/**
+ * Exatamente o que o cliente envia como JSON, e exatamente as colunas graváveis
+ * da §6.3.
+ *
+ * Os nomes são os das colunas, em `snake_case`, e não `camelCase` "de front".
+ * A tradução entre os dois estilos teria de existir em algum lugar, e todo
+ * lugar onde ela existisse seria um lugar onde alguém erraria um campo sem o
+ * compilador perceber — o objeto validado vai direto para o corpo do `POST` do
+ * Supabase.
+ *
+ * As colunas que o cliente **não** escreve ficam de fora de propósito: `id`,
+ * `criado_em`, `atualizado_em`, `aceite_em`, `ip_hash` são do servidor, e
+ * `status`, `nota` e `avaliado_em` são da fase 2. Se alguma delas aparecesse
+ * aqui, um payload malicioso poderia se autoavaliar como `sim`.
+ */
+export type Inscricao = {
+  readonly nome: string;
+  readonly email: string;
+  /** Só dígitos, 10 ou 11. A máscara é coisa da interface (§6.3). */
+  readonly whatsapp: string;
+  /** A idade em anos, escrita pela pessoa. Inteira, entre `idadeMin` e `idadeMax`. */
+  readonly idade: number;
+  readonly estado: string;
+  readonly cidade: string;
+  readonly linkedin: string | null;
+  readonly instituicao: string;
+  readonly instituicao_outra: string | null;
+  readonly unidade_usp: string | null;
+  readonly unidade_usp_outra: string | null;
+  readonly curso: string;
+  readonly curso_outro: string | null;
+  readonly ano_atual: string;
+  /**
+   * `null` = já formado. A chave precisa **existir** no payload mesmo assim —
+   * é o que separa "já formei" de "não respondi" (ver `validarInscricao`).
+   */
+  readonly conclusao_prevista: number | null;
+  /** `[]` quando não há nenhum. Não existe "nenhum ainda" para marcar (§4.2). */
+  readonly premios: readonly string[];
+  readonly nivel_ai: number;
+  readonly ferramentas_ai: readonly string[];
+  readonly ai_estudos: string;
+  readonly historia_ai: string | null;
+  readonly situacao: string;
+  readonly situacao_outra: string | null;
+  /** Sempre respondido: a pergunta não depende mais de a pessoa trabalhar. */
+  readonly ai_trabalho: string;
+  readonly empreendedorismo: number;
+  readonly disponibilidade: string;
+  readonly origem: string;
+  readonly origem_quem_indicou: string | null;
+  readonly origem_outra: string | null;
+  readonly origem_detalhe: string | null;
+  readonly algo_mais: string | null;
+  /** Sempre `true` quando a validação passa. A coluna existe para registrar (§8). */
+  readonly aceite_dados: boolean;
+};
+
+/** O resultado da validação. Chave = nome do campo, valor = mensagem em PT. */
+export type ErrosInscricao = Partial<Record<keyof Inscricao, string>>;
+
+/* ── Limites ──────────────────────────────────────────────────────────────── */
+
+/**
+ * Os limites, num lugar só.
+ *
+ * O contador que desce de 300 é quem impede o textão — pedir "seja breve" não
+ * funciona (§4.8). E 300 caracteres é o suficiente para uma coisa boa e
+ * insuficiente para uma redação. O teto de 8 prêmios não existe para limitar
+ * quem tem muitos: quem tem 8 já disse tudo que precisa para ser lido por um
+ * humano.
+ *
+ * `textoCurto` cobre nome, cidade e "quem te indicou". Não vem da spec: vem de
+ * que campo de texto sem teto é campo de texto que um robô enche com 40 KB.
+ */
+export const LIMITES = {
+  textoLivre: 300,
+  premio: 120,
+  maxPremios: 8,
+  textoCurto: 120,
+  idadeMin: 14,
+  idadeMax: 99,
+} as const;
+
+/**
+ * Conta caracteres do jeito que a pessoa conta.
+ *
+ * `"👋".length` é 2 em JavaScript, porque a string é medida em unidades UTF-16.
+ * Um contador que desce de 300 dando dois passos por emoji parece defeito — e,
+ * pior, a validação do servidor recusaria um texto que o contador do navegador
+ * dizia caber. Esta função é exportada exatamente para que a interface e a
+ * validação contem a mesma coisa. Ela ainda não junta cluster de grafema
+ * (bandeira, família), mas erra do lado generoso e não do lado que recusa.
+ */
+export function contarCaracteres(texto: string): number {
+  return Array.from(texto).length;
+}
+
+/* ── A copy ───────────────────────────────────────────────────────────────── */
+
+/** Um campo na tela: rótulo sempre, ajuda e placeholder quando acrescentam algo. */
+export type CopyCampo = {
+  readonly rotulo: string;
+  readonly ajuda?: string;
+  readonly placeholder?: string;
+};
+
+/** Uma tela de fim de percurso: título e algumas linhas. */
+export type TelaCopy = {
+  readonly titulo: string;
+  readonly linhas: readonly string[];
+};
+
+/** Tudo que a página /trilha/inscricao diz. */
+export type CopyInscricao = {
+  readonly rotuloPagina: string;
+  readonly tituloAba: string;
+  readonly abertura: {
+    readonly rotulo: string;
+    readonly titulo: string;
+    readonly linhas: readonly string[];
+    readonly botao: string;
+  };
+  readonly blocos: readonly {
+    readonly rotulo: string;
+    readonly titulo: string;
+  }[];
+  readonly progresso: {
+    readonly formato: string;
+    readonly rotulo: string;
+  };
+  readonly navegacao: {
+    readonly voltar: string;
+    readonly avancar: string;
+    readonly enviar: string;
+    readonly enviando: string;
+  };
+  readonly campos: Record<keyof Inscricao, CopyCampo>;
+  readonly premios: {
+    readonly adicionar: string;
+    readonly remover: string;
+    readonly rotuloItem: string;
+  };
+  readonly contador: string;
+  readonly opcional: string;
+  readonly aceite: {
+    readonly rotulo: string;
+    readonly texto: string;
+    readonly menores: string;
+  };
+  readonly confirmacao: {
+    readonly rotulo: string;
+    readonly comEmail: TelaCopy;
+    readonly semEmail: TelaCopy;
+    readonly atualizada: TelaCopy;
+    readonly tese: {
+      readonly convite: string;
+      readonly botao: string;
+      readonly href: string;
+    };
+  };
+  readonly encerrado: {
+    readonly rotulo: string;
+    readonly titulo: string;
+    readonly linhas: readonly string[];
+  };
+  readonly envio: {
+    readonly rede: string;
+    readonly servidor: string;
+    readonly invalido: string;
+    readonly limite: string;
+    readonly encerrado: string;
+  };
+  readonly erros: {
+    readonly faltaTexto: string;
+    readonly faltaEscolha: string;
+    readonly opcaoDesconhecida: string;
+    readonly textoLongo: string;
+    readonly email: string;
+    readonly emailLongo: string;
+    readonly whatsappFalta: string;
+    readonly whatsappCurto: string;
+    readonly whatsappLongo: string;
+    readonly whatsappDdd: string;
+    readonly whatsappNove: string;
+    readonly linkedin: string;
+    readonly idade: string;
+    readonly instituicaoOutra: string;
+    readonly unidadeUsp: string;
+    readonly unidadeUspOutra: string;
+    readonly cursoOutro: string;
+    readonly conclusao: string;
+    readonly premiosTipo: string;
+    readonly premioLongo: string;
+    readonly premiosDemais: string;
+    readonly ferramentasVazio: string;
+    readonly ferramentasExclusiva: string;
+    readonly situacaoOutra: string;
+    readonly quemIndicou: string;
+    readonly origemOutra: string;
+    readonly aceite: string;
+  };
+};
+
+/**
+ * A copy inteira da página.
+ *
+ * Só PT — esta é a primeira página monolíngue do site (spec §2), então não há o
+ * par `{pt, en}` de `lib/tese.ts` nem seletor de idioma. O objeto é um só, com
+ * `as const satisfies` pelo mesmo motivo de lá: `as const` trava os literais e
+ * `satisfies` confere contra o tipo sem alargar. O `Record<keyof Inscricao,
+ * CopyCampo>` de `campos` é o que garante, em tempo de compilação, que nenhum
+ * campo do formulário chegue à tela sem rótulo.
+ *
+ * **Sobre a abertura (§4.0).** Ela diz o que a trilha exige e que é gratuita, e
+ * não diz *nada* sobre o formato — nem remoto, nem presencial, nem duração, nem
+ * calendário. Isso não é esquecimento: o formato não está fechado, e nada nesta
+ * página pode ser desmentido depois. `lib/inscricao.test.ts` guarda essa
+ * decisão com um teste que procura as palavras proibidas, porque a tentação de
+ * "só acrescentar um detalhezinho" volta toda semana.
+ */
+const copy = {
+  rotuloPagina: "A TRILHA · INSCRIÇÃO",
+  tituloAba: "202Lab — A TRILHA",
+
+  abertura: {
+    rotulo: "A TRILHA · INSCRIÇÃO",
+    titulo: "A próxima trilha da 202",
+    linhas: [
+      "Uma trilha é um percurso autodidata: você atravessa por conta própria, no próprio ritmo, com entrega no fim.",
+      "É para quem está na universidade ou acabou de sair, já usa AI e quer levar isso a sério.",
+      "É gratuita. O filtro é a seleção.",
+      "São uns 3 minutos. Quase tudo é clique.",
+    ],
+    botao: "COMEÇAR",
+  },
+
+  blocos: [
+    { rotulo: "QUEM É VOCÊ", titulo: "Quem é você" },
+    { rotulo: "UNIVERSIDADE", titulo: "Universidade e méritos" },
+    { rotulo: "AI", titulo: "A sua relação com AI" },
+    { rotulo: "TRABALHO", titulo: "Trabalho e empreendedorismo" },
+    { rotulo: "A TRILHA", titulo: "A trilha" },
+  ],
+
+  progresso: {
+    formato: "{atual} de {total}",
+    rotulo: "Progresso",
+  },
+
+  navegacao: {
+    voltar: "VOLTAR",
+    avancar: "AVANÇAR",
+    enviar: "ENVIAR INSCRIÇÃO",
+    enviando: "ENVIANDO…",
+  },
+
+  campos: {
+    nome: {
+      rotulo: "Nome completo",
+      ajuda: "Nome completo mesmo, não apelido.",
+      placeholder: "Maria Clara de Souza Almeida",
+    },
+    email: {
+      rotulo: "E-mail",
+      ajuda: "É por aqui que a gente responde.",
+      placeholder: "voce@email.com",
+    },
+    whatsapp: {
+      rotulo: "WhatsApp",
+      placeholder: "(11) 91234-5678",
+    },
+    idade: { rotulo: "Idade", placeholder: "22" },
+    estado: { rotulo: "Estado" },
+    cidade: { rotulo: "Cidade", placeholder: "São Paulo" },
+    linkedin: {
+      rotulo: "LinkedIn",
+      ajuda: "Opcional. Cole o endereço do perfil ou escreva só o seu usuário.",
+      placeholder: "linkedin.com/in/seu-usuario",
+    },
+    instituicao: { rotulo: "Instituição" },
+    instituicao_outra: {
+      rotulo: "Qual instituição",
+      placeholder: "Nome da instituição",
+    },
+    unidade_usp: { rotulo: "Unidade da USP" },
+    unidade_usp_outra: {
+      rotulo: "Qual unidade",
+      placeholder: "Nome da unidade ou do instituto",
+    },
+    curso: { rotulo: "Curso", ajuda: "Digite para filtrar a lista." },
+    curso_outro: { rotulo: "Qual curso", placeholder: "Nome do curso" },
+    ano_atual: { rotulo: "Ano atual" },
+    conclusao_prevista: { rotulo: "Conclusão prevista" },
+    premios: {
+      rotulo: "Prêmios e honrarias",
+      ajuda: "Opcional. Um por linha.",
+      placeholder: "Medalha de ouro na OBMEP 2023",
+    },
+    nivel_ai: {
+      rotulo: "O seu nível com AI hoje",
+      ajuda: "Escolha a frase que mais parece com você.",
+    },
+    ferramentas_ai: {
+      rotulo: "Ferramentas que você já usou",
+      ajuda: "Marque todas que valem.",
+    },
+    ai_estudos: { rotulo: "AI nos estudos" },
+    historia_ai: {
+      rotulo: "Sua história com AI",
+      ajuda: "Opcional.",
+      placeholder: "A coisa mais interessante que você já fez com AI.",
+    },
+    situacao: { rotulo: "Situação hoje" },
+    situacao_outra: {
+      rotulo: "Qual é a sua situação",
+      placeholder: "Em uma linha.",
+    },
+    ai_trabalho: {
+      rotulo: "AI no que você entrega",
+      ajuda:
+        "Vale estágio, emprego, pesquisa, monitoria, trabalho de faculdade — qualquer lugar onde outra pessoa depende do que você faz.",
+    },
+    empreendedorismo: { rotulo: "Empreendedorismo" },
+    disponibilidade: {
+      rotulo: "Disponibilidade",
+      ajuda: "Horas por semana que você consegue dedicar de verdade.",
+    },
+    origem: { rotulo: "Como você conheceu a 202" },
+    origem_quem_indicou: {
+      rotulo: "Quem te indicou",
+      placeholder: "Nome de quem te falou da 202",
+    },
+    origem_outra: {
+      rotulo: "Onde foi",
+      placeholder: "Podcast, professor, matéria, grupo…",
+    },
+    origem_detalhe: {
+      rotulo: "Quer detalhar?",
+      ajuda: "Opcional.",
+      placeholder: "Onde foi, quando foi, com quem.",
+    },
+    algo_mais: {
+      rotulo: "Algo que a gente deveria saber e não perguntou",
+      ajuda: "Opcional.",
+      placeholder: "O campo é seu.",
+    },
+    aceite_dados: { rotulo: "Aceite de dados" },
+  },
+
+  premios: {
+    adicionar: "+ ADICIONAR PRÊMIO",
+    remover: "Remover",
+    rotuloItem: "Prêmio {n}",
+  },
+
+  contador: "{usado} / {limite}",
+  opcional: "opcional",
+
+  aceite: {
+    rotulo: "Li e aceito que a 202 guarde estes dados para falar comigo sobre a trilha.",
+    // A enumeração do que é coletado saiu por decisão do Matheus de 21/08/2026.
+    // O que a §8 pede continua escrito: a finalidade está no `rotulo` logo
+    // acima ("para falar comigo sobre a trilha") e o não-repasse está aqui. A
+    // lista de categorias era a única parte redundante — ela repetia, em prosa,
+    // os campos que a pessoa acabou de preencher e estão na tela atrás dela.
+    texto: "Nada é repassado a terceiros e nada é vendido.",
+    // A linha dos menores resolve a §15.2 da spec, por decisão do Matheus de
+    // 20/08/2026. Ela não acrescenta campo e não bloqueia ninguém: parte do
+    // público tem 16 ou 17 anos, e a alternativa — pedir dado do responsável —
+    // coletaria informação de terceiro que a 202 não vai usar para nada.
+    menores:
+      "Se você tem menos de 18 anos, ao marcar aqui você confirma que quem responde por você sabe desta inscrição.",
+  },
+
+  confirmacao: {
+    rotulo: "INSCRIÇÃO ENVIADA",
+    comEmail: {
+      titulo: "Recebemos a sua inscrição.",
+      linhas: [
+        "Mandamos um e-mail confirmando. Se não chegar em alguns minutos, olhe o spam.",
+        "A gente lê tudo e entra em contato.",
+      ],
+    },
+    // Sem o e-mail ligado (§7), esta tela não promete e-mail nenhum. Prometer e
+    // não cumprir custa mais do que não prometer.
+    semEmail: {
+      titulo: "Recebemos a sua inscrição.",
+      linhas: ["A gente lê tudo e entra em contato pelo WhatsApp ou pelo e-mail que você deixou."],
+    },
+    // Reinscrição nunca tem cara de erro: a pessoa fez tudo certo duas vezes.
+    atualizada: {
+      titulo: "Atualizamos a sua inscrição.",
+      linhas: [
+        "Você já tinha se inscrito com este e-mail, e agora vale o que você acabou de mandar.",
+        "A gente lê tudo e entra em contato.",
+      ],
+    },
+    tese: {
+      convite: "Enquanto isso, o argumento inteiro da 202 está escrito numa página só.",
+      botao: "LER A TESE",
+      href: "/tese",
+    },
+  },
+
+  // §9.4: nenhuma data aparece aqui. Data visível cria urgência real, mas vira
+  // mentira no dia em que o prazo for estendido — e ele vai ser.
+  encerrado: {
+    rotulo: "INSCRIÇÕES ENCERRADAS",
+    titulo: "As inscrições desta trilha estão fechadas.",
+    linhas: [
+      "Chegou tarde desta vez. Vai ter outra.",
+      "Enquanto isso, o argumento inteiro da 202 está escrito numa página só.",
+    ],
+  },
+
+  envio: {
+    rede: "Não deu para enviar agora, e parece ser a conexão. O que você escreveu continua aqui — tente de novo.",
+    servidor: "Deu um problema do nosso lado. Nada do que você escreveu se perdeu; tente de novo em um minuto.",
+    invalido: "Alguns campos precisam de um ajuste. A gente marcou onde.",
+    limite: "Chegaram muitas inscrições deste mesmo lugar em pouco tempo. Tente de novo daqui a pouco.",
+    encerrado: "As inscrições foram encerradas enquanto você preenchia.",
+  },
+
+  erros: {
+    faltaTexto: "Falta preencher.",
+    faltaEscolha: "Escolha uma das opções.",
+    opcaoDesconhecida: "Essa opção não está na lista.",
+    textoLongo: "Passou de {limite} caracteres.",
+    email: "Confira o e-mail: falta o @ ou o domínio.",
+    emailLongo: "Esse e-mail é comprido demais para ser real.",
+    whatsappFalta: "Falta o WhatsApp.",
+    whatsappCurto: "Faltou o DDD — escreva os dois dígitos na frente do número.",
+    whatsappLongo: "Sobraram dígitos: com o DDD são 10 ou 11 ao todo.",
+    whatsappDdd: "Esse DDD não existe no Brasil.",
+    whatsappNove: "Falta o 9 do celular, logo depois do DDD.",
+    linkedin: "Não reconheci esse endereço. Use algo como linkedin.com/in/seu-usuario, ou só o seu usuário.",
+    idade: "Escreva a idade em números — 22, por exemplo, e não o ano em que você nasceu.",
+    instituicaoOutra: "Escreva o nome da sua instituição.",
+    unidadeUsp: "Escolha a sua unidade da USP.",
+    unidadeUspOutra: "Escreva o nome da sua unidade.",
+    cursoOutro: "Escreva o nome do seu curso.",
+    conclusao: "Escolha o ano de conclusão, ou “Já formei”.",
+    premiosTipo: "Não consegui ler a lista de prêmios.",
+    premioLongo: "Cada prêmio cabe em {limite} caracteres.",
+    premiosDemais: "Dá para listar até {limite} prêmios. Deixe os mais fortes.",
+    ferramentasVazio: "Marque pelo menos uma. Se nenhuma serve, marque “Nenhuma dessas”.",
+    ferramentasExclusiva: "“Nenhuma dessas” não combina com as outras — desmarque uma coisa ou outra.",
+    situacaoOutra: "Escreva em uma linha o que você faz hoje.",
+    quemIndicou: "Escreva o nome de quem te indicou.",
+    origemOutra: "Escreva onde você ouviu falar da 202.",
+    aceite: "Sem esse aceite a gente não pode guardar os seus dados.",
+  },
+} as const satisfies CopyInscricao;
+
+/**
+ * O ponto único de consumo da copy — o mesmo par que `lib/tese.ts` faz com `pt`
+ * e `TESE`.
+ *
+ * O literal acima é `as const satisfies`, que trava as strings e confere cada
+ * uma contra o tipo. A exportação **alarga** de volta para `CopyInscricao`, e
+ * isso não é desleixo: sem alargar, `campos.idade` teria o tipo exato
+ * `{ rotulo: "Idade" }`, e escrever `campos[campo].placeholder` num componente
+ * genérico viraria erro de compilação em metade dos campos. A interface precisa
+ * poder perguntar por `ajuda` e `placeholder` sem saber de antemão quais campos
+ * têm um e quais têm o outro.
+ */
+export const COPY_INSCRICAO: CopyInscricao = copy;
+
+/* ── Os cinco blocos ──────────────────────────────────────────────────────── */
+
+/**
+ * Em que bloco mora cada campo.
+ *
+ * `satisfies Record<keyof Inscricao, number>` é o ponto do objeto: acrescentar
+ * um campo em `Inscricao` e esquecer de dizer onde ele aparece vira erro de
+ * compilação, e não um campo invisível que ninguém preenche.
+ */
+const BLOCO_DO_CAMPO = {
+  nome: 0,
+  email: 0,
+  whatsapp: 0,
+  idade: 0,
+  estado: 0,
+  cidade: 0,
+  linkedin: 0,
+
+  instituicao: 1,
+  instituicao_outra: 1,
+  unidade_usp: 1,
+  unidade_usp_outra: 1,
+  curso: 1,
+  curso_outro: 1,
+  ano_atual: 1,
+  conclusao_prevista: 1,
+  premios: 1,
+
+  nivel_ai: 2,
+  ferramentas_ai: 2,
+  ai_estudos: 2,
+  historia_ai: 2,
+
+  situacao: 3,
+  situacao_outra: 3,
+  ai_trabalho: 3,
+  empreendedorismo: 3,
+
+  disponibilidade: 4,
+  origem: 4,
+  origem_quem_indicou: 4,
+  origem_outra: 4,
+  origem_detalhe: 4,
+  algo_mais: 4,
+  aceite_dados: 4,
+} as const satisfies Record<keyof Inscricao, number>;
+
+/** Quantos blocos o formulário tem, contados a partir da própria copy. */
+export const TOTAL_BLOCOS: number = COPY_INSCRICAO.blocos.length;
+
+/**
+ * O bloco (0..4) de um campo. Erro do servidor volta para o bloco onde o campo
+ * mora, e não para uma lista no fim (§4.6).
+ */
+export function blocoDoCampo(campo: keyof Inscricao): number {
+  return BLOCO_DO_CAMPO[campo];
+}
+
+/**
+ * O primeiro bloco que tem erro, ou `null` se não houver nenhum.
+ *
+ * É o que a interface precisa depois de um `400` do servidor: levar a pessoa de
+ * volta ao **primeiro** ponto em que ela precisa mexer, e não ao último campo
+ * que por acaso foi validado por último.
+ */
+export function primeiroBlocoComErro(erros: ErrosInscricao): number | null {
+  const blocos = (Object.keys(erros) as (keyof Inscricao)[])
+    .filter((campo) => campo in BLOCO_DO_CAMPO)
+    .map(blocoDoCampo);
+  return blocos.length === 0 ? null : Math.min(...blocos);
+}
+
+/* ── Pequenos formatadores de copy ────────────────────────────────────────── */
+
+/** `3 de 5`. O formato mora na copy; a substituição mora aqui, uma vez só. */
+export function textoProgresso(atual: number): string {
+  return COPY_INSCRICAO.progresso.formato
+    .replace("{atual}", String(atual))
+    .replace("{total}", String(TOTAL_BLOCOS));
+}
+
+/** `142 / 300`, contando como a pessoa conta (ver `contarCaracteres`). */
+export function textoContador(texto: string, limite: number): string {
+  return COPY_INSCRICAO.contador
+    .replace("{usado}", String(contarCaracteres(texto)))
+    .replace("{limite}", String(limite));
+}
+
+/**
+ * Qual das três telas de confirmação mostrar (§4.7).
+ *
+ * A escolha vive aqui e não no JSX porque as três variações existem por motivos
+ * diferentes — o e-mail é um interruptor de ambiente (§7) e a reinscrição é uma
+ * resposta do servidor — e um `? :` aninhado dentro de um componente é onde a
+ * variação errada aparece sem ninguém notar.
+ */
+export function confirmacaoDe(opcoes: {
+  atualizada: boolean;
+  emailAtivo: boolean;
+}): TelaCopy {
+  if (opcoes.atualizada) return COPY_INSCRICAO.confirmacao.atualizada;
+  return opcoes.emailAtivo
+    ? COPY_INSCRICAO.confirmacao.comEmail
+    : COPY_INSCRICAO.confirmacao.semEmail;
+}
+
+/**
+ * O nome do campo-armadilha da §8.
+ *
+ * Fica aqui, e não repetido na página e na rota, porque um honeypot com nome
+ * diferente dos dois lados é um honeypot desligado — e desligado em silêncio,
+ * que é o único jeito de ninguém perceber. O nome parece um campo de verdade de
+ * propósito: robô preenche o que tem cara de formulário.
+ */
+export const CAMPO_HONEYPOT = "sobrenome_confirmacao";
+
+/* ── Validação ────────────────────────────────────────────────────────────── */
+
+/**
+ * Os DDDs que existem de verdade.
+ *
+ * A faixa 11–99 tem buracos — 20, 23, 25, 26, 29, 30, 36, 39, 40, 50, 52, 56 a
+ * 60, 70, 72, 76, 78, 80 e 90 nunca foram atribuídos. Validar só "dois dígitos
+ * entre 11 e 99" deixaria passar um telefone que não pode existir, e o custo de
+ * descobrir isso é uma pessoa que não atende quando a 202 liga. Repare que 55
+ * **existe** (Santa Maria, RS): é o buraco que quase todo mundo cria ao
+ * confundir DDD com código do país.
+ */
+const DDDS_VALIDOS: ReadonlySet<number> = new Set([
+  11, 12, 13, 14, 15, 16, 17, 18, 19, // SP
+  21, 22, 24, // RJ
+  27, 28, // ES
+  31, 32, 33, 34, 35, 37, 38, // MG
+  41, 42, 43, 44, 45, 46, // PR
+  47, 48, 49, // SC
+  51, 53, 54, 55, // RS
+  61, // DF e entorno
+  62, 64, // GO
+  63, // TO
+  65, 66, // MT
+  67, // MS
+  68, // AC
+  69, // RO
+  71, 73, 74, 75, 77, // BA
+  79, // SE
+  81, 87, // PE
+  82, // AL
+  83, // PB
+  84, // RN
+  85, 88, // CE
+  86, 89, // PI
+  91, 93, 94, // PA
+  92, 97, // AM
+  95, // RR
+  96, // AP
+  98, 99, // MA
+]);
+
+/**
+ * A validação de e-mail, deliberadamente sóbria.
+ *
+ * A regex da RFC 5322 tem mais de 400 caracteres, aceita coisas que nenhum
+ * provedor emite e mesmo assim não prova que o endereço existe. A única prova
+ * de verdade é mandar um e-mail e ele chegar — e é isso que o Resend faz depois
+ * (§7). O papel desta regex é outro e menor: pegar o erro de digitação que a
+ * pessoa consegue consertar sozinha ali na hora — o `@` que faltou, o espaço no
+ * meio, o domínio sem ponto, o `.com.` com ponto sobrando.
+ *
+ * Ela é frouxa de propósito com o resto: `+`, apóstrofo e acento no lado
+ * esquerdo passam, porque endereços assim existem e recusar um endereço válido
+ * custa uma inscrição inteira, enquanto aceitar um inválido custa um e-mail que
+ * volta.
+ */
+const EMAIL = /^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/;
+
+/** O limite de tamanho de um endereço de e-mail, pela RFC 5321. */
+const EMAIL_MAX = 254;
+
+/** O que um usuário do LinkedIn pode ter: letras (com acento), dígitos, hífen. */
+const USUARIO_LINKEDIN = /^[a-z0-9\-_%À-ÿ]{3,100}$/i;
+
+/** Objeto de verdade — não `null`, não array, não string, não número. */
+function ehObjeto(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+/**
+ * O texto de um campo, ou `undefined` quando ele não veio.
+ *
+ * Tipo errado vira "não veio" de propósito: `nome: 42` só chega aqui vindo de
+ * robô ou de bug, e nos dois casos "falta preencher" é a resposta certa — não
+ * vale uma segunda família de mensagens ("esperava texto") que nenhum humano
+ * jamais vai ler.
+ */
+function textoDe(v: unknown): string | undefined {
+  if (typeof v !== "string") return undefined;
+  const limpo = v.trim();
+  return limpo === "" ? undefined : limpo;
+}
+
+/**
+ * O número de um campo, aceitando também a string que todo `<select>` devolve.
+ *
+ * Sem isso, `idade: "22"` — que é literalmente o que um `<select>` produz —
+ * seria recusado pelo servidor depois de passar no cliente, que é o defeito
+ * exato que a validação única existe para não ter.
+ */
+function numeroDe(v: unknown): number | undefined {
+  if (typeof v === "number") return Number.isFinite(v) ? v : undefined;
+  if (typeof v === "string" && v.trim() !== "") {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : undefined;
+  }
+  return undefined;
+}
+
+/** Substitui `{limite}` na mensagem. Os números moram em `LIMITES`, não na copy. */
+function comLimite(modelo: string, limite: number): string {
+  return modelo.replace("{limite}", String(limite));
+}
+
+/**
+ * Os dígitos de um telefone brasileiro, sem o código de país.
+ *
+ * Quem copia o número do próprio WhatsApp copia com o `+55` — é literalmente o
+ * que o botão "copiar número" entrega, e este formulário vai ser distribuído
+ * por WhatsApp. Só tiramos o 55 em números de 12 ou 13 dígitos, onde ele **só**
+ * pode ser código de país: em 11 dígitos, `55` na frente é o DDD de Santa Maria
+ * (RS), e cortar ali apagaria o telefone de um gaúcho inteiro.
+ *
+ * Não trunca nada de propósito. Quantos dígitos cabem é decisão de quem digita
+ * e de quem valida o tamanho; a regra do código de país é só esta. Está aqui, e
+ * exportada, porque a máscara do campo precisa dela **antes** de recortar o que
+ * mostra — se o recorte vier primeiro, `+55 11 91234-5678` vira onze dígitos
+ * que começam em `55`, e o formulário acusa "falta o 9 do celular" num número
+ * perfeitamente certo. Duplicar a regra no componente resolveria o sintoma e
+ * quebraria o princípio desta página: uma validação só, cliente e servidor.
+ */
+export function digitosDoTelefone(bruto: string): string {
+  const digitos = bruto.replace(/\D/g, "");
+  if ((digitos.length === 12 || digitos.length === 13) && digitos.startsWith("55")) {
+    return digitos.slice(2);
+  }
+  return digitos;
+}
+
+/**
+ * Reduz o LinkedIn a uma forma só.
+ *
+ * A pessoa cola o que o app dela deu: com `https://`, sem, com `www.`, com
+ * `br.`, com `?originalSubdomain=br` no fim, ou só o usuário — a spec (§4.1)
+ * diz que aceitar "só o usuário" é obrigatório. Guardar as seis formas no banco
+ * significaria que ninguém consegue clicar direto no painel e que o mesmo
+ * perfil apareceria como duas pessoas. A saída é sempre a URL completa, porque
+ * é ela que se clica.
+ *
+ * Devolve `null` quando o que veio não é um perfil reconhecível — inclusive
+ * `/company/`, que é página de empresa e não de pessoa.
+ */
+function normalizarLinkedin(bruto: string): string | null {
+  // Só `trim`, e não "tirar todo espaço": apagar espaço do meio transformaria
+  // "não é link nenhum" num usuário perfeitamente válido chamado
+  // "nãoélinknenhum". Espaço no meio de uma URL é sinal de que o que veio não é
+  // uma URL, e a pessoa precisa saber disso.
+  let s = bruto.trim();
+  s = s.replace(/^https?:\/\//i, "");
+  s = s.replace(/^(?:[a-z]{2,3}\.)?linkedin\.com\//i, "");
+  s = s.replace(/^in\//i, "");
+  s = s.split(/[?#]/)[0];
+  s = s.replace(/\/+$/, "");
+  if (!USUARIO_LINKEDIN.test(s)) return null;
+  return `https://www.linkedin.com/in/${s}`;
+}
+
+/**
+ * A validação única — a mesma no navegador e na Route Handler.
+ *
+ * Recebe `unknown` porque no servidor ela recebe mesmo: o corpo de um `POST`
+ * pode ser `null`, um número, uma lista, um objeto com metade dos campos do
+ * tipo errado. Nada disso pode lançar exceção — uma exceção aqui vira `500`, e
+ * um `500` é indistinguível de "o banco caiu" para quem estiver lendo o log
+ * depois. Por isso o primeiro passo é o mais bruto possível: o que não for
+ * objeto vira `{}`, e o objeto vazio já produz, sozinho, a mensagem certa em
+ * cada campo obrigatório.
+ *
+ * Quando `ok` é `true`, `valor` vem **normalizado**: WhatsApp só com dígitos,
+ * e-mail em minúsculas, todo texto livre com `trim`, texto livre vazio virando
+ * `null` (e não `""`, que no banco seria um dado falso — "respondeu em branco"
+ * é diferente de "não respondeu"), prêmios sem entradas vazias e ferramentas na
+ * ordem da lista, para o mesmo conjunto de respostas gerar sempre a mesma linha.
+ */
+export function validarInscricao(dados: unknown): {
+  ok: boolean;
+  erros: ErrosInscricao;
+  valor?: Inscricao;
+} {
+  const d: Record<string, unknown> = ehObjeto(dados) ? dados : {};
+  const erros: ErrosInscricao = {};
+  const E = COPY_INSCRICAO.erros;
+
+  /** A primeira mensagem de um campo é a que fica: ela é a mais específica. */
+  const anota = (campo: keyof Inscricao, mensagem: string): void => {
+    if (erros[campo] === undefined) erros[campo] = mensagem;
+  };
+
+  const textoObrigatorio = (
+    campo: keyof Inscricao,
+    valor: unknown,
+    limite: number,
+    faltando: string = E.faltaTexto,
+  ): string | undefined => {
+    const t = textoDe(valor);
+    if (t === undefined) {
+      anota(campo, faltando);
+      return undefined;
+    }
+    if (contarCaracteres(t) > limite) {
+      anota(campo, comLimite(E.textoLongo, limite));
+      return undefined;
+    }
+    return t;
+  };
+
+  /** Texto opcional. Vazio depois do `trim` vira `null`, nunca `""`. */
+  const textoOpcional = (
+    campo: keyof Inscricao,
+    valor: unknown,
+    limite: number,
+  ): string | null => {
+    const t = textoDe(valor);
+    if (t === undefined) return null;
+    if (contarCaracteres(t) > limite) {
+      anota(campo, comLimite(E.textoLongo, limite));
+      return null;
+    }
+    return t;
+  };
+
+  const escolha = (
+    campo: keyof Inscricao,
+    valor: unknown,
+    lista: readonly { readonly id: string }[],
+    faltando: string = E.faltaEscolha,
+  ): string | undefined => {
+    const t = textoDe(valor);
+    if (t === undefined) {
+      anota(campo, faltando);
+      return undefined;
+    }
+    if (!lista.some((o) => o.id === t)) {
+      anota(campo, E.opcaoDesconhecida);
+      return undefined;
+    }
+    return t;
+  };
+
+  const escolhaNumerica = (
+    campo: keyof Inscricao,
+    valor: unknown,
+    lista: readonly { readonly valor: number }[],
+  ): number | undefined => {
+    const n = numeroDe(valor);
+    if (n === undefined) {
+      anota(campo, E.faltaEscolha);
+      return undefined;
+    }
+    if (!lista.some((o) => o.valor === n)) {
+      anota(campo, E.opcaoDesconhecida);
+      return undefined;
+    }
+    return n;
+  };
+
+  /* — Bloco 1 — */
+
+  const nome = textoObrigatorio("nome", d.nome, LIMITES.textoCurto);
+
+  // O rótulo pede nome completo, mas a validação não exige duas palavras: nome
+  // de uma palavra só existe, e recusar um deles trocaria um dado imperfeito
+  // por uma inscrição perdida. O pedido fica no rótulo, onde é convite.
+
+  let email: string | undefined;
+  const emailBruto = textoDe(d.email);
+  if (emailBruto === undefined) {
+    anota("email", E.faltaTexto);
+  } else if (emailBruto.length > EMAIL_MAX) {
+    anota("email", E.emailLongo);
+  } else if (!EMAIL.test(emailBruto)) {
+    anota("email", E.email);
+  } else {
+    // Minúsculas porque `email` é a chave da inscrição (§6.4) e a coluna é
+    // `citext`: "Ana@Gmail.com" e "ana@gmail.com" são a mesma pessoa em todo
+    // provedor que existe, e guardar as duas formas criaria duas fichas.
+    email = emailBruto.toLowerCase();
+  }
+
+  let whatsapp: string | undefined;
+  const whatsBruto = textoDe(d.whatsapp);
+  if (whatsBruto === undefined) {
+    anota("whatsapp", E.whatsappFalta);
+  } else {
+    // O `+55` sai aqui, pela mesma função que a máscara do campo usa — ver
+    // `digitosDoTelefone` para por que 12/13 dígitos e não 11.
+    const digitos = digitosDoTelefone(whatsBruto);
+    const ddd = Number(digitos.slice(0, 2));
+    const primeiro = digitos.charAt(2);
+    if (digitos.length < 10) {
+      anota("whatsapp", E.whatsappCurto);
+    } else if (digitos.length > 11) {
+      anota("whatsapp", E.whatsappLongo);
+    } else if (!DDDS_VALIDOS.has(ddd)) {
+      anota("whatsapp", E.whatsappDdd);
+    } else if (digitos.length === 11 && primeiro !== "9") {
+      anota("whatsapp", E.whatsappNove);
+    } else if (digitos.length === 10 && !"2345".includes(primeiro)) {
+      // Fixo no Brasil começa em 2, 3, 4 ou 5. Dez dígitos começando em 6–9 é
+      // celular antigo, de antes do nono dígito: o número existiu, hoje não
+      // completa mais — e a pessoa consegue consertar sozinha se a mensagem
+      // disser qual dígito falta.
+      anota("whatsapp", E.whatsappNove);
+    } else {
+      whatsapp = digitos;
+    }
+  }
+
+  // A idade escrita traz uma família de erros que o `<select>` não tinha:
+  // vazio, "vinte e dois", "22 anos", "22,5" e — o clássico — o ano de
+  // nascimento. Recusar é melhor do que consertar: `2004` "corrigido" para `20`
+  // seria uma idade plausível e errada, gravada em silêncio.
+  let idade: number | undefined;
+  // Número e string são os dois aceitos: a tela manda string, e um cliente que
+  // mandasse `22` não pode ser recusado por causa do tipo (é a mesma razão de
+  // `numeroDe` existir).
+  const idadeBruta = typeof d.idade === "number" ? d.idade : textoDe(d.idade);
+  if (idadeBruta === undefined) {
+    anota("idade", E.faltaTexto);
+  } else {
+    const n = numeroDe(idadeBruta);
+    if (
+      n === undefined ||
+      !Number.isInteger(n) ||
+      n < LIMITES.idadeMin ||
+      n > LIMITES.idadeMax
+    ) {
+      anota("idade", E.idade);
+    } else {
+      idade = n;
+    }
+  }
+
+  let estado: string | undefined;
+  const estadoBruto = textoDe(d.estado);
+  if (estadoBruto === undefined) {
+    anota("estado", E.faltaEscolha);
+  } else if (!ESTADOS.some((e) => e.sigla === estadoBruto.toUpperCase())) {
+    anota("estado", E.opcaoDesconhecida);
+  } else {
+    estado = estadoBruto.toUpperCase();
+  }
+
+  const cidade = textoObrigatorio("cidade", d.cidade, LIMITES.textoCurto);
+
+  let linkedin: string | null = null;
+  const linkedinBruto = textoDe(d.linkedin);
+  if (linkedinBruto !== undefined) {
+    const normalizado = normalizarLinkedin(linkedinBruto);
+    if (normalizado === null) anota("linkedin", E.linkedin);
+    else linkedin = normalizado;
+  }
+
+  /* — Bloco 2 — */
+
+  const instituicao = escolha("instituicao", d.instituicao, INSTITUICOES);
+
+  // Os condicionais que **sobram** são descartados em silêncio, e não viram
+  // erro: a interface guarda o que a pessoa digitou enquanto ela troca de
+  // opção e volta, e transformar isso em erro puniria uma hesitação. A exceção
+  // é `ai_trabalho`, lá embaixo, e o motivo está escrito lá.
+  const instituicao_outra =
+    instituicao === "OUTRA"
+      ? (textoObrigatorio(
+          "instituicao_outra",
+          d.instituicao_outra,
+          LIMITES.textoCurto,
+          E.instituicaoOutra,
+        ) ?? null)
+      : null;
+
+  const unidade_usp =
+    instituicao === "USP"
+      ? (escolha("unidade_usp", d.unidade_usp, UNIDADES_USP, E.unidadeUsp) ?? null)
+      : null;
+
+  // Condicional de segundo grau: só existe quando a instituição é a USP **e** a
+  // unidade escolhida foi `OUTRA`. A cascata é a mesma de `instituicao_outra` —
+  // se `unidade_usp` já é `null` porque a pessoa não é da USP, não há o que
+  // cobrar aqui.
+  const unidade_usp_outra =
+    unidade_usp === "OUTRA"
+      ? (textoObrigatorio(
+          "unidade_usp_outra",
+          d.unidade_usp_outra,
+          LIMITES.textoCurto,
+          E.unidadeUspOutra,
+        ) ?? null)
+      : null;
+
+  const curso = escolha("curso", d.curso, CURSOS);
+
+  const curso_outro =
+    curso === "OUTRO"
+      ? (textoObrigatorio("curso_outro", d.curso_outro, LIMITES.textoCurto, E.cursoOutro) ??
+        null)
+      : null;
+
+  const ano_atual = escolha("ano_atual", d.ano_atual, ANOS_ATUAIS);
+
+  // A chave precisa **existir** no payload, mesmo valendo `null`. Sem isso,
+  // "não respondi" e "já formei" chegariam idênticos ao servidor, e um campo
+  // obrigatório passaria em branco. A interface manda `null` para "Já formei" —
+  // ou o `id` `FORMEI`, que também é aceito por vir direto de um `<select>`.
+  let conclusao_prevista: number | null = null;
+  if (!("conclusao_prevista" in d)) {
+    anota("conclusao_prevista", E.conclusao);
+  } else {
+    const bruto = d.conclusao_prevista;
+    if (bruto === null || bruto === "FORMEI") {
+      conclusao_prevista = null;
+    } else {
+      const n = numeroDe(bruto);
+      if (n === undefined || !CONCLUSOES_PREVISTAS.some((c) => c.valor === n)) {
+        anota("conclusao_prevista", E.conclusao);
+      } else {
+        conclusao_prevista = n;
+      }
+    }
+  }
+
+  let premios: readonly string[] = [];
+  const premiosBruto = d.premios;
+  if (premiosBruto !== undefined && premiosBruto !== null) {
+    if (!Array.isArray(premiosBruto) || premiosBruto.some((p) => typeof p !== "string")) {
+      anota("premios", E.premiosTipo);
+    } else {
+      // Campo vazio no meio da lista é o rastro de quem clicou em "+ adicionar"
+      // e desistiu — some sem reclamação. O teto conta depois da limpeza, senão
+      // três campos em branco custariam três vagas.
+      const limpos = (premiosBruto as string[])
+        .map((p) => p.trim())
+        .filter((p) => p !== "");
+      if (limpos.length > LIMITES.maxPremios) {
+        anota("premios", comLimite(E.premiosDemais, LIMITES.maxPremios));
+      } else if (limpos.some((p) => contarCaracteres(p) > LIMITES.premio)) {
+        anota("premios", comLimite(E.premioLongo, LIMITES.premio));
+      } else {
+        premios = limpos;
+      }
+    }
+  }
+
+  /* — Bloco 3 — */
+
+  // `nivel_ai` vale 0 num degrau legítimo ("nunca usei"). Toda checagem aqui é
+  // contra `undefined`, nunca `if (!nivel)` — o degrau 0 é uma resposta, e
+  // tratá-lo como ausência transformaria o iniciante em erro de formulário.
+  const nivel_ai = escolhaNumerica("nivel_ai", d.nivel_ai, NIVEIS_AI);
+
+  let ferramentas_ai: readonly string[] = [];
+  const ferramentasBruto = d.ferramentas_ai;
+  if (!Array.isArray(ferramentasBruto)) {
+    anota("ferramentas_ai", E.ferramentasVazio);
+  } else {
+    const marcadas = new Set(
+      ferramentasBruto
+        .filter((f): f is string => typeof f === "string")
+        .map((f) => f.trim())
+        .filter((f) => f !== ""),
+    );
+    const desconhecida = [...marcadas].some(
+      (id) => !FERRAMENTAS_AI.some((f) => f.id === id),
+    );
+    const exclusivas = FERRAMENTAS_AI.filter(
+      (f) => f.exclusiva === true && marcadas.has(f.id),
+    );
+    if (marcadas.size === 0) {
+      anota("ferramentas_ai", E.ferramentasVazio);
+    } else if (desconhecida) {
+      anota("ferramentas_ai", E.opcaoDesconhecida);
+    } else if (exclusivas.length > 0 && marcadas.size > 1) {
+      anota("ferramentas_ai", E.ferramentasExclusiva);
+    } else {
+      // Sai na ordem da lista, e não na ordem dos cliques: a mesma resposta tem
+      // de virar sempre a mesma linha no banco, senão o `text[]` fica com
+      // permutações e qualquer comparação entre duas fichas mente.
+      ferramentas_ai = FERRAMENTAS_AI.filter((f) => marcadas.has(f.id)).map((f) => f.id);
+    }
+  }
+
+  const ai_estudos = escolha("ai_estudos", d.ai_estudos, AI_ESTUDOS);
+  const historia_ai = textoOpcional("historia_ai", d.historia_ai, LIMITES.textoLivre);
+
+  /* — Bloco 4 — */
+
+  const situacao = escolha("situacao", d.situacao, SITUACOES);
+
+  const situacao_outra =
+    situacao === "OUTRO"
+      ? (textoObrigatorio(
+          "situacao_outra",
+          d.situacao_outra,
+          LIMITES.textoCurto,
+          E.situacaoOutra,
+        ) ?? null)
+      : null;
+
+  // Sem condicional: a pergunta é feita a todo mundo, e por isso é obrigatória
+  // para todo mundo. `Não uso` é a resposta de quem ela não alcança — e "não
+  // uso" é um dado, enquanto uma coluna vazia é a ausência de um.
+  const ai_trabalho = escolha("ai_trabalho", d.ai_trabalho, AI_TRABALHO);
+
+  const empreendedorismo = escolhaNumerica(
+    "empreendedorismo",
+    d.empreendedorismo,
+    EMPREENDEDORISMO,
+  );
+
+  /* — Bloco 5 — */
+
+  const disponibilidade = escolha("disponibilidade", d.disponibilidade, DISPONIBILIDADES);
+  const origem = escolha("origem", d.origem, ORIGENS);
+
+  const origem_quem_indicou =
+    origem === "INDICACAO"
+      ? (textoObrigatorio(
+          "origem_quem_indicou",
+          d.origem_quem_indicou,
+          LIMITES.textoCurto,
+          E.quemIndicou,
+        ) ?? null)
+      : null;
+
+  // `origem_outra` e `origem_quem_indicou` são o mesmo padrão em opções
+  // diferentes, e por isso nunca aparecem juntos. O par curto-obrigatório +
+  // `origem_detalhe` opcional já existia para `INDICACAO`; `OUTRO` só passa a
+  // ter o mesmo tratamento em vez de cair num campo opcional genérico, onde a
+  // resposta que interessa — *qual* é a outra origem — ficava em branco.
+  const origem_outra =
+    origem === "OUTRO"
+      ? (textoObrigatorio(
+          "origem_outra",
+          d.origem_outra,
+          LIMITES.textoCurto,
+          E.origemOutra,
+        ) ?? null)
+      : null;
+
+  const origem_detalhe = textoOpcional("origem_detalhe", d.origem_detalhe, LIMITES.textoLivre);
+  const algo_mais = textoOpcional("algo_mais", d.algo_mais, LIMITES.textoLivre);
+
+  // `=== true` e não "é verdadeiro": a string `"false"`, que é o que um `<input
+  // type=hidden>` mal montado mandaria, é verdadeira em JavaScript. Aqui isso
+  // gravaria um aceite que ninguém deu.
+  const aceite_dados = d.aceite_dados === true;
+  if (!aceite_dados) anota("aceite_dados", E.aceite);
+
+  if (Object.keys(erros).length > 0) return { ok: false, erros };
+
+  // Chegar aqui significa que cada campo obrigatório passou pelo seu validador
+  // sem anotar erro — os `?? ""` e `?? 0` abaixo são só o que o compilador
+  // precisa para aceitar, e nenhum deles é alcançável. Se algum dia um deles
+  // for, é porque um validador devolveu `undefined` sem anotar nada, e o teste
+  // "um payload vazio reprova em todo campo obrigatório" quebra antes.
+  return {
+    ok: true,
+    erros: {},
+    valor: {
+      nome: nome ?? "",
+      email: email ?? "",
+      whatsapp: whatsapp ?? "",
+      idade: idade ?? 0,
+      estado: estado ?? "",
+      cidade: cidade ?? "",
+      linkedin,
+      instituicao: instituicao ?? "",
+      instituicao_outra,
+      unidade_usp,
+      unidade_usp_outra,
+      curso: curso ?? "",
+      curso_outro,
+      ano_atual: ano_atual ?? "",
+      conclusao_prevista,
+      premios,
+      nivel_ai: nivel_ai ?? 0,
+      ferramentas_ai,
+      ai_estudos: ai_estudos ?? "",
+      historia_ai,
+      situacao: situacao ?? "",
+      situacao_outra,
+      ai_trabalho: ai_trabalho ?? "",
+      empreendedorismo: empreendedorismo ?? 0,
+      disponibilidade: disponibilidade ?? "",
+      origem: origem ?? "",
+      origem_quem_indicou,
+      origem_outra,
+      origem_detalhe,
+      algo_mais,
+      aceite_dados,
+    },
+  };
+}
