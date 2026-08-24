@@ -785,11 +785,16 @@ verificação leva de minutos a algumas horas.
 
 Nenhuma bloqueia a fase 1. Todas devem ser resolvidas antes do go-live.
 
-1. **Os rótulos das unidades da USP.** `Med Pinheiros` e `San Fran` são os
-   termos do Matheus. Confirmar se ficam assim ou se ganham a forma longa entre
-   parênteses para quem não é de São Paulo (§5.2).
-2. **Menores de idade.** O aceite ganha linha específica? O admin sinaliza?
-   (§8)
+1. ~~**Os rótulos das unidades da USP.**~~ **Resolvido na implementação** — foi
+   a forma longa: `Medicina (Pinheiros)`, `San Fran (Direito)`. O apelido fica
+   na frente, que é como quem é de dentro procura, e o curso entre parênteses
+   resolve para quem é de fora de São Paulo (§5.2).
+2. ~~**Menores de idade.**~~ **Resolvido na implementação** — o aceite ganhou
+   uma linha específica ("se você tem menos de 18 anos, ao marcar aqui você
+   confirma que quem responde por você sabe desta inscrição"). Sem campo novo e
+   sem bloquear ninguém: pedir dado do responsável coletaria informação de
+   terceiro que a 202 não usaria para nada. O sinal no admin fica para a fase 2,
+   quando o admin existir (§8).
 3. **A lista de ~40 cursos** é rascunho meu, não do Matheus. Revisar na
    implementação — em particular se `Link` e `Inteli` têm cursos com nome
    próprio que não estão ali.
