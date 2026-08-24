@@ -89,7 +89,7 @@ primeira e a última são novas.
 | 4 | `descompasso` | O DESCOMPASSO | Contínuo contra degraus | Contínua × escada |
 | 5 | `o-que-supera` | O QUE SUPERA O QUÊ | Repertório envelhece; aprender, não | A comparação |
 | 6 | `ecossistema` | O QUE ESTAMOS CONSTRUINDO | Ecossistema nas universidades | — por enquanto (logos pendentes, §4) |
-| 7 | `pilares` | O QUE NÃO É NEGOCIÁVEL | Autodidatismo · AI como core · Fome | Três colunas |
+| 7 | `pilares` | O QUE NÃO É NEGOCIÁVEL | Autodidatismo · AI como core · Ambição | Três colunas |
 | 8 | `frentes` | COMO ISSO VIRA PRÁTICA | Trilhas · Rede · Serviço · Produto · Alocação | O razão de cinco linhas |
 | 9 | `missao` | A MISSÃO | A nova safra de startups que muda o Brasil | — |
 | 10 | `fecho` | FIM DA TESE | A frase da home, agora merecida | As duas portas |
