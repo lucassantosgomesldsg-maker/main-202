@@ -152,22 +152,35 @@ sobreviver a fechar o navegador e ressuscitar semanas depois.
 
 ### 4.0 Abertura
 
-Uma tela curta antes do primeiro campo. Três a cinco linhas: **o que é, para
-quem é, o que exige, e que é gratuita.**
+> **Revisto em 24/08/2026, por decisão do Matheus.** A abertura passou a ser
+> duas linhas — *"Retornaremos com mais informações em um futuro breve.
+> Inscreva-se early."* — e deixou de descrever a trilha. O que está riscado
+> abaixo é o desenho original, guardado porque ele explica o que se perdeu de
+> propósito.
 
-**A copy não afirma o formato da trilha** (remoto, presencial, duração,
-calendário) porque ele **ainda não está fechado**. Ela fala do que a trilha
-*exige* — ritmo próprio, autonomia, entrega no fim — que é o que a `/tese` já
-afirma em "TRILHAS · Percursos autodidatas" e que não vai mudar. Nada aqui pode
-ser desmentido depois.
+A tela não descreve mais o que é a trilha, para quem é, nem o que ela exige, e
+**não diz mais que é gratuita**. Ela faz uma coisa só: avisa que a informação
+vem depois e pede a inscrição agora. O enquadramento passou a viver **fora da
+página**, com quem entrega o link.
 
-**A gratuidade é dita, e é dita cedo.** É a primeira dúvida de todo mundo, e
-"gratuita, e o filtro é a seleção" eleva o valor percebido em vez de baixar.
+**A copy continua sem afirmar o formato da trilha** (remoto, presencial,
+duração, calendário), e agora com folga — ela não afirma quase nada. A regra
+segue valendo porque o formato continua em aberto, e o teste que a guarda
+continua no lugar.
 
-**Por que existe uma abertura.** O link vai ser passado no privado, para quem
+~~**A gratuidade é dita, e é dita cedo.** É a primeira dúvida de todo mundo, e
+"gratuita, e o filtro é a seleção" eleva o valor percebido em vez de baixar.~~
+O teste que exigia "gratuita" nas três primeiras linhas foi removido junto — um
+teste que guarda decisão revogada quebra a suíte até alguém apagá-lo sem
+entender o que ele protegia.
+
+**O que a abertura ainda resolve.** O link vai ser passado no privado, para quem
 já tem contexto. Mas link no privado é encaminhado, e a segunda pessoa a abrir
-não tem contexto nenhum. A abertura também é o que faz a pessoa certa se
-reconhecer e a errada desistir antes de gastar 3 minutos.
+não tem contexto nenhum. As duas linhas não dão contexto — dão enquadramento:
+quem cai ali sabe que está numa lista de espera e não num formulário perdido. O
+que ela não faz mais é a triagem que fazia antes, de a pessoa errada desistir
+sozinha antes de gastar 3 minutos. **Consequência a observar:** mais inscrições,
+e uma parte maior delas fora do alvo.
 
 **Um botão só:** `COMEÇAR`. Sem link para a home, sem link para a tese, sem
 troca de idioma. A página tem uma função.
@@ -783,9 +796,9 @@ Nenhuma bloqueia a fase 1. Todas devem ser resolvidas antes do go-live.
 4. ~~**O `trilha.202lab.com.br`** volta?~~ **Resolvido em 20/08/2026** — o
    público fica em `202lab.com.br/trilha`; o subdomínio, se voltar, é a
    aplicação logada. Ver §11.
-5. **A copy da abertura** precisa de uma passada do Matheus. O formato da
-   trilha não é afirmado (§4.0), mas *o que ela exige* é — e essa frase é dele,
-   não minha.
+5. ~~**A copy da abertura** precisa de uma passada do Matheus.~~ **Resolvido em
+   24/08/2026** — ele deu a passada e cortou: a abertura virou duas linhas e não
+   afirma mais nem o que a trilha exige. Ver §4.0.
 6. **Quem mais entra no admin** além do Matheus. A senha única funciona para
    uma ou duas pessoas; para cinco, magic link volta à mesa (§9.1).
 

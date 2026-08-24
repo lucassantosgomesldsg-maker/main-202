@@ -664,12 +664,17 @@ export type CopyInscricao = {
  * CopyCampo>` de `campos` é o que garante, em tempo de compilação, que nenhum
  * campo do formulário chegue à tela sem rótulo.
  *
- * **Sobre a abertura (§4.0).** Ela diz o que a trilha exige e que é gratuita, e
- * não diz *nada* sobre o formato — nem remoto, nem presencial, nem duração, nem
- * calendário. Isso não é esquecimento: o formato não está fechado, e nada nesta
- * página pode ser desmentido depois. `lib/inscricao.test.ts` guarda essa
- * decisão com um teste que procura as palavras proibidas, porque a tentação de
- * "só acrescentar um detalhezinho" volta toda semana.
+ * **Sobre a abertura (§4.0).** Ela ficou de duas linhas em 24/08/2026, por
+ * decisão do Matheus: a página não descreve mais a trilha nem diz que é
+ * gratuita — avisa que a informação vem depois e pede a inscrição agora. Quem
+ * recebe o link já tem o contexto por fora dele.
+ *
+ * O que **não** mudou: ela continua sem afirmar *nada* sobre o formato — nem
+ * remoto, nem presencial, nem duração, nem calendário. Isso nunca foi
+ * esquecimento, é que o formato não está fechado e nada nesta página pode ser
+ * desmentido depois. `lib/inscricao.test.ts` guarda essa decisão com um teste
+ * que procura as palavras proibidas, porque a tentação de "só acrescentar um
+ * detalhezinho" volta toda semana.
  */
 const copy = {
   rotuloPagina: "A TRILHA · INSCRIÇÃO",
@@ -679,10 +684,8 @@ const copy = {
     rotulo: "A TRILHA · INSCRIÇÃO",
     titulo: "A próxima trilha da 202",
     linhas: [
-      "Uma trilha é um percurso autodidata: você atravessa por conta própria, no próprio ritmo, com entrega no fim.",
-      "É para quem está na universidade ou acabou de sair, já usa AI e quer levar isso a sério.",
-      "É gratuita. O filtro é a seleção.",
-      "São uns 3 minutos. Quase tudo é clique.",
+      "Retornaremos com mais informações em um futuro breve.",
+      "Inscreva-se early.",
     ],
     botao: "COMEÇAR",
   },

@@ -304,11 +304,28 @@ describe("a copy da inscrição", () => {
     }
   });
 
-  it("diz que é gratuita, e diz cedo", () => {
-    // É a primeira dúvida de todo mundo, e dizer cedo eleva o valor percebido
-    // em vez de baixar (§4.0). "Cedo" aqui é medido: nas três primeiras linhas.
-    const inicio = COPY_INSCRICAO.abertura.linhas.slice(0, 3).join(" ").toLowerCase();
-    expect(inicio).toContain("gratuita");
+  // O teste "diz que é gratuita, e diz cedo" viveu aqui até 24/08/2026. Ele
+  // guardava a §4.0 original, em que a abertura descrevia a trilha e afirmava a
+  // gratuidade nas três primeiras linhas. O Matheus encurtou a abertura para
+  // duas linhas que não descrevem nada — a informação vem depois, a inscrição é
+  // agora —, e um teste que exige a palavra "gratuita" passaria a guardar uma
+  // decisão revogada. Guardar decisão revogada é pior do que não guardar nada:
+  // ele quebraria a suíte até alguém apagá-lo sem entender o que ele protegia.
+  //
+  // O que segue guardado é o que continua valendo: a abertura não afirma o
+  // formato (o teste acima) e não fica vazia (o teste de strings, mais acima).
+
+  it("mantém a abertura curta o bastante para ser lida antes do primeiro campo", () => {
+    // A abertura existe para a segunda pessoa que abre o link — o encaminhado,
+    // que não tem contexto nenhum (§4.0). Ela pode ser curta; o que ela não pode
+    // é sumir, porque aí a pessoa cai num formulário de dados pessoais sem uma
+    // palavra de enquadramento.
+    const { linhas } = COPY_INSCRICAO.abertura;
+    expect(linhas.length, "a abertura ficou sem linha nenhuma").toBeGreaterThan(0);
+    expect(linhas.length, "a abertura virou texto longo").toBeLessThanOrEqual(5);
+    for (const linha of linhas) {
+      expect(linha.trim(), "linha vazia na abertura").not.toBe("");
+    }
   });
 
   it("dá rótulo a todos os campos do formulário", () => {
