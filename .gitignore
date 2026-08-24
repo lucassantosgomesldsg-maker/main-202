@@ -55,3 +55,7 @@ next-env.d.ts
 # material de referência que fica só na máquina — o deck que originou a copy da
 # /tese vive aqui, mas não entra no repo (decisão do Matheus, 17/08/2026)
 202.pdf
+# a mesma regra, aplicada de novo em 24/08/2026: o PDF de instruções que a Sync
+# mandou é documento de terceiro e originou o /pitch, mas não é código nosso.
+# Sem aspas: no .gitignore o espaço é literal, e aspas viram parte do padrão.
+Sync 2026 - Instrucoes Pitch.pdf
