@@ -6,10 +6,10 @@ import {
   type ErrosInscricao,
 } from "@/lib/inscricao";
 import {
-  ambienteBanco,
-  repositorioSupabase,
+  repositorioConfigurado,
   type RepositorioInscricoes,
 } from "@/lib/inscricao-banco";
+import { ErroDoCrm } from "@/lib/inscricao-crm";
 import { emailAtivo, enviarConfirmacao } from "@/lib/inscricao-email";
 
 /**
@@ -152,13 +152,13 @@ export async function POST(request: Request): Promise<Response> {
       return Response.json({ ok: true, atualizada: false, emailAtivo: emailLigado });
     }
 
-    // O repositório é resolvido uma vez. `null` aqui significa "Supabase ainda
-    // não configurado", que é um estado esperado da fase 1 — e que só vira erro
-    // no passo da gravação, para que um payload inválido continue recebendo o
-    // `400` informativo em vez de um `500` genérico.
-    const ambiente = dubles ? null : ambienteBanco();
+    // O repositório é resolvido uma vez. `null` aqui significa "nenhum destino
+    // configurado" — nem o CRM, nem um Supabase próprio —, que é um estado
+    // esperado e que só vira erro no passo da gravação, para que um payload
+    // inválido continue recebendo o `400` informativo em vez de um `500`
+    // genérico.
     const repositorio: RepositorioInscricoes | null =
-      dubles?.repositorio ?? (ambiente ? repositorioSupabase(ambiente) : null);
+      dubles?.repositorio ?? repositorioConfigurado();
 
     /* 3 — o interruptor da §9.4 */
     let abertas = true;
@@ -201,7 +201,8 @@ export async function POST(request: Request): Promise<Response> {
       // Nunca cair no `repositorioFake()` aqui. Inscrição gravada em memória
       // morre no próximo deploy, e a pessoa teria visto a tela de confirmação.
       console.error(
-        "[inscricao] SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY ausentes: a inscrição NÃO foi gravada",
+        "[inscricao] nem CRM_INTEREST_URL nem SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY: " +
+          "a inscrição NÃO foi gravada",
       );
       return recusa("servidor", 500);
     }
@@ -226,6 +227,23 @@ export async function POST(request: Request): Promise<Response> {
       ({ atualizada } = await repositorio.salvar(inscricao, { ipHash }));
     } catch (erro) {
       console.error("[inscricao] falha ao gravar a inscrição:", erro);
+
+      /*
+       * O CRM sabe dizer *por que* recusou, e a diferença chega até a pessoa.
+       *
+       * Sem isto, um `429` do CRM viraria "deu um problema do nosso lado" — a
+       * frase de falha nossa, mandando tentar de novo alguém que só precisa
+       * esperar —, e um `409` diria a mesma coisa sobre inscrições que foram
+       * encerradas de verdade. Os três motivos já têm frase própria em
+       * `COPY_INSCRICAO.envio`; o que faltava era carregá-los até aqui.
+       */
+      if (erro instanceof ErroDoCrm) {
+        return recusa(
+          erro.motivo,
+          erro.motivo === "limite" ? 429 : erro.motivo === "encerrado" ? 409 : 500,
+        );
+      }
+
       return recusa("servidor", 500);
     }
 

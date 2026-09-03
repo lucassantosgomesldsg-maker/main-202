@@ -1,4 +1,5 @@
 import type { Inscricao } from "./inscricao";
+import { ambienteCrm, repositorioCrm } from "./inscricao-crm";
 
 /**
  * O seam entre a inscrição e o Postgres.
@@ -160,18 +161,47 @@ export async function inscricoesAbertas(): Promise<boolean> {
 }
 
 /**
- * O seletor. Devolve o repositório de verdade quando o ambiente está
- * configurado, e o fake quando não está.
+ * O destino configurado, ou `null`.
+ *
+ * Dois destinos possíveis e uma ordem explícita:
+ *
+ *   1. **O CRM da 202**, quando `CRM_INTEREST_URL` existe. É o destino de
+ *      verdade desde que a trilha de outubro passou a ser cadastrada lá: a
+ *      inscrição vira uma linha em `track_interests`, aparece na aba
+ *      Interessados da trilha, e uma pessoa decide o que fazer com ela.
+ *   2. **O Supabase próprio**, quando só `SUPABASE_URL` existe. É o caminho da
+ *      fase 1, mantido porque os testes de servidor o exercitam e porque um
+ *      ambiente que ainda não tem o CRM continua funcionando.
+ *
+ * O CRM ganha quando os dois estão configurados, e ganha em silêncio de
+ * propósito: ter as duas variáveis é o estado normal de quem acabou de migrar
+ * e não apagou as antigas, e recusar o envio por causa disso trocaria uma
+ * ambiguidade de configuração por uma inscrição perdida.
+ *
+ * `null` significa "nada configurado", que é um estado esperado e não um
+ * defeito. Quem chama decide; ninguém lança daqui.
+ */
+export function repositorioConfigurado(): RepositorioInscricoes | null {
+  const crm = ambienteCrm();
+  if (crm) return repositorioCrm(crm);
+
+  const ambiente = ambienteBanco();
+  return ambiente ? repositorioSupabase(ambiente) : null;
+}
+
+/**
+ * O seletor da leitura. Devolve o repositório de verdade quando algum ambiente
+ * está configurado, e o fake quando nenhum está.
  *
  * Cair no fake em produção seria péssimo — inscrição gravada em memória, morta
  * no próximo deploy — então o caminho de escrita **nunca** decide por aqui em
- * silêncio: `app/trilha/inscricao/api/route.ts` verifica `ambienteBanco()`
- * antes de gravar e recusa com mensagem clara se ele for `null`. Este seletor
- * serve à leitura do interruptor, onde cair no fake apenas devolve "abertas".
+ * silêncio: `app/trilha/inscricao/api/route.ts` chama
+ * `repositorioConfigurado()` antes de gravar e recusa com mensagem clara se ele
+ * for `null`. Este seletor serve à leitura do interruptor, onde cair no fake
+ * apenas devolve "abertas".
  */
 export function repositorio(): RepositorioInscricoes {
-  const ambiente = ambienteBanco();
-  return ambiente ? repositorioSupabase(ambiente) : repositorioFake();
+  return repositorioConfigurado() ?? repositorioFake();
 }
 
 /**
