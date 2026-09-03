@@ -465,6 +465,24 @@ export const ESTADOS: readonly Estado[] = [
  * `status`, `nota` e `avaliado_em` são da fase 2. Se alguma delas aparecesse
  * aqui, um payload malicioso poderia se autoavaliar como `sim`.
  */
+/**
+ * Uma pessoa indicada: quem é, e onde ela está.
+ *
+ * Os dois campos juntos e não duas listas paralelas (`nomes[]` + `links[]`)
+ * porque paralelismo é uma promessa que nada garante — bastaria uma lista
+ * chegar com um item a menos, de um rascunho velho ou de um POST torto, para o
+ * nome de uma pessoa colar no LinkedIn de outra. Aqui o par nasce junto e não
+ * tem como desalinhar.
+ *
+ * `linkedin` é sempre a URL completa normalizada por `normalizarLinkedin` —
+ * mesmo tratamento do `linkedin` de quem se inscreve, pelo mesmo motivo: é ela
+ * que se clica no painel.
+ */
+export type Indicacao = {
+  readonly nome: string;
+  readonly linkedin: string;
+};
+
 export type Inscricao = {
   readonly nome: string;
   readonly email: string;
@@ -504,6 +522,14 @@ export type Inscricao = {
   readonly origem_outra: string | null;
   readonly origem_detalhe: string | null;
   readonly algo_mais: string | null;
+  /**
+   * Até três pessoas indicadas. `[]` quando ninguém foi indicado — o campo é
+   * recomendado, nunca obrigatório (§4.6).
+   *
+   * Entrada pela metade não chega aqui: ou o par tem nome e LinkedIn, ou a
+   * validação o descarta (os dois em branco) ou recusa (só um preenchido).
+   */
+  readonly indicacoes: readonly Indicacao[];
   /** Sempre `true` quando a validação passa. A coluna existe para registrar (§8). */
   readonly aceite_dados: boolean;
 };
@@ -516,19 +542,31 @@ export type ErrosInscricao = Partial<Record<keyof Inscricao, string>>;
 /**
  * Os limites, num lugar só.
  *
- * O contador que desce de 300 é quem impede o textão — pedir "seja breve" não
- * funciona (§4.8). E 300 caracteres é o suficiente para uma coisa boa e
- * insuficiente para uma redação. O teto de 8 prêmios não existe para limitar
- * quem tem muitos: quem tem 8 já disse tudo que precisa para ser lido por um
- * humano.
+ * O contador é quem impede o textão — pedir "seja breve" não funciona (§4.8).
+ * O teto de 8 prêmios não existe para limitar quem tem muitos: quem tem 8 já
+ * disse tudo que precisa para ser lido por um humano.
+ *
+ * **`textoLivre` foi de 300 para 500 em 01/09/2026.** A spec §4.8 fechou em 300
+ * com o argumento de que 300 basta para uma coisa boa e não dá para uma
+ * redação. O número subiu por decisão de produto: o campo que mais sofria era
+ * "a sua história com AI", onde 300 obriga a cortar justamente o final — o
+ * resultado. O que **não** mudou é o mecanismo: o contador continua visível,
+ * continua acendendo perto do fim, e continua sendo ele, e não um `maxLength`,
+ * quem segura. Este único número governa `historia_ai`, `origem_detalhe` e
+ * `algo_mais` — mexer aqui mexe nos três, que é a intenção.
  *
  * `textoCurto` cobre nome, cidade e "quem te indicou". Não vem da spec: vem de
  * que campo de texto sem teto é campo de texto que um robô enche com 40 KB.
+ *
+ * `maxIndicacoes` é 3 porque a pergunta pede três (§4.6). Não é "até 8, mas
+ * mostramos 3": a tela desenha exatamente três pares, e o teto aqui existe para
+ * que um POST fora da tela não consiga mandar trinta.
  */
 export const LIMITES = {
-  textoLivre: 300,
+  textoLivre: 500,
   premio: 120,
   maxPremios: 8,
+  maxIndicacoes: 3,
   textoCurto: 120,
   idadeMin: 14,
   idadeMax: 99,
@@ -538,7 +576,7 @@ export const LIMITES = {
  * Conta caracteres do jeito que a pessoa conta.
  *
  * `"👋".length` é 2 em JavaScript, porque a string é medida em unidades UTF-16.
- * Um contador que desce de 300 dando dois passos por emoji parece defeito — e,
+ * Um contador que desce dando dois passos por emoji parece defeito — e,
  * pior, a validação do servidor recusaria um texto que o contador do navegador
  * dizia caber. Esta função é exportada exatamente para que a interface e a
  * validação contem a mesma coisa. Ela ainda não junta cluster de grafema
@@ -593,7 +631,27 @@ export type CopyInscricao = {
     readonly remover: string;
     readonly rotuloItem: string;
   };
+  readonly indicacoes: {
+    readonly rotuloItem: string;
+    readonly nome: string;
+    readonly linkedin: string;
+    readonly placeholderNome: string;
+    readonly placeholderLinkedin: string;
+  };
   readonly contador: string;
+  /**
+   * O nome que o leitor de tela dá à lista aberta de um campo de escolha.
+   *
+   * Existe porque uma `listbox` sem nome é anunciada como "lista" seca, e a
+   * pessoa não sabe de qual campo ela é — o `<select>` nativo herdava o rótulo
+   * de graça, e substituí-lo perdeu isso.
+   *
+   * O sufixo não é enfeite: o nome da lista precisa ser DIFERENTE do nome do
+   * campo. Iguais, qualquer busca por rótulo — a de um teste ou a de uma
+   * extensão de acessibilidade — acha dois elementos para uma pergunta só, e
+   * não tem como saber qual é o controle.
+   */
+  readonly listaDeOpcoes: string;
   readonly opcional: string;
   readonly aceite: {
     readonly rotulo: string;
@@ -645,6 +703,11 @@ export type CopyInscricao = {
     readonly premiosTipo: string;
     readonly premioLongo: string;
     readonly premiosDemais: string;
+    readonly indicacoesTipo: string;
+    readonly indicacaoIncompleta: string;
+    readonly indicacaoLinkedin: string;
+    readonly indicacaoNomeLongo: string;
+    readonly indicacoesDemais: string;
     readonly ferramentasVazio: string;
     readonly ferramentasExclusiva: string;
     readonly situacaoOutra: string;
@@ -696,6 +759,13 @@ const copy = {
     { rotulo: "AI", titulo: "A sua relação com AI" },
     { rotulo: "TRABALHO", titulo: "Trabalho e empreendedorismo" },
     { rotulo: "A TRILHA", titulo: "A trilha" },
+    // "QUEM VOCÊ CONHECE" e não "INDICAÇÕES": o rótulo do bloco é lido na régua
+    // de progresso, ao lado de "6 DE 6", e "indicações" é a palavra do
+    // FORMULÁRIO para o que está sendo coletado — não a palavra de quem
+    // responde. Este par também fecha o percurso: o bloco 1 pergunta "QUEM É
+    // VOCÊ" e o último pergunta "QUEM VOCÊ CONHECE", que é exatamente o arco do
+    // formulário.
+    { rotulo: "QUEM VOCÊ CONHECE", titulo: "Quem mais deveria estar aqui" },
   ],
 
   progresso: {
@@ -800,6 +870,22 @@ const copy = {
       ajuda: "Opcional.",
       placeholder: "O campo é seu.",
     },
+    indicacoes: {
+      // Pergunta, e não ordem. "Indique até 3 pessoas excepcionais" mandava a
+      // pessoa fazer uma tarefa; "quem são as 3 melhores pessoas que você
+      // conhece?" faz uma pergunta que ela já sabe responder de cabeça — e o
+      // formulário inteiro é mais fácil de preencher quando o campo pergunta em
+      // vez de instruir.
+      rotulo: "Quem são as 3 melhores pessoas que você conhece?",
+      // "Recomendado" e não "Opcional", e a diferença é o ponto do campo: os
+      // outros campos opcionais desta página dizem "Opcional." e significam
+      // "tanto faz". Este é o único lugar do formulário onde a 202 pede um
+      // favor — e pedir sem dizer que importa é o jeito mais rápido de não
+      // receber. O segundo período dá o critério, porque "excepcional" sozinho
+      // é vago e vago não preenche campo.
+      ajuda:
+        "Recomendado. Gente que você chamaria para um projeto seu — e o LinkedIn de cada uma.",
+    },
     aceite_dados: { rotulo: "Aceite de dados" },
   },
 
@@ -809,7 +895,23 @@ const copy = {
     rotuloItem: "Prêmio {n}",
   },
 
+  indicacoes: {
+    rotuloItem: "Pessoa {n}",
+    nome: "Nome",
+    linkedin: "LinkedIn",
+    // Diz o que se espera, em vez de mostrar um exemplo. É a exceção à convenção
+    // de placeholder desta página (`nome` mostra "Maria Clara de Souza
+    // Almeida", `premios` mostra "Medalha de ouro na OBMEP 2023"), e a exceção
+    // é deliberada: nome de exemplo aqui é o nome de OUTRA pessoa, e três
+    // caixas repetindo o mesmo nome inventado leem como se algo já estivesse
+    // preenchido. "Nome e sobrenome" ainda diz o essencial — que o sobrenome
+    // importa —, que é o que faz a indicação ser encontrável.
+    placeholderNome: "Nome e sobrenome",
+    placeholderLinkedin: "linkedin.com/in/usuario",
+  },
+
   contador: "{usado} / {limite}",
+  listaDeOpcoes: "{campo} — opções",
   opcional: "opcional",
 
   aceite: {
@@ -899,6 +1001,12 @@ const copy = {
     premiosTipo: "Não consegui ler a lista de prêmios.",
     premioLongo: "Cada prêmio cabe em {limite} caracteres.",
     premiosDemais: "Dá para listar até {limite} prêmios. Deixe os mais fortes.",
+    indicacoesTipo: "Não consegui ler as indicações.",
+    indicacaoIncompleta: "Cada indicação precisa do nome E do LinkedIn — ou deixe a linha em branco.",
+    indicacaoLinkedin:
+      "Não reconheci um dos endereços. Use algo como linkedin.com/in/usuario, ou só o usuário.",
+    indicacaoNomeLongo: "Um dos nomes passou de {limite} caracteres.",
+    indicacoesDemais: "Cabem até {limite} indicações.",
     ferramentasVazio: "Marque pelo menos uma. Se nenhuma serve, marque “Nenhuma dessas”.",
     ferramentasExclusiva: "“Nenhuma dessas” não combina com as outras — desmarque uma coisa ou outra.",
     situacaoOutra: "Escreva em uma linha o que você faz hoje.",
@@ -966,14 +1074,21 @@ const BLOCO_DO_CAMPO = {
   origem_outra: 4,
   origem_detalhe: 4,
   algo_mais: 4,
-  aceite_dados: 4,
+
+  // O aceite mudou de bloco em 01/09/2026, junto com a chegada das indicações.
+  // Ele não "pertence" às indicações: pertence ao FIM. O aceite é a última
+  // coisa que a pessoa faz antes de ENVIAR, e um bloco novo depois dele
+  // significaria pedir consentimento e só então continuar perguntando — que é
+  // exatamente o que a §8 não quer.
+  indicacoes: 5,
+  aceite_dados: 5,
 } as const satisfies Record<keyof Inscricao, number>;
 
 /** Quantos blocos o formulário tem, contados a partir da própria copy. */
 export const TOTAL_BLOCOS: number = COPY_INSCRICAO.blocos.length;
 
 /**
- * O bloco (0..4) de um campo. Erro do servidor volta para o bloco onde o campo
+ * O bloco (0..5) de um campo. Erro do servidor volta para o bloco onde o campo
  * mora, e não para uma lista no fim (§4.6).
  */
 export function blocoDoCampo(campo: keyof Inscricao): number {
@@ -1003,7 +1118,12 @@ export function textoProgresso(atual: number): string {
     .replace("{total}", String(TOTAL_BLOCOS));
 }
 
-/** `142 / 300`, contando como a pessoa conta (ver `contarCaracteres`). */
+/** `Estado — opções`. O nome da lista aberta, para o leitor de tela. */
+export function textoListaDeOpcoes(campo: keyof Inscricao): string {
+  return COPY_INSCRICAO.listaDeOpcoes.replace("{campo}", COPY_INSCRICAO.campos[campo].rotulo);
+}
+
+/** `142 / 500`, contando como a pessoa conta (ver `contarCaracteres`). */
 export function textoContador(texto: string, limite: number): string {
   return COPY_INSCRICAO.contador
     .replace("{usado}", String(contarCaracteres(texto)))
@@ -1118,9 +1238,24 @@ function ehObjeto(v: unknown): v is Record<string, unknown> {
  */
 function textoDe(v: unknown): string | undefined {
   if (typeof v !== "string") return undefined;
-  const limpo = v.trim();
+  const limpo = v.replace(CONTROLES, "").trim();
   return limpo === "" ? undefined : limpo;
 }
+
+/**
+ * Caracteres de controle C0/C7F, **menos** tabulação, nova linha e retorno.
+ *
+ * Existe por causa do `\u0000`. Ele não é espaço em branco, então `trim()` não
+ * o remove e ele atravessava a validação inteira — até o Postgres, que **recusa
+ * `\u0000` dentro de `jsonb`**. Como o payload todo vira um parâmetro `jsonb`
+ * na função de upsert, um único NUL em qualquer campo derrubava a gravação
+ * inteira, e a pessoa recebia um 500 genérico sem nada a corrigir na tela.
+ *
+ * Os três preservados não são exceção descuidada: `historia_ai`,
+ * `origem_detalhe` e `algo_mais` são `<textarea>`, e apagar `\n` ali
+ * amassaria o texto que a pessoa escreveu em parágrafos.
+ */
+const CONTROLES = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g;
 
 /**
  * O número de um campo, aceitando também a string que todo `<select>` devolve.
@@ -1581,6 +1716,78 @@ export function validarInscricao(dados: unknown): {
   const origem_detalhe = textoOpcional("origem_detalhe", d.origem_detalhe, LIMITES.textoLivre);
   const algo_mais = textoOpcional("algo_mais", d.algo_mais, LIMITES.textoLivre);
 
+  /* — As indicações — */
+
+  // Recomendadas, nunca obrigatórias: lista vazia é uma resposta válida e não
+  // anota erro nenhum. O que esta validação impede é a indicação PELA METADE.
+  //
+  // A regra do par: linha com os dois campos em branco é descartada em silêncio
+  // (mesmo raciocínio dos prêmios — é o rastro de quem começou e desistiu), e
+  // linha com um só dos dois é recusada. Recusar é o certo aqui e descartar
+  // seria errado: um nome sem link é uma pessoa que a 202 não consegue achar, e
+  // um link sem nome apagado em silêncio faria a indicação que a pessoa
+  // acabou de escrever sumir sem aviso.
+  let indicacoes: readonly Indicacao[] = [];
+  const indicacoesBruto = d.indicacoes;
+  if (indicacoesBruto !== undefined && indicacoesBruto !== null) {
+    if (!Array.isArray(indicacoesBruto) || !indicacoesBruto.every(ehObjeto)) {
+      anota("indicacoes", E.indicacoesTipo);
+    } else {
+      // Campo presente com tipo errado é RECUSADO, e não descartado.
+      //
+      // `textoDe` devolve `undefined` para qualquer não-string, e o `?? ""`
+      // abaixo transformaria isso em "linha em branco" — que o filtro remove. O
+      // efeito era o pior possível: `{nome: 123, linkedin: 456}` respondia `ok`,
+      // sem erro nenhum, com a indicação apagada. A pessoa indicou alguém e o
+      // formulário disse que deu certo.
+      //
+      // `premios` já fazia o certo (`some(p => typeof p !== "string")` → erro de
+      // tipo); esta é a mesma regra para o mesmo problema. `undefined` e `null`
+      // continuam valendo como "não veio", que é diferente de "veio errado".
+      const tipoErrado = indicacoesBruto.some((linha) =>
+        (["nome", "linkedin"] as const).some(
+          (chave) =>
+            linha[chave] !== undefined &&
+            linha[chave] !== null &&
+            typeof linha[chave] !== "string",
+        ),
+      );
+
+      const linhas = indicacoesBruto.map((linha) => ({
+        nome: textoDe(linha.nome) ?? "",
+        linkedin: textoDe(linha.linkedin) ?? "",
+      }));
+
+      // O par vazio some ANTES de qualquer checagem de conteúdo: a tela desenha
+      // as três linhas sempre, então quem indica uma pessoa só manda duas linhas
+      // vazias junto — e nenhuma delas pode virar "falta o nome".
+      const preenchidas = linhas.filter((l) => l.nome !== "" || l.linkedin !== "");
+
+      // O mesmo `normalizarLinkedin` do campo `linkedin` da própria pessoa — e
+      // não uma segunda regra parecida. Quem indica cola o link do mesmo jeito
+      // que cola o seu: com `br.`, com `?originalSubdomain`, ou só o usuário.
+      // Duas regras divergiriam no primeiro caso estranho.
+      const normalizadas = preenchidas.map((l) => ({
+        nome: l.nome,
+        linkedin: normalizarLinkedin(l.linkedin),
+      }));
+
+      if (tipoErrado) {
+        anota("indicacoes", E.indicacoesTipo);
+      } else if (preenchidas.length > LIMITES.maxIndicacoes) {
+        anota("indicacoes", comLimite(E.indicacoesDemais, LIMITES.maxIndicacoes));
+      } else if (preenchidas.some((l) => l.nome === "" || l.linkedin === "")) {
+        anota("indicacoes", E.indicacaoIncompleta);
+      } else if (preenchidas.some((l) => contarCaracteres(l.nome) > LIMITES.textoCurto)) {
+        anota("indicacoes", comLimite(E.indicacaoNomeLongo, LIMITES.textoCurto));
+      } else if (normalizadas.some((l) => l.linkedin === null)) {
+        anota("indicacoes", E.indicacaoLinkedin);
+      } else {
+        indicacoes = normalizadas as readonly Indicacao[];
+      }
+    }
+  }
+
   // `=== true` e não "é verdadeiro": a string `"false"`, que é o que um `<input
   // type=hidden>` mal montado mandaria, é verdadeira em JavaScript. Aqui isso
   // gravaria um aceite que ninguém deu.
@@ -1628,6 +1835,7 @@ export function validarInscricao(dados: unknown): {
       origem_outra,
       origem_detalhe,
       algo_mais,
+      indicacoes,
       aceite_dados,
     },
   };

@@ -40,12 +40,13 @@ import {
   opcoesDe,
 } from "./Campos";
 import ComboboxCurso from "./ComboboxCurso";
+import Indicacoes from "./Indicacoes";
 import Premios from "./Premios";
 import Progresso from "./Progresso";
 import estilos from "./Formulario.module.css";
 
 /**
- * O formulário inteiro: sete telas numa rota só.
+ * O formulário inteiro: oito telas numa rota só.
  *
  * A decisão que organiza tudo aqui é **trocar de bloco por estado, nunca por
  * URL e nunca esperando o fim de uma animação**.
@@ -82,12 +83,29 @@ import estilos from "./Formulario.module.css";
 type Rascunho = {
   -readonly [K in keyof Inscricao]: K extends "premios" | "ferramentas_ai"
     ? string[]
-    : K extends "aceite_dados"
-      ? boolean
-      : string;
+    : K extends "indicacoes"
+      ? IndicacaoRascunho[]
+      : K extends "aceite_dados"
+        ? boolean
+        : string;
 };
 
-/** O passo da abertura. Os blocos são 0..4; a confirmação é um estado à parte. */
+/**
+ * Uma indicação meio preenchida.
+ *
+ * Não é `Indicacao`, e a diferença é a mesma que separa `Rascunho` de
+ * `Inscricao`: na tela existe a linha com o nome escrito e o LinkedIn ainda em
+ * branco — estado legítimo enquanto se digita, e impossível no tipo validado,
+ * onde os dois vieram ou a linha não veio.
+ */
+type IndicacaoRascunho = { nome: string; linkedin: string };
+
+/** As três linhas vazias com que o bloco 5 nasce e para as quais ele volta. */
+function indicacoesVazias(): IndicacaoRascunho[] {
+  return Array.from({ length: LIMITES.maxIndicacoes }, () => ({ nome: "", linkedin: "" }));
+}
+
+/** O passo da abertura. Os blocos são 0..5; a confirmação é um estado à parte. */
 const ABERTURA = -1;
 
 const VAZIO: Rascunho = {
@@ -126,6 +144,10 @@ const VAZIO: Rascunho = {
   origem_outra: "",
   origem_detalhe: "",
   algo_mais: "",
+  // Três linhas desde o início, e não uma com botão de `+` como os prêmios: a
+  // pergunta pede TRÊS, e mostrar as três é o que diz isso sem texto nenhum.
+  // Um repeater que começa com uma linha comunicaria "quantas você quiser".
+  indicacoes: indicacoesVazias(),
   aceite_dados: false,
 };
 
@@ -288,6 +310,10 @@ function paraEnvio(r: Rascunho): Record<string, unknown> {
     ...r,
     conclusao_prevista: r.conclusao_prevista === "FORMEI" ? null : r.conclusao_prevista,
     premios: r.premios.filter((p) => p.trim() !== ""),
+    // As três linhas estão sempre na tela; as que ninguém tocou não são resposta.
+    // A validação também as descartaria, e de propósito: quem chega à rota sem
+    // passar por esta tela não tem como saber desta limpeza.
+    indicacoes: r.indicacoes.filter((i) => i.nome.trim() !== "" || i.linkedin.trim() !== ""),
   };
 }
 
@@ -299,8 +325,13 @@ const CHAVE = "202:inscricao";
  * A versão do formato guardado. Quando o formulário mudar de campos, ela sobe e
  * o rascunho velho é descartado em silêncio — restaurar um rascunho de outra
  * versão colocaria a pessoa num bloco que não existe mais.
+ *
+ * 1 → 2 em 01/09/2026: chegou o bloco 5 (indicações) e o aceite se mudou para
+ * ele. Um rascunho da versão 1 guardou `passo: 4` querendo dizer "estou no
+ * último bloco" — restaurá-lo agora largaria a pessoa no penúltimo, com o
+ * botão ENVIAR trocado por um AVANÇAR que ela não pediu.
  */
-const VERSAO = 1;
+const VERSAO = 2;
 
 function textoGuardado(v: unknown): string {
   return typeof v === "string" ? v : "";
@@ -308,6 +339,27 @@ function textoGuardado(v: unknown): string {
 
 function listaGuardada(v: unknown): string[] {
   return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
+}
+
+/**
+ * As indicações de volta do `sessionStorage`, sempre com exatamente
+ * `maxIndicacoes` linhas.
+ *
+ * Como todo leitor daqui, não confia em nada: o que estiver guardado pode ter
+ * vindo de um rascunho editado à mão, com dez linhas, com `nome` num número, ou
+ * com a chave inteira faltando. O corte e o preenchimento acontecem aqui para
+ * que a tela receba sempre a mesma forma — três pares de strings — e nunca
+ * precise perguntar quantas linhas tem.
+ */
+function indicacoesGuardadas(v: unknown): IndicacaoRascunho[] {
+  const lidas = Array.isArray(v)
+    ? v.slice(0, LIMITES.maxIndicacoes).map((x) => {
+        const o = (typeof x === "object" && x !== null ? x : {}) as Record<string, unknown>;
+        return { nome: textoGuardado(o.nome), linkedin: textoGuardado(o.linkedin) };
+      })
+    : [];
+  const vazias = indicacoesVazias();
+  return vazias.map((vazia, i) => lidas[i] ?? vazia);
 }
 
 /**
@@ -376,6 +428,7 @@ function leGuardado(): { rascunho: Rascunho; passo: number } | null {
     origem_outra: textoGuardado(g.origem_outra),
     origem_detalhe: textoGuardado(g.origem_detalhe),
     algo_mais: textoGuardado(g.algo_mais),
+    indicacoes: indicacoesGuardadas(g.indicacoes),
     aceite_dados: g.aceite_dados === true,
   };
 
@@ -778,14 +831,14 @@ export default function Formulario() {
   );
 }
 
-/* ── Os cinco blocos ──────────────────────────────────────────────────────── */
+/* ── Os seis blocos ──────────────────────────────────────────────────────── */
 
 /**
  * Os campos de cada bloco, na ordem da tela.
  *
- * Função solta e não cinco componentes: eles não têm estado próprio, não são
- * reusados e mudam sempre junto com o `Rascunho`. Cinco componentes só
- * acrescentariam cinco listas de props idênticas.
+ * Função solta e não um componente por bloco: eles não têm estado próprio, não
+ * são reusados e mudam sempre junto com o `Rascunho`. Seis componentes só
+ * acrescentariam seis listas de props idênticas.
  */
 function conteudo(
   passo: number,
@@ -1001,7 +1054,7 @@ function conteudo(
         </>
       );
 
-    default:
+    case 4:
       return (
         <>
           <ListaEscolha
@@ -1047,6 +1100,21 @@ function conteudo(
             valor={r.algo_mais}
             aoMudar={(v) => atualizar("algo_mais", v)}
             erro={erros.algo_mais}
+          />
+        </>
+      );
+
+    // O último bloco. É o `default` e não um `case 5` pela mesma razão de
+    // antes: `TOTAL_BLOCOS` sai do tamanho de `COPY_INSCRICAO.blocos`, e um
+    // `switch` sem saída padrão devolveria `undefined` — tela branca — no dia
+    // em que alguém acrescentasse um bloco à copy e esquecesse daqui.
+    default:
+      return (
+        <>
+          <Indicacoes
+            valores={r.indicacoes}
+            aoMudar={(v) => atualizar("indicacoes", v)}
+            erro={erros.indicacoes}
           />
           <CampoAceite
             marcado={r.aceite_dados}

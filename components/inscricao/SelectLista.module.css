@@ -1,0 +1,160 @@
+/* ── A caixa ───────────────────────────────────────────────────────────────
+   `position: relative` só para ancorar a lista, igual a `ComboboxCurso`. */
+.caixa {
+  position: relative;
+}
+
+/* ── O botão que substituiu o `<select>` ───────────────────────────────────
+   Ele carrega o `.controle` de Campos.module.css, e isso é o ponto: um campo
+   de escolha não pode parecer diferente de um campo de texto só porque por
+   dentro deixou de ser um `<select>`. Daqui saem apenas as diferenças de um
+   BOTÃO — que nasce centralizado e com texto do sistema. */
+.botao {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* O rótulo escolhido. `min-height` de uma linha guarda a altura quando não há
+   escolha nenhuma: sem isso o botão vazio encolhe e a coluna de campos fica
+   com um degrau. */
+.escolhido {
+  min-height: 1.4em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A mesma seta do `<select>` antigo, agora dentro do botão em vez de
+   posicionada por cima dele. Vira para cima com a lista aberta — o `<select>`
+   nativo não fazia isso, e é o sinal mais barato de "está aberto". */
+.seta {
+  flex: none;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-right: 1px solid var(--cinza-texto);
+  border-bottom: 1px solid var(--cinza-texto);
+  transform: translateY(-25%) rotate(45deg);
+  transition: transform 0.15s, border-color 0.15s;
+}
+
+.botao:focus .seta {
+  border-color: var(--verde-sinal);
+}
+
+.botao[aria-expanded="true"] .seta {
+  transform: translateY(25%) rotate(-135deg);
+  border-color: var(--verde-sinal);
+}
+
+/* ── A lista ───────────────────────────────────────────────────────────────
+   Deliberadamente as MESMAS medidas e cores de ComboboxCurso.module.css: são
+   a mesma coisa na tela, e a pessoa não tem como saber que um campo tem busca
+   por texto e o outro não. Duas listas parecidas mas não iguais na mesma
+   página leem como descuido.
+
+   Flutua sobre o campo seguinte em vez de empurrá-lo: uma lista que empurra o
+   conteúdo faz a página saltar ao abrir.
+
+   `max-height` com rolagem própria: são 27 estados, e uma lista sem teto cobre
+   a tela inteira do celular.
+
+   O `[hidden]` explícito não é redundância: o atributo `hidden` vale
+   `display: none` na folha do navegador, e qualquer `display` declarado numa
+   classe vence esse padrão — sem a regra abaixo, a lista fechada continuaria
+   desenhada. */
+.lista {
+  position: absolute;
+  z-index: 5;
+  inset: calc(100% + 2px) 0 auto 0;
+  max-height: 15rem;
+  overflow-y: auto;
+  list-style: none;
+  background: var(--preto-202);
+  border: 1px solid var(--verde-sinal);
+  border-radius: 2px;
+
+  /* A barra de rolagem também é do sistema por padrão, e num popup preto ela
+     entrava BRANCA — o mesmo defeito da faixa azul, num canto menor. Estas duas
+     linhas são o padrão moderno e bastam no Chrome, Firefox e Safari recentes;
+     onde não pegarem, a barra volta a ser a do sistema e nada quebra.
+     `thin` e não `none`: esconder a barra numa lista de 27 estados tiraria o
+     único sinal de que há mais coisa abaixo. */
+  scrollbar-width: thin;
+  scrollbar-color: var(--fio-estrutura) transparent;
+}
+
+/* O caminho do WebKit/Blink antigo, para quem não entende `scrollbar-color`.
+   Mesmas cores, escritas de novo porque as duas famílias de propriedade não se
+   convertem uma na outra. */
+.lista::-webkit-scrollbar {
+  width: 0.5rem;
+}
+
+.lista::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.lista::-webkit-scrollbar-thumb {
+  background: var(--fio-estrutura);
+  border-radius: 4px;
+}
+
+.lista::-webkit-scrollbar-thumb:hover {
+  background: var(--cinza-texto);
+}
+
+/* Virada para cima, quando não cabe embaixo (ver o comentário de `paraCima` no
+   componente). É o que o `<select>` nativo fazia sozinho e se perdeu ao
+   substituí-lo: com o campo perto do rodapé, a lista abria cortada. */
+.lista[data-direcao="cima"] {
+  inset: auto 0 calc(100% + 2px) 0;
+}
+
+.lista[hidden] {
+  display: none;
+}
+
+.opcao {
+  display: flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+  font-family: var(--fonte-corpo), Georgia, serif;
+  font-size: 0.9375rem;
+  line-height: 1.35;
+  color: var(--cinza-texto);
+  cursor: pointer;
+}
+
+.opcao + .opcao {
+  border-top: 1px solid #1a1a18;
+}
+
+/* O realce é o cursor DENTRO do campo em foco, e não um segundo elemento ativo
+   disputando com ele: a borda verde do campo e a barra verde da opção realçada
+   são a mesma peça, contínua. É esta regra que tomou o lugar da faixa azul do
+   Windows — e ela é a mesma de `ComboboxCurso.module.css`, ao pixel. */
+.opcao[data-realce="true"] {
+  color: var(--branco-202);
+  background: #16160f;
+  box-shadow: inset 2px 0 0 var(--verde-sinal);
+}
+
+/* O hover é CSS, e não estado: passar o cursor CLAREIA a opção, mas não a
+   candidata a resposta. Houve um `onMouseEnter` escrevendo no realce, e com ele
+   cruzar a lista com o mouse e sair com `Tab` gravava a opção por onde o cursor
+   passou. Mesma regra do `ComboboxCurso`. */
+.opcao:hover {
+  color: var(--branco-202);
+}
+
+/* A opção já escolhida, quando não é a realçada: branca, sem barra. Marca a
+   escolha sem gastar o verde, que nesta página é o cursor e não o estado —
+   mesma regra que `.linha[data-marcada="true"]` segue nas listas de radio. */
+.opcao[aria-selected="true"] {
+  color: var(--branco-202);
+}

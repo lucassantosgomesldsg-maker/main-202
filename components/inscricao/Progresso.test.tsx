@@ -32,7 +32,7 @@ describe("o progresso", () => {
     expect(container.querySelectorAll("li")).toHaveLength(TOTAL_BLOCOS);
     expect(container.querySelectorAll('[aria-current="step"]')).toHaveLength(1);
     expect(container.querySelectorAll('[data-estado="cumprido"]')).toHaveLength(2);
-    expect(container.querySelectorAll('[data-estado="futuro"]')).toHaveLength(2);
+    expect(container.querySelectorAll('[data-estado="futuro"]')).toHaveLength(3);
   });
 
   it("deixa voltar pelo passo cumprido, e não pelo futuro", async () => {

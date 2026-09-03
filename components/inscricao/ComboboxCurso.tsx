@@ -1,19 +1,34 @@
 "use client";
 
-import { type KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
-import { CURSOS, type Opcao } from "@/lib/inscricao";
+import {
+  type KeyboardEvent,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { CURSOS, textoListaDeOpcoes, type Opcao } from "@/lib/inscricao";
 import { Moldura, descricaoDe, idDoCampo } from "./Campos";
 import campos from "./Campos.module.css";
 import estilos from "./ComboboxCurso.module.css";
 
 /**
- * O único widget custom do formulário, e o único lugar onde esta página pode
- * quebrar de verdade.
+ * O campo de curso: uma lista com BUSCA por texto.
  *
- * Por que ele existe, já que a spec §10 manda usar `<select>` nativo em todo o
- * resto: são 44 cursos. Um `<select>` nativo com 44 opções depende de "digitar
- * as primeiras letras", que funciona diferente em cada navegador — no Chrome
- * casa só o começo do rótulo, então quem digita "eletrica" procurando
+ * Era "o único widget custom do formulário" até 01/09/2026; hoje divide esse
+ * papel com `SelectLista`, que é este mesmo desenho sem o filtro. Os dois são
+ * os lugares onde esta página pode quebrar de verdade, e `Listas.test.ts`
+ * existe para que eles não divirjam em silêncio.
+ *
+ * Por que ele existe: são 44 cursos. (Até 01/09/2026 a frase aqui era "já que
+ * a spec §10 manda usar `<select>` nativo em todo o resto" — não manda mais:
+ * os cinco campos de escolha viraram `SelectLista`, irmão deste. O que
+ * distingue este continua sendo a BUSCA, e não o fato de ser custom.)
+ *
+ * Um `<select>` com 44 opções depende de "digitar as primeiras letras", que
+ * funciona diferente em cada navegador — no Chrome casa só o começo do
+ * rótulo, então quem digita "eletrica" procurando
  * "Eng. Elétrica" não acha nada — e num `<datalist>` o comportamento no celular
  * é inconsistente a ponto de ser inútil. Busca por substring, sem acento, é o
  * que faz 44 opções caberem em dois segundos.
@@ -93,6 +108,16 @@ export default function ComboboxCurso({
   const [filtrando, setFiltrando] = useState(false);
   /** `null` = nada realçado. É o que impede um `Tab` distraído de escolher o primeiro item. */
   const [realce, setRealce] = useState<number | null>(null);
+  /**
+   * Para que lado a lista abre. Mesmo mecanismo (e mesmo motivo) de
+   * `SelectLista`: com o campo perto do rodapé da janela, abrir para baixo
+   * mostra uma lista cortada. As duas listas da página têm de se comportar
+   * igual — `Listas.test.ts` guarda a aparência; isto é a mesma promessa no
+   * comportamento.
+   */
+  const [paraCima, setParaCima] = useState(false);
+  const caixaRef = useRef<HTMLDivElement>(null);
+  const listaRef = useRef<HTMLUListElement>(null);
 
   /**
    * O valor pode mudar por fora — é o que acontece quando o `sessionStorage`
@@ -132,6 +157,41 @@ export default function ComboboxCurso({
       alvo.scrollIntoView({ block: "nearest" });
     }
   }, [aberta, realceSeguro, listaId]);
+
+  /* Decide para que lado a lista abre — mesma regra e mesmo motivo de
+     `SelectLista`. `useLayoutEffect` para não pintar um quadro no lado errado. */
+  useLayoutEffect(() => {
+    if (!aberta) return;
+
+    function medir(): void {
+      const caixa = caixaRef.current;
+      const lista = listaRef.current;
+      if (caixa === null || lista === null) return;
+      const r = caixa.getBoundingClientRect();
+      const altura = lista.offsetHeight;
+      const abaixo = window.innerHeight - r.bottom;
+      const acima = r.top;
+      setParaCima(abaixo < altura && acima > abaixo);
+    }
+
+    medir();
+
+    // E MEDE DE NOVO enquanto estiver aberta. A medição de uma vez só
+    // envelhecia: com a lista aberta virada para cima, rolar a página (roda do
+    // mouse fora da lista, teclado do celular abrindo, girar o aparelho) fazia
+    // o campo subir e a lista continuar ancorada em cima — agora saindo pelo
+    // TOPO da janela. Era o mesmo defeito que o `paraCima` existe para
+    // consertar, na direção oposta.
+    //
+    // `capture` no scroll porque a página pode rolar num container interno, e
+    // esse evento não borbulha até a window.
+    window.addEventListener("scroll", medir, { passive: true, capture: true });
+    window.addEventListener("resize", medir, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", medir, { capture: true });
+      window.removeEventListener("resize", medir);
+    };
+  }, [aberta, filtradas.length]);
 
   function escolher(curso: Opcao): void {
     valorConhecido.current = curso.id;
@@ -249,7 +309,7 @@ export default function ComboboxCurso({
 
   return (
     <Moldura campo="curso" id={id} erro={erro}>
-      <div className={estilos.caixa}>
+      <div className={estilos.caixa} ref={caixaRef}>
         <input
           id={id}
           className={campos.controle}
@@ -286,8 +346,15 @@ export default function ComboboxCurso({
             `fecharSemLixo` desmonta a lista, e o clique cai no vazio. */}
         <ul
           id={listaId}
+          ref={listaRef}
           role="listbox"
+          /* Sem nome, o leitor de tela anuncia só "lista" e a pessoa não sabe
+             de qual campo ela é. Com sufixo, pelo mesmo motivo de
+             `SelectLista`: igual ao do campo, uma busca por rótulo acharia
+             dois elementos. */
+          aria-label={textoListaDeOpcoes("curso")}
           hidden={!aberta}
+          data-direcao={paraCima ? "cima" : "baixo"}
           className={estilos.lista}
           onMouseDown={(e) => e.preventDefault()}
         >

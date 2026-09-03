@@ -9,6 +9,7 @@ import {
   duracaoApagamento,
   duracaoEscrita,
 } from "@/lib/abertura";
+import { COPY } from "@/lib/copy";
 import { __resetarParaTeste } from "@/lib/usaMotionUmaVez";
 import Home from "./page";
 
@@ -63,6 +64,26 @@ describe("troca de idioma", () => {
     expect(linhas(container)[0]).toHaveTextContent("We amplify talent.");
     expect(linhas(container)[1]).toHaveTextContent("We build the future.");
     expect(screen.getByRole("link", { name: /CONTACT/ })).toBeInTheDocument();
+  });
+
+  it("leva à inscrição da trilha, e traduz o rótulo", async () => {
+    // O link nasceu em 01/09/2026 e contraria a §11 da spec da inscrição
+    // ("nenhum link para ela em lugar nenhum do site"), por decisão de produto
+    // registrada lá. O teste existe para que a reversão, se vier, seja
+    // consciente: apagar o link tem de apagar este teste junto.
+    render(<Home />);
+
+    const pt = screen.getByRole("link", { name: COPY.pt.inscricao });
+    expect(pt).toHaveAttribute("href", "/trilha/inscricao");
+    // Sem `target="_blank"`: o destino é do próprio site. A `↗` e a aba nova
+    // são do CONTATO, que sai para o Instagram.
+    expect(pt).not.toHaveAttribute("target");
+
+    await userEvent.click(screen.getByRole("button", { name: "EN" }));
+    expect(screen.getByRole("link", { name: COPY.en.inscricao })).toHaveAttribute(
+      "href",
+      "/trilha/inscricao",
+    );
   });
 
   it("guarda a escolha e o idioma do documento", async () => {
