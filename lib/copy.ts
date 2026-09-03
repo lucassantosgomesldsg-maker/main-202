@@ -7,11 +7,15 @@ export const COPY = {
     onelinerLinhas: ["Potencializamos talentos e", "construímos o futuro."],
     contato: "CONTATO",
     tese: "A TESE",
+    inscricao: "INSCRIÇÃO",
   },
   en: {
     onelinerLinhas: ["We amplify talent.", "We build the future."],
     contato: "CONTACT",
     tese: "THE THESIS",
+    // "APPLY" e não "SIGN UP": a trilha é seletiva (há triagem depois do
+    // formulário), e "sign up" promete entrada automática.
+    inscricao: "APPLY",
   },
 } as const satisfies Record<
   Idioma,
@@ -29,6 +33,17 @@ export const COPY = {
      * divergência.
      */
     tese: string;
+    /**
+     * O rótulo do link para `/trilha/inscricao`, no topo direito da home.
+     *
+     * O destino é uma página **só em português** (spec §2), então quem clica
+     * daqui em EN troca de idioma sem aviso. O rótulo é traduzido mesmo assim:
+     * um item em português no meio de um topo em inglês parece defeito, e a
+     * pessoa que lê "APPLY" entende para onde vai antes de clicar — que é o
+     * que o rótulo tem de fazer. No dia em que existir `/en/trilha/inscricao`,
+     * é o `href` que muda, não esta linha.
+     */
+    inscricao: string;
   }
 >;
 

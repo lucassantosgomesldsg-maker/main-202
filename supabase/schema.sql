@@ -183,6 +183,25 @@ create table if not exists public.inscricoes (
   origem_detalhe text,
   algo_mais text,
 
+  -- Até três pessoas indicadas: `[{"nome": ..., "linkedin": ...}]`.
+  --
+  -- `jsonb` e não tabela filha, pelo mesmo motivo de `premios` (spec §6.3): são
+  -- três linhas por ficha, ninguém vai agregar por elas, e uma tabela filha
+  -- acrescentaria um `join` em toda leitura do painel.
+  --
+  -- A checagem é de FORMA, e só de forma: **é uma lista** e **cabe em três**.
+  -- Ela NÃO olha dentro dos objetos — `[1,2,3]` e `[{"a":1}]` passariam. Isto
+  -- está escrito com todas as letras porque a versão anterior deste comentário
+  -- prometia "três objetos com as duas chaves de texto", e quem confiasse nela
+  -- ao mexer aqui contaria com uma defesa que não existe.
+  --
+  -- Quem julga conteúdo é `validarInscricao`, uma vez só, no cliente e no
+  -- servidor — duplicar a regra aqui em SQL criaria uma segunda verdade que
+  -- diverge na primeira URL estranha.
+  indicacoes jsonb not null default '[]'::jsonb
+    constraint inscricoes_indicacoes_sao_lista
+      check (jsonb_typeof(indicacoes) = 'array' and jsonb_array_length(indicacoes) <= 3),
+
   -- O aceite é sempre `true` quando a linha existe (a validação recusa sem
   -- ele). A coluna existe para **registrar**, junto com `aceite_em`: o registro
   -- é o ponto da LGPD, não a caixinha (spec §8).
@@ -215,6 +234,39 @@ create table if not exists public.inscricoes (
 alter table public.inscricoes add column if not exists unidade_usp_outra text;
 alter table public.inscricoes add column if not exists situacao_outra text;
 alter table public.inscricoes add column if not exists origem_outra text;
+
+
+-- ── Migração das indicações (01/09/2026) ────────────────────────────
+
+-- Mesmo caso das três acima. O `default '[]'` é o que deixa a coluna nascer
+-- `not null` num banco que já tem inscrições: as fichas antigas passam a ter
+-- lista vazia, que é a verdade — ninguém indicou ninguém porque a pergunta não
+-- existia.
+alter table public.inscricoes
+  add column if not exists indicacoes jsonb not null default '[]'::jsonb;
+
+-- O `check` vem separado porque `add column if not exists` não repete a
+-- constraint quando a coluna já existe, e `add constraint` não aceita
+-- `if not exists` em Postgres. O `do $$` deixa rodar o arquivo inteiro de novo
+-- sem erro, que é a promessa do cabeçalho.
+do $$
+begin
+  -- `conrelid` não é zelo: nome de constraint é único POR TABELA, não por banco.
+  -- Sem ele, qualquer outra tabela do mesmo banco com uma constraint de mesmo
+  -- nome (um schema `staging`, uma tabela de arquivo) fazia este bloco pular em
+  -- silêncio — e `public.inscricoes` ficava SEM o check, sem erro nenhum. O
+  -- sintoma só apareceria quando algo gravasse uma lista de 4 ou mais.
+  if not exists (
+    select 1
+    from pg_constraint
+    where conrelid = 'public.inscricoes'::regclass
+      and conname = 'inscricoes_indicacoes_sao_lista'
+  ) then
+    alter table public.inscricoes
+      add constraint inscricoes_indicacoes_sao_lista
+      check (jsonb_typeof(indicacoes) = 'array' and jsonb_array_length(indicacoes) <= 3);
+  end if;
+end $$;
 
 
 -- O e-mail é a chave da inscrição (spec §6.4). É este índice que o
@@ -323,7 +375,7 @@ begin
     ai_estudos, historia_ai, situacao, situacao_outra, ai_trabalho,
     empreendedorismo,
     disponibilidade, origem, origem_quem_indicou, origem_outra,
-    origem_detalhe, algo_mais,
+    origem_detalhe, algo_mais, indicacoes,
     aceite_dados, aceite_em, ip_hash
   )
   values (
@@ -357,6 +409,11 @@ begin
     dados->>'origem_outra',
     dados->>'origem_detalhe',
     dados->>'algo_mais',
+    -- `dados->` e não `dados->>`: o primeiro devolve o jsonb da lista, o
+    -- segundo devolveria o TEXTO dela, e o texto entraria na coluna jsonb como
+    -- uma string JSON — `"[{...}]"` em vez de `[{...}]`. O mesmo cuidado de
+    -- `premios` e `ferramentas_ai` logo acima.
+    coalesce(dados->'indicacoes', '[]'::jsonb),
     coalesce((dados->>'aceite_dados')::boolean, false),
     -- `aceite_em` é carimbado aqui, com o relógio do banco, e não vem do
     -- payload: é um registro de consentimento, e registro de consentimento com
@@ -397,6 +454,7 @@ begin
     origem_outra = excluded.origem_outra,
     origem_detalhe = excluded.origem_detalhe,
     algo_mais = excluded.algo_mais,
+    indicacoes = excluded.indicacoes,
     aceite_dados = excluded.aceite_dados,
     -- O aceite foi dado de novo, agora: a data acompanha o envio mais recente.
     aceite_em = now(),

@@ -2,7 +2,13 @@ import { useState } from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
-import { COPY_INSCRICAO, FERRAMENTAS_AI, LIMITES, NIVEIS_AI } from "@/lib/inscricao";
+import {
+  COPY_INSCRICAO,
+  FERRAMENTAS_AI,
+  LIMITES,
+  NIVEIS_AI,
+  textoListaDeOpcoes,
+} from "@/lib/inscricao";
 import { CampoSelect, CampoTextoLongo, ListaEscolha, ListaMarcacao, opcoesDe } from "./Campos";
 
 /**
@@ -145,8 +151,8 @@ describe("o contador dos textos livres", () => {
   });
 });
 
-describe("o select nativo", () => {
-  it("nasce sem escolha, e a ausência não tem texto inventado", () => {
+describe("o campo de lista", () => {
+  it("nasce sem escolha, e a ausência não tem texto inventado", async () => {
     function Palco() {
       const [valor, setValor] = useState("");
       return (
@@ -162,10 +168,86 @@ describe("o select nativo", () => {
       );
     }
     render(<Palco />);
-    const select = screen.getByLabelText(COPY_INSCRICAO.campos.ai_estudos.rotulo);
+    const botao = screen.getByLabelText(COPY_INSCRICAO.campos.ai_estudos.rotulo);
 
-    expect(select).toHaveValue("");
-    expect(screen.getAllByRole("option")).toHaveLength(3);
+    // Vazio de verdade: nem "Selecione…", nem a primeira opção escolhida por
+    // conta própria. A ausência de resposta é uma resposta, e quem a cobra é o
+    // AVANÇAR.
+    expect(botao).toHaveTextContent("");
+    // Fechada ao nascer, e por isso nenhuma opção na árvore de acessibilidade.
+    expect(botao).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryAllByRole("option")).toHaveLength(0);
+
+    // Aberta, são exatamente as duas opções passadas — sem a linha em branco
+    // que o `<select>` nativo precisava ter para poder nascer sem escolha.
+    await userEvent.click(botao);
+    expect(botao).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getAllByRole("option")).toHaveLength(2);
+  });
+
+  it("dá à lista aberta um nome próprio, diferente do nome do campo", async () => {
+    // Duas coisas de uma vez, e as duas já quebraram:
+    //
+    // 1. A `listbox` PRECISA de nome. Sem ele o leitor de tela anuncia "lista"
+    //    seca e a pessoa não sabe de qual campo — o `<select>` nativo herdava o
+    //    rótulo de graça, e substituí-lo perdeu isso.
+    // 2. O nome precisa ser DIFERENTE do nome do campo. Quando os dois eram
+    //    "Estado", `getByLabelText` achava dois elementos para uma pergunta só
+    //    e 18 testes quebraram de uma vez.
+    function Palco() {
+      const [valor, setValor] = useState("");
+      return (
+        <CampoSelect
+          campo="ai_estudos"
+          opcoes={[{ chave: "NUNCA", rotulo: "Nunca" }]}
+          valor={valor}
+          aoMudar={setValor}
+        />
+      );
+    }
+    render(<Palco />);
+    const rotulo = COPY_INSCRICAO.campos.ai_estudos.rotulo;
+
+    // O rótulo do campo acha UM elemento: o controle.
+    expect(screen.getByLabelText(rotulo).tagName).toBe("BUTTON");
+
+    await userEvent.click(screen.getByLabelText(rotulo));
+    const lista = screen.getByRole("listbox");
+    expect(lista).toHaveAccessibleName(textoListaDeOpcoes("ai_estudos"));
+    expect(lista).not.toHaveAccessibleName(rotulo);
+  });
+
+  it("fecha a lista ao escolher com o mouse, e guarda a escolha", async () => {
+    // Buraco de cobertura provado: nenhum teste afirmava o FECHAMENTO. Removendo
+    // o `fechar()` do `escolher()` a suíte inteira continuava verde, com a lista
+    // presa aberta depois de toda escolha — e o caminho de mouse é o que os
+    // helpers dos outros arquivos exercitam dezenas de vezes.
+    function Palco() {
+      const [valor, setValor] = useState("");
+      return (
+        <CampoSelect
+          campo="ai_estudos"
+          opcoes={[
+            { chave: "NUNCA", rotulo: "Nunca" },
+            { chave: "AS_VEZES", rotulo: "Às vezes" },
+          ]}
+          valor={valor}
+          aoMudar={setValor}
+        />
+      );
+    }
+    render(<Palco />);
+    const botao = screen.getByLabelText(COPY_INSCRICAO.campos.ai_estudos.rotulo);
+
+    await userEvent.click(botao);
+    await userEvent.click(screen.getByRole("option", { name: "Às vezes" }));
+
+    expect(botao).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryAllByRole("option")).toHaveLength(0);
+    expect(botao.textContent?.trim()).toBe("Às vezes");
+    // E o foco volta para o campo: quem escolheu com o mouse continua no lugar
+    // para tabular adiante.
+    expect(botao).toHaveFocus();
   });
 
   it("mostra o erro com TEXTO, e não só com a borda", () => {

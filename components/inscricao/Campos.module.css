@@ -118,44 +118,17 @@
   color: var(--vermelho-erro, #ff6b5e);
 }
 
-/* ── Select ────────────────────────────────────────────────────────────────
-   Estilizamos a caixa; a lista é do sistema (spec §10). A seta é desenhada
-   aqui porque `appearance: none` leva a nativa junto.
+/* ── O campo de lista ────────────────────────────────────────────
+   Ele não mora mais aqui: virou `SelectLista.module.css`, junto do componente
+   que o desenha. O que existia neste ponto — `.caixaSelect`, `.select`,
+   `.select option`, `.seta` e um bloco `@supports (appearance: base-select)` —
+   saiu em 01/09/2026 com o `<select>` nativo.
 
-   As `option` precisam de cor explícita: em vários navegadores o popup não
-   herda o fundo do `select`, e um `select` escuro com texto branco vira uma
-   lista branca com texto branco. */
-.caixaSelect {
-  position: relative;
-  display: flex;
-}
-
-.select {
-  appearance: none;
-  padding-right: 2.5rem;
-  cursor: pointer;
-}
-
-.select option {
-  background: var(--preto-202);
-  color: var(--branco-202);
-}
-
-.seta {
-  position: absolute;
-  right: 1rem;
-  top: 50%;
-  width: 0.5rem;
-  height: 0.5rem;
-  border-right: 1px solid var(--cinza-texto);
-  border-bottom: 1px solid var(--cinza-texto);
-  transform: translateY(-70%) rotate(45deg);
-  pointer-events: none;
-}
-
-.select:focus + .seta {
-  border-color: var(--verde-sinal);
-}
+   Fica o registro do porquê, para ninguém tentar de novo: o popup de um
+   `<select>` é desenhado pelo sistema operacional, e nenhum CSS o alcança. O
+   `appearance: base-select` do Chrome 135+ alcançava, e chegou a estar aqui —
+   mas só no Chrome recente, e em qualquer outro navegador a lista voltava a ser
+   azul. Ver o cabeçalho de `SelectLista.tsx`. */
 
 /* ── Listas de radio e de checkbox ─────────────────────────────────────────
    Linhas, não bolinhas em fileira. O fio de 1px entre linhas é o mesmo fio de

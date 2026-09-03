@@ -8,6 +8,7 @@ import {
   type Ferramenta,
   type Inscricao,
 } from "@/lib/inscricao";
+import SelectLista from "./SelectLista";
 import estilos from "./Campos.module.css";
 
 /**
@@ -107,7 +108,12 @@ export type Contador = {
  *
  * Os 40 caracteres de folga do estado `perto` não vêm da spec; vêm de que um
  * contador que só reage no limite avisa tarde demais para a pessoa mudar de
- * frase, e um que reage sempre é ruído em 260 dos 300 caracteres.
+ * frase, e um que reage sempre é ruído na maior parte do caminho.
+ *
+ * A folga é absoluta e não proporcional de propósito: ela mede "dá tempo de
+ * reescrever a frase que estou escrevendo", que é a mesma distância
+ * independentemente de o teto ser 300 ou 500. Quando `textoLivre` subiu para
+ * 500 em 01/09/2026, este número ficou onde estava, e ficou certo.
  */
 export function contadorDe(texto: string, limite: number): Contador {
   const usado = contarCaracteres(texto);
@@ -200,7 +206,12 @@ export function Moldura({
 
   return (
     <div className={estilos.campo} data-campo={campo} data-invalido={erro !== undefined}>
-      <label className={estilos.rotulo} htmlFor={id}>
+      {/* O `id` existe para que um controle possa apontar para cá com
+          `aria-labelledby`. O `htmlFor` sozinho basta para `<input>`,
+          `<textarea>` e `<select>`; para o `<button>` do `SelectLista` o
+          cálculo de nome aceitável começa pelo CONTEÚDO do botão, e um botão
+          sem escolha tem conteúdo vazio — ficaria sem nome nenhum. */}
+      <label className={estilos.rotulo} id={`${id}-rotulo`} htmlFor={id}>
         {c.rotulo}
       </label>
       {miolo}
@@ -319,24 +330,14 @@ export function CampoSelect({
 }) {
   return (
     <Moldura campo={campo} id={id} erro={erro}>
-      <div className={estilos.caixaSelect}>
-        <select
-          id={id}
-          className={`${estilos.controle} ${estilos.select}`}
-          value={valor}
-          onChange={(e) => aoMudar(e.target.value)}
-          aria-invalid={erro !== undefined || undefined}
-          aria-describedby={descricaoDe(campo, id, { erro: erro !== undefined })}
-        >
-          <option value="" />
-          {opcoes.map((o) => (
-            <option key={o.chave} value={o.chave}>
-              {o.rotulo}
-            </option>
-          ))}
-        </select>
-        <span className={estilos.seta} aria-hidden="true" />
-      </div>
+      <SelectLista
+        campo={campo}
+        id={id}
+        opcoes={opcoes}
+        valor={valor}
+        aoMudar={aoMudar}
+        erro={erro}
+      />
     </Moldura>
   );
 }

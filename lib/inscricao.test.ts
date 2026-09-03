@@ -368,10 +368,10 @@ describe("a copy da inscrição", () => {
     expect(encerrado).not.toMatch(/\b20\d{2}\b/);
   });
 
-  it("tem cinco blocos e escreve o progresso como `3 de 5`", () => {
-    expect(TOTAL_BLOCOS).toBe(5);
-    expect(COPY_INSCRICAO.blocos).toHaveLength(5);
-    expect(textoProgresso(3)).toBe("3 de 5");
+  it("tem seis blocos e escreve o progresso como `3 de 6`", () => {
+    expect(TOTAL_BLOCOS).toBe(6);
+    expect(COPY_INSCRICAO.blocos).toHaveLength(6);
+    expect(textoProgresso(3)).toBe("3 de 6");
   });
 
   it("convida para a tese nas três telas de confirmação", () => {
@@ -396,20 +396,20 @@ describe("a copy da inscrição", () => {
 });
 
 describe("os blocos do formulário", () => {
-  it("dá um bloco de 0 a 4 a cada campo de Inscricao", () => {
+  it("dá um bloco de 0 a 5 a cada campo de Inscricao", () => {
     // `blocoDoCampo` é o que devolve a pessoa ao lugar do erro depois de um 400
     // do servidor (§4.6). Um campo sem bloco viraria um erro que a interface
     // não sabe mostrar em lugar nenhum.
     const valor = valorDe(inscricaoValida());
     const campos = Object.keys(valor) as (keyof Inscricao)[];
-    expect(campos).toHaveLength(31);
+    expect(campos).toHaveLength(32);
     for (const campo of campos) {
       const bloco = blocoDoCampo(campo);
       expect(Number.isInteger(bloco), `${campo} sem bloco`).toBe(true);
-      expect(bloco, `${campo} fora dos cinco blocos`).toBeGreaterThanOrEqual(0);
+      expect(bloco, `${campo} fora dos seis blocos`).toBeGreaterThanOrEqual(0);
       expect(bloco).toBeLessThan(TOTAL_BLOCOS);
     }
-    // E os cinco blocos existem de verdade: nenhum deles ficou vazio.
+    // E os seis blocos existem de verdade: nenhum deles ficou vazio.
     const usados = new Set(campos.map(blocoDoCampo));
     expect(usados.size).toBe(TOTAL_BLOCOS);
   });
@@ -418,7 +418,7 @@ describe("os blocos do formulário", () => {
     expect(primeiroBlocoComErro({})).toBeNull();
     expect(primeiroBlocoComErro({ aceite_dados: "x", email: "y" })).toBe(0);
     expect(primeiroBlocoComErro({ aceite_dados: "x", curso: "y" })).toBe(1);
-    expect(primeiroBlocoComErro({ aceite_dados: "x" })).toBe(4);
+    expect(primeiroBlocoComErro({ aceite_dados: "x" })).toBe(5);
   });
 });
 
@@ -945,8 +945,15 @@ describe("os limites", () => {
     expect(contarCaracteres("👋")).toBe(1);
   });
 
-  it("recusa texto livre acima de 300", () => {
+  it("recusa texto livre acima do limite", () => {
     const E = COPY_INSCRICAO.erros;
+
+    // O número fica preso aqui de propósito. Ele governa os três campos de
+    // texto livre de uma vez, e subiu de 300 para 500 por decisão de produto em
+    // 01/09/2026 (spec §4.8) — quem mexer nele de novo passa por este teste e
+    // vê que está mexendo nos três.
+    expect(LIMITES.textoLivre).toBe(500);
+
     const esperado = E.textoLongo.replace("{limite}", String(LIMITES.textoLivre));
     for (const campo of ["historia_ai", "origem_detalhe", "algo_mais"] as const) {
       const r = validarInscricao(com({ [campo]: "a".repeat(LIMITES.textoLivre + 1) }));
@@ -972,6 +979,129 @@ describe("os limites", () => {
     // custar três vagas.
     const oitoComSobra = [...nove.slice(0, LIMITES.maxPremios), "  ", ""];
     expect(valorDe(com({ premios: oitoComSobra })).premios).toHaveLength(LIMITES.maxPremios);
+  });
+
+  it("aceita a inscrição sem indicação nenhuma", () => {
+    // Recomendadas, nunca obrigatórias (§4.6). Este é o caminho que a maioria
+    // vai fazer, e nenhum dos três jeitos de "não indiquei" pode virar erro.
+    expect(validarInscricao(com({ indicacoes: [] })).erros.indicacoes).toBeUndefined();
+    expect(validarInscricao(com({ indicacoes: undefined })).erros.indicacoes).toBeUndefined();
+    expect(valorDe(com({ indicacoes: [] })).indicacoes).toEqual([]);
+  });
+
+  it("descarta a indicação em branco e recusa a indicação pela metade", () => {
+    const E = COPY_INSCRICAO.erros;
+
+    // A tela manda as três linhas sempre. Duas em branco ao lado de uma
+    // preenchida são o caso NORMAL, e não podem cobrar nada.
+    const umaSo = valorDe(
+      com({
+        indicacoes: [
+          { nome: "Ana Prado", linkedin: "linkedin.com/in/anaprado" },
+          { nome: "", linkedin: "" },
+          { nome: "   ", linkedin: "  " },
+        ],
+      }),
+    ).indicacoes;
+    expect(umaSo).toHaveLength(1);
+
+    // Já a linha pela metade é recusada, e não descartada em silêncio: um nome
+    // sem link é uma pessoa que a 202 não acha, e apagar o que a pessoa acabou
+    // de escrever sem avisar é pior do que pedir o que falta.
+    expect(
+      validarInscricao(com({ indicacoes: [{ nome: "Ana Prado", linkedin: "" }] })).erros
+        .indicacoes,
+    ).toBe(E.indicacaoIncompleta);
+    expect(
+      validarInscricao(com({ indicacoes: [{ nome: "", linkedin: "linkedin.com/in/ana" }] }))
+        .erros.indicacoes,
+    ).toBe(E.indicacaoIncompleta);
+  });
+
+  it("normaliza o LinkedIn da indicação igual ao de quem se inscreve", () => {
+    // A MESMA regra do campo `linkedin`, e não uma segunda parecida: quem indica
+    // cola o link do mesmo jeito que cola o seu.
+    const valor = valorDe(
+      com({
+        indicacoes: [
+          { nome: "Ana", linkedin: "anaprado" },
+          { nome: "Bruno", linkedin: "https://br.linkedin.com/in/bruno?originalSubdomain=br" },
+        ],
+      }),
+    ).indicacoes;
+    expect(valor[0].linkedin).toBe("https://www.linkedin.com/in/anaprado");
+    expect(valor[1].linkedin).toBe("https://www.linkedin.com/in/bruno");
+
+    expect(
+      validarInscricao(com({ indicacoes: [{ nome: "Ana", linkedin: "não é link" }] })).erros
+        .indicacoes,
+    ).toBe(COPY_INSCRICAO.erros.indicacaoLinkedin);
+  });
+
+  it("recusa a indicação com campo de tipo errado, em vez de apagá-la", () => {
+    // A assimetria que existiu: `textoDe` devolve `undefined` para não-string, o
+    // `?? ""` virava "linha em branco" e o filtro a removia — a resposta era
+    // `ok`, sem erro, com a indicação sumida. A pessoa indicou alguém e o
+    // formulário disse que deu certo. `premios` sempre recusou; agora as duas
+    // listas seguem a mesma regra.
+    const E = COPY_INSCRICAO.erros;
+    expect(
+      validarInscricao(com({ indicacoes: [{ nome: 123, linkedin: 456 }] })).erros.indicacoes,
+    ).toBe(E.indicacoesTipo);
+    expect(
+      validarInscricao(com({ indicacoes: [{ nome: "Ana", linkedin: { url: "x" } }] })).erros
+        .indicacoes,
+    ).toBe(E.indicacoesTipo);
+
+    // `undefined` e `null` continuam sendo "não veio", que é diferente de "veio
+    // errado": a linha inteira vazia é descartada em silêncio, como sempre foi.
+    expect(
+      validarInscricao(com({ indicacoes: [{ nome: null, linkedin: undefined }] })).erros
+        .indicacoes,
+    ).toBeUndefined();
+  });
+
+  it("tira caracteres de controle e preserva a quebra de linha do texto livre", () => {
+    // O NUL não é espaço em branco, então `trim()` não o removia e ele
+    // atravessava a validação até o Postgres — que recusa NUL dentro de `jsonb`
+    // e derrubava a gravação inteira num 500 sem nada a corrigir na tela.
+    const comNul = valorDe(
+      com({
+        indicacoes: [{ nome: "Ana\u0000Prado", linkedin: "anaprado" }],
+        cidade: "São\u0007 Paulo",
+      }),
+    );
+    expect(comNul.indicacoes[0].nome).toBe("AnaPrado");
+    expect(JSON.stringify(comNul)).not.toMatch(/[\u0000-\u0008]/);
+
+    // Mas a quebra de linha e a tabulação sobrevivem: os três campos de texto
+    // livre são `<textarea>`, e apagá-las amassaria o que a pessoa escreveu em
+    // parágrafos.
+    const texto = "Linha um.\nLinha dois.\tCom tab.";
+    expect(valorDe(com({ historia_ai: texto })).historia_ai).toBe(texto);
+  });
+
+  it("recusa mais de três indicações, nome longo e lista que não é lista", () => {
+    const E = COPY_INSCRICAO.erros;
+    const uma = (n: number) => ({ nome: `Pessoa ${n}`, linkedin: `linkedin.com/in/p${n}` });
+
+    const quatro = Array.from({ length: LIMITES.maxIndicacoes + 1 }, (_, i) => uma(i));
+    expect(validarInscricao(com({ indicacoes: quatro })).erros.indicacoes).toBe(
+      E.indicacoesDemais.replace("{limite}", String(LIMITES.maxIndicacoes)),
+    );
+
+    expect(
+      validarInscricao(
+        com({
+          indicacoes: [
+            { nome: "a".repeat(LIMITES.textoCurto + 1), linkedin: "linkedin.com/in/ana" },
+          ],
+        }),
+      ).erros.indicacoes,
+    ).toBe(E.indicacaoNomeLongo.replace("{limite}", String(LIMITES.textoCurto)));
+
+    expect(validarInscricao(com({ indicacoes: "Ana" })).erros.indicacoes).toBe(E.indicacoesTipo);
+    expect(validarInscricao(com({ indicacoes: ["Ana"] })).erros.indicacoes).toBe(E.indicacoesTipo);
   });
 
   it("recusa uma lista de prêmios que não é uma lista de textos", () => {

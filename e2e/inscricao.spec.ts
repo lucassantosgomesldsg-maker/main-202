@@ -10,6 +10,7 @@ import {
   DISPONIBILIDADES,
   EMPREENDEDORISMO,
   FERRAMENTAS_AI,
+  ESTADOS,
   INSTITUICOES,
   LIMITES,
   NIVEIS_AI,
@@ -60,7 +61,7 @@ const CHAVE_RASCUNHO = "202:inscricao";
 const COPY = COPY_INSCRICAO;
 const NAV = COPY.navegacao;
 
-/** O último bloco, contado a partir da própria copy (hoje 4). */
+/** O último bloco, contado a partir da própria copy (hoje 5). */
 const ULTIMO_BLOCO = TOTAL_BLOCOS - 1;
 
 /* ── O contrato do servidor, em respostas de mentira ──────────────────────── */
@@ -127,11 +128,54 @@ function campo(page: Page, nome: keyof typeof COPY.campos): Locator {
   return page.getByLabel(rotulo(nome), { exact: true });
 }
 
+/**
+ * Escolhe num campo de lista, pelo VALOR de coluna — o que `.selectOption()`
+ * fazia enquanto o campo era um `<select>` nativo.
+ *
+ * Desde 01/09/2026 esses cinco campos são um `listbox` próprio
+ * (`SelectLista`), porque o popup de um `<select>` é desenhado pelo sistema
+ * operacional e não aceita as cores da página. O gesto do teste virou o gesto
+ * de uma pessoa: abrir a lista e clicar na opção.
+ *
+ * Por `data-valor` e não pelo rótulo bonito: os testes afirmam `"USP"`, `"SP"`,
+ * `"INDICACAO"` porque é esse `id` que vai para o banco.
+ */
+async function escolherNoSelect(
+  page: Page,
+  nome: keyof typeof COPY.campos,
+  chave: string,
+): Promise<void> {
+  const alvo = campo(page, nome);
+  await alvo.click();
+  const lista = page.locator(`#${await alvo.getAttribute("id")}-lista`);
+  await lista.locator(`[data-valor="${chave}"]`).click();
+}
+
+/**
+ * Afirma a escolha de um campo de lista.
+ *
+ * `toHaveValue` deixou de servir quando os cinco campos deixaram de ser
+ * `<select>`: o controle é um `<button>`, e o que ele mostra é o RÓTULO da
+ * opção, não o `id` que vai para o banco. Esta função afirma o mesmo fato de
+ * antes — "o campo contém esta escolha" — pelo único caminho que sobrou.
+ *
+ * O `data-valor` da opção escolhida não serve aqui: com a lista FECHADA ela
+ * não está visível, e o ponto destes testes é justamente que a escolha
+ * sobreviveu a um `voltar` ou a um recarregamento.
+ */
+async function esperaEscolha(
+  page: Page,
+  nome: keyof typeof COPY.campos,
+  rotuloEsperado: string,
+): Promise<void> {
+  await expect(campo(page, nome)).toHaveText(rotuloEsperado);
+}
+
 function botao(page: Page, nome: string): Locator {
   return page.getByRole("button", { name: nome, exact: true });
 }
 
-/** Em que bloco a pessoa está agora (0..4). `-1` quando não há bloco na tela. */
+/** Em que bloco a pessoa está agora (0..5). `-1` quando não há bloco na tela. */
 async function blocoAtual(page: Page): Promise<number> {
   const secao = page.locator("[data-bloco]");
   if ((await secao.count()) === 0) return -1;
@@ -299,16 +343,16 @@ async function preencherBloco0(page: Page): Promise<void> {
   await campo(page, "email").fill(PESSOA.email);
   await campo(page, "whatsapp").fill(PESSOA.whatsapp);
   await campo(page, "idade").fill(PESSOA.idade);
-  await campo(page, "estado").selectOption(PESSOA.estado);
+  await escolherNoSelect(page, "estado", PESSOA.estado);
   await campo(page, "cidade").fill(PESSOA.cidade);
   await campo(page, "linkedin").fill(PESSOA.linkedin);
 }
 
 async function preencherBloco1(page: Page): Promise<void> {
-  await campo(page, "instituicao").selectOption(PESSOA.instituicao);
+  await escolherNoSelect(page, "instituicao", PESSOA.instituicao);
   await escolherCurso(page, PESSOA.curso);
-  await campo(page, "ano_atual").selectOption(PESSOA.anoAtual);
-  await campo(page, "conclusao_prevista").selectOption(PESSOA.conclusao);
+  await escolherNoSelect(page, "ano_atual", PESSOA.anoAtual);
+  await escolherNoSelect(page, "conclusao_prevista", PESSOA.conclusao);
   await premio(page, 1).fill(PESSOA.premio);
 }
 
@@ -336,9 +380,26 @@ async function preencherBloco3(page: Page): Promise<void> {
 
 async function preencherBloco4(page: Page): Promise<void> {
   await escolherNaLista(page, DISPONIBILIDADES, PESSOA.disponibilidade);
-  await campo(page, "origem").selectOption(PESSOA.origem);
+  await escolherNoSelect(page, "origem", PESSOA.origem);
   await campo(page, "origem_quem_indicou").fill(PESSOA.quemIndicou);
+}
+
+/**
+ * O último bloco: as indicações e o aceite.
+ *
+ * As três linhas ficam em BRANCO de propósito. Elas são recomendadas, nunca
+ * obrigatórias, e este é o caminho que a maioria vai fazer — é ele que não pode
+ * travar o envio. Quem exercita o preenchimento delas é o teste dedicado.
+ */
+async function preencherBloco5(page: Page): Promise<void> {
   await marcar(page.getByRole("checkbox", { name: COPY.aceite.rotulo, exact: true }));
+}
+
+/** A n-ésima linha das indicações (1-based), nome ou LinkedIn. */
+function indicacao(page: Page, n: number, parte: "nome" | "linkedin"): Locator {
+  const pessoa = COPY.indicacoes.rotuloItem.replace("{n}", String(n));
+  const sufixo = parte === "nome" ? COPY.indicacoes.nome : COPY.indicacoes.linkedin;
+  return page.getByRole("textbox", { name: `${pessoa} — ${sufixo}`, exact: true });
 }
 
 /** Da abertura até o último bloco preenchido, sem enviar. */
@@ -353,6 +414,8 @@ async function preencherTudo(page: Page): Promise<void> {
   await preencherBloco3(page);
   await avancar(page);
   await preencherBloco4(page);
+  await avancar(page);
+  await preencherBloco5(page);
   expect(await blocoAtual(page)).toBe(ULTIMO_BLOCO);
 }
 
@@ -400,10 +463,51 @@ test.describe("o percurso completo", () => {
     expect(enviado.ferramentas_ai).toEqual([PESSOA.ferramenta]);
     expect(enviado.origem_quem_indicou).toBe(PESSOA.quemIndicou);
     expect(enviado.premios).toEqual([PESSOA.premio]);
+    // Ninguém foi indicado: as três linhas em branco viram lista vazia, e não
+    // três pares de strings vazias. É a fronteira de `paraEnvio` fazendo o
+    // trabalho — sem ela o banco guardaria ruído em toda ficha.
+    expect(enviado.indicacoes).toEqual([]);
     expect(enviado[CAMPO_HONEYPOT]).toBe("");
   });
 
-  test("o progresso conta os cinco blocos, um por vez", async ({ page }) => {
+  test("as três indicações vão inteiras, e o LinkedIn vai normalizado", async ({
+    page,
+  }) => {
+    const servidor = await fingirServidor(page, OK_NOVA_SEM_EMAIL);
+
+    await preencherTudo(page);
+
+    // Duas pessoas, e a terceira linha deixada em branco de propósito: indicar
+    // menos de três é permitido, e a linha vazia não pode virar erro nem ruído.
+    await indicacao(page, 1, "nome").fill("Ana Prado");
+    await indicacao(page, 1, "linkedin").fill("linkedin.com/in/anaprado");
+    // Só o usuário, sem domínio: a forma que a §4.1 obriga a aceitar.
+    await indicacao(page, 2, "nome").fill("Bruno Lima");
+    await indicacao(page, 2, "linkedin").fill("brunolima");
+
+    await enviar(page);
+    await expect(page.locator('[data-tela="confirmacao"]')).toBeVisible();
+
+    expect(servidor.envios[0].indicacoes).toEqual([
+      { nome: "Ana Prado", linkedin: "linkedin.com/in/anaprado" },
+      { nome: "Bruno Lima", linkedin: "brunolima" },
+    ]);
+  });
+
+  test("a indicação pela metade é cobrada, e não apagada em silêncio", async ({ page }) => {
+    await fingirServidor(page, OK_NOVA_SEM_EMAIL);
+
+    await preencherTudo(page);
+    await indicacao(page, 1, "nome").fill("Ana Prado");
+    await enviar(page);
+
+    // Continua no formulário, com a mensagem do par incompleto na tela.
+    await expect(page.locator('[data-tela="confirmacao"]')).toHaveCount(0);
+    await expect(page.getByText(COPY.erros.indicacaoIncompleta)).toBeVisible();
+    await expect(indicacao(page, 1, "nome")).toHaveValue("Ana Prado");
+  });
+
+  test("o progresso conta os seis blocos, um por vez", async ({ page }) => {
     await abrirFormulario(page);
 
     // Na abertura a região `role=status` já existe (é isso que faz o leitor de
@@ -431,6 +535,7 @@ async function preencherDoBloco(page: Page, bloco: number): Promise<void> {
     preencherBloco2,
     preencherBloco3,
     preencherBloco4,
+    preencherBloco5,
   ];
   await preencher[bloco](page);
 }
@@ -454,15 +559,15 @@ test.describe("voltar", () => {
     // do servidor receberia lixo.
     await expect(campo(page, "whatsapp")).toHaveValue(PESSOA.whatsappNaTela);
     await expect(campo(page, "idade")).toHaveValue(PESSOA.idade);
-    await expect(campo(page, "estado")).toHaveValue(PESSOA.estado);
+    await esperaEscolha(page, "estado", ESTADOS.find((e) => e.sigla === PESSOA.estado)!.nome);
     await expect(campo(page, "cidade")).toHaveValue(PESSOA.cidade);
 
     // E ir para a frente de novo devolve o bloco 2 como estava.
     await avancar(page);
     expect(await blocoAtual(page)).toBe(1);
-    await expect(campo(page, "instituicao")).toHaveValue(PESSOA.instituicao);
+    await esperaEscolha(page, "instituicao", PESSOA.instituicao);
     await expect(campoCurso(page)).toHaveValue(PESSOA.curso);
-    await expect(campo(page, "conclusao_prevista")).toHaveValue(PESSOA.conclusao);
+    await esperaEscolha(page, "conclusao_prevista", PESSOA.conclusao);
     await expect(premio(page, 1)).toHaveValue(PESSOA.premio);
   });
 
@@ -474,8 +579,8 @@ test.describe("voltar", () => {
     await avancar(page);
     expect(await blocoAtual(page)).toBe(2);
 
-    // Segmento cumprido é botão; segmento futuro não é. Um `nav` com cinco
-    // botões seria um convite a pular bloco obrigatório.
+    // Segmento cumprido é botão; segmento futuro não é. Uma régua com um botão
+    // por bloco seria um convite a pular bloco obrigatório.
     const regua = page.getByRole("navigation", { name: COPY.progresso.rotulo });
     await expect(regua.getByRole("button")).toHaveCount(2);
     await regua.getByRole("button", { name: COPY.blocos[0].rotulo, exact: true }).click();
@@ -504,7 +609,7 @@ test.describe("o rascunho no sessionStorage", () => {
     await page.reload();
 
     expect(await blocoAtual(page)).toBe(1);
-    await expect(campo(page, "instituicao")).toHaveValue(PESSOA.instituicao);
+    await esperaEscolha(page, "instituicao", PESSOA.instituicao);
     // O combobox de cursos não é controlado por `value`: ele tem texto próprio,
     // sincronizado com o valor por um efeito. Um rascunho restaurado é
     // exatamente o caso em que o valor muda "por fora", e sem esse efeito o
@@ -546,11 +651,11 @@ test.describe("os campos condicionais", () => {
     const qual = campo(page, "instituicao_outra");
     await expect(qual).toHaveCount(0);
 
-    await campo(page, "instituicao").selectOption("OUTRA");
+    await escolherNoSelect(page, "instituicao", "OUTRA");
     await expect(qual).toBeVisible();
     await qual.fill("Universidade Federal de Alagoas");
 
-    await campo(page, "instituicao").selectOption(INSTITUICOES[0].id);
+    await escolherNoSelect(page, "instituicao", INSTITUICOES[0].id);
     await expect(qual).toHaveCount(0);
   });
 
@@ -559,19 +664,19 @@ test.describe("os campos condicionais", () => {
     await expect(unidade).toHaveCount(0);
     await expect(campo(page, "instituicao_outra")).toHaveCount(0);
 
-    await campo(page, "instituicao").selectOption("USP");
+    await escolherNoSelect(page, "instituicao", "USP");
     await expect(unidade).toBeVisible();
     await expect(campo(page, "instituicao_outra")).toHaveCount(0);
     await escolherNaLista(page, UNIDADES_USP, UNIDADES_USP[0].id);
 
-    await campo(page, "instituicao").selectOption("OUTRA");
+    await escolherNoSelect(page, "instituicao", "OUTRA");
     await expect(unidade).toHaveCount(0);
     await expect(campo(page, "instituicao_outra")).toBeVisible();
   });
 
   test("`Outra` unidade da USP abre o campo do nome", async ({ page }) => {
     const qual = campo(page, "unidade_usp_outra");
-    await campo(page, "instituicao").selectOption("USP");
+    await escolherNoSelect(page, "instituicao", "USP");
     await expect(qual).toHaveCount(0);
 
     await escolherNaLista(page, UNIDADES_USP, "OUTRA");
@@ -583,7 +688,7 @@ test.describe("os campos condicionais", () => {
 
     // Sair da USP leva o campo junto, e não deixa um texto órfão na tela.
     await escolherNaLista(page, UNIDADES_USP, "OUTRA");
-    await campo(page, "instituicao").selectOption("OUTRA");
+    await escolherNoSelect(page, "instituicao", "OUTRA");
     await expect(qual).toHaveCount(0);
   });
 
@@ -628,22 +733,22 @@ test.describe("os campos condicionais", () => {
     const quem = campo(page, "origem_quem_indicou");
     await expect(quem).toHaveCount(0);
 
-    await campo(page, "origem").selectOption("INDICACAO");
+    await escolherNoSelect(page, "origem", "INDICACAO");
     await expect(quem).toBeVisible();
     await quem.fill(PESSOA.quemIndicou);
 
     const outra = ORIGENS.find((o) => o.id !== "INDICACAO" && o.id !== "OUTRO")!;
-    await campo(page, "origem").selectOption(outra.id);
+    await escolherNoSelect(page, "origem", outra.id);
     await expect(quem).toHaveCount(0);
 
     // `Outro` é o mesmo padrão em outra opção: campo curto e obrigatório, e
     // nunca ao mesmo tempo que "quem te indicou".
     const qual = campo(page, "origem_outra");
     await expect(qual).toHaveCount(0);
-    await campo(page, "origem").selectOption("OUTRO");
+    await escolherNoSelect(page, "origem", "OUTRO");
     await expect(qual).toBeVisible();
     await expect(quem).toHaveCount(0);
-    await campo(page, "origem").selectOption(outra.id);
+    await escolherNoSelect(page, "origem", outra.id);
     await expect(qual).toHaveCount(0);
   });
 
@@ -668,6 +773,8 @@ test.describe("os campos condicionais", () => {
     );
     await avancar(page);
     await preencherBloco4(page);
+    await avancar(page);
+    await preencherBloco5(page);
     await enviar(page);
 
     await expect(page.locator('[data-tela="confirmacao"]')).toBeVisible();
@@ -982,10 +1089,10 @@ test.describe("o repeater de prêmios", () => {
 
   test("prêmio em branco não chega ao servidor", async ({ page }) => {
     const servidor = await fingirServidor(page, OK_NOVA_SEM_EMAIL);
-    await campo(page, "instituicao").selectOption(PESSOA.instituicao);
+    await escolherNoSelect(page, "instituicao", PESSOA.instituicao);
     await escolherCurso(page, PESSOA.curso);
-    await campo(page, "ano_atual").selectOption(PESSOA.anoAtual);
-    await campo(page, "conclusao_prevista").selectOption(PESSOA.conclusao);
+    await escolherNoSelect(page, "ano_atual", PESSOA.anoAtual);
+    await escolherNoSelect(page, "conclusao_prevista", PESSOA.conclusao);
     await premio(page, 1).fill(PESSOA.premio);
     await botao(page, COPY.premios.adicionar).click();
     // A linha 2 nasce e fica vazia: o rastro de quem clicou em `+` e desistiu.
@@ -996,6 +1103,8 @@ test.describe("o repeater de prêmios", () => {
     await preencherBloco3(page);
     await avancar(page);
     await preencherBloco4(page);
+    await avancar(page);
+    await preencherBloco5(page);
     await enviar(page);
 
     await expect(page.locator('[data-tela="confirmacao"]')).toBeVisible();
@@ -1167,12 +1276,18 @@ test.describe("o teclado", () => {
     await page.keyboard.press("Tab");
     await escolherComSeta(page, campo(page, "origem"), 2); // sem condicional
     await expect(campo(page, "origem_quem_indicou")).toHaveCount(0);
-    await page.keyboard.press("Tab");
-    await page.keyboard.press("Tab");
-    await page.keyboard.press("Tab");
+    // Depois da origem vêm os dois textos livres (atravessados sem escrever: os
+    // dois são opcionais) e o VOLTAR — quatro paradas até o AVANÇAR.
+    await irAoAvancarPeloTeclado(page, 4);
+
+    /* Bloco 6 — indicações. Seis caixas (três pares) atravessadas em branco:
+       indicar é recomendado, e quem não indica precisa chegar ao ENVIAR pelo
+       teclado como qualquer outro. */
+    for (let i = 0; i < 6; i++) await page.keyboard.press("Tab");
     await page.keyboard.press("Space"); // o aceite
     await expect(page.getByRole("checkbox", { name: COPY.aceite.rotulo, exact: true })).toBeChecked();
 
+    // O VOLTAR e depois o ENVIAR.
     await page.keyboard.press("Tab");
     await page.keyboard.press("Tab");
     await expect(page.locator('form button[type="submit"]')).toBeFocused();
@@ -1184,14 +1299,44 @@ test.describe("o teclado", () => {
 });
 
 /**
- * Escolhe num `<select>` já focado, sem tocar no mouse, e confere que a escolha
- * pegou. Um `ArrowDown` que abrisse a roda do sistema em vez de andar na lista
- * deixaria o campo vazio e o teste seguiria adiante sem notar.
+ * Escolhe num campo de lista já focado, sem tocar no mouse, e confere que a
+ * escolha pegou.
+ *
+ * **O gesto mudou em 01/09/2026, com o fim do `<select>` nativo.** Antes o
+ * `<select>` andava na lista FECHADA: cada `ArrowDown` trocava o valor na hora.
+ * Agora o primeiro `ArrowDown` ABRE a lista, os seguintes movem o realce dentro
+ * dela, e o `Enter` é quem confirma — o padrão de listbox, e o mesmo que o
+ * `ComboboxCurso` desta página já usava.
+ *
+ * Isto não é o teste sendo afrouxado para passar: a asserção final continua
+ * sendo "o campo saiu do vazio", que é o que o comentário antigo aqui protegia
+ * ("um ArrowDown que abrisse a roda do sistema deixaria o campo vazio e o teste
+ * seguiria adiante sem notar"). Ela só passou a valer depois do `Enter`, porque
+ * é ali que a escolha se torna escolha.
  */
 async function escolherComSeta(page: Page, alvo: Locator, passos: number): Promise<void> {
   await expect(alvo).toBeFocused();
+
+  // Abre a lista. O realce nasce na opção atual, ou na primeira quando ainda
+  // não há escolha.
+  await page.keyboard.press("ArrowDown");
+  await expect(alvo).toHaveAttribute("aria-expanded", "true");
+
+  // Qual opção os `passos` alcançam, lido da lista ABERTA. Sem isto o teste só
+  // afirmava "saiu do vazio", e a mudança de gesto (o 1º `ArrowDown` passou a
+  // ABRIR em vez de andar) deslocou a escolha em um sem que nada notasse.
+  const rotulos = await page.locator(`#${await alvo.getAttribute("id")}-lista li`).allInnerTexts();
+  const esperado = rotulos[Math.min(passos, rotulos.length - 1)].trim();
+
   for (let i = 0; i < passos; i++) await page.keyboard.press("ArrowDown");
-  await expect(alvo).not.toHaveValue("");
+  await page.keyboard.press("Enter");
+
+  // O campo mostra EXATAMENTE a opção que os passos alcançaram. `toHaveValue`
+  // não serve mais: o controle é um `<button>`, e o que ele mostra é o rótulo.
+  await expect(alvo).toHaveText(esperado);
+  // E a lista fechou: um listbox preso aberto engoliria os Tab seguintes e
+  // faria o resto do percurso falhar longe da causa.
+  await expect(alvo).toHaveAttribute("aria-expanded", "false");
 }
 
 /**

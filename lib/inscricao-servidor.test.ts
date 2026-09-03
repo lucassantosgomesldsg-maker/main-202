@@ -537,6 +537,23 @@ describe("o schema do Supabase", () => {
     }
   });
 
+  it("limita as indicações no mesmo número que a validação", () => {
+    // O teto das indicações está escrito em DOIS lugares: `LIMITES.maxIndicacoes`
+    // e o `jsonb_array_length(...) <= N` do schema. Se divergirem, o servidor
+    // aceita uma indicação a mais do que o banco guarda, e o envio morre num
+    // 500 sem explicação — exatamente o defeito que o teste da idade aqui
+    // embaixo já existe para impedir.
+    //
+    // Aparece duas vezes no arquivo (na criação da tabela e na migração do
+    // `do $$`), e as duas têm de bater: rodar o schema num banco novo e num
+    // banco velho não pode dar tabelas diferentes.
+    const achados = [...SQL.matchAll(/jsonb_array_length\(indicacoes\)\s*<=\s*(\d+)/g)].map(
+      (m) => Number(m[1]),
+    );
+    expect(achados.length, "sem check de tamanho em indicacoes").toBeGreaterThan(0);
+    for (const n of achados) expect(n).toBe(LIMITES.maxIndicacoes);
+  });
+
   it("aceita as ferramentas de AI pelo id, dentro do array de contenção", () => {
     const achado = /ferramentas_ai <@ array\[([^\]]*)\]/.exec(SQL);
     expect(achado, "sem check de contenção em ferramentas_ai").not.toBeNull();

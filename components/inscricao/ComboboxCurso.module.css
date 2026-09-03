@@ -27,6 +27,45 @@
   background: var(--preto-202);
   border: 1px solid var(--verde-sinal);
   border-radius: 2px;
+
+  /* A barra de rolagem é do sistema por padrão, e num popup preto ela entrava
+     BRANCA — uma faixa clara colada na borda verde, do lado de fora da paleta.
+     `thin` e não `none`: esconder a barra numa lista de 44 cursos tiraria o
+     único sinal de que há mais coisa abaixo.
+
+     Estas regras são **idênticas** às de `SelectLista.module.css`, e a
+     igualdade é guardada por `Listas.test.ts`. Elas chegaram aqui um dia
+     depois de lá, e o intervalo foi visível na tela: as duas listas da mesma
+     página, uma ao lado da outra, com barras de rolagem de cores diferentes. */
+  scrollbar-width: thin;
+  scrollbar-color: var(--fio-estrutura) transparent;
+}
+
+/* O caminho do WebKit/Blink antigo, para quem não entende `scrollbar-color`.
+   Mesmas cores, escritas de novo porque as duas famílias de propriedade não se
+   convertem uma na outra. */
+.lista::-webkit-scrollbar {
+  width: 0.5rem;
+}
+
+.lista::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.lista::-webkit-scrollbar-thumb {
+  background: var(--fio-estrutura);
+  border-radius: 4px;
+}
+
+.lista::-webkit-scrollbar-thumb:hover {
+  background: var(--cinza-texto);
+}
+
+/* Virada para cima, quando não cabe embaixo (ver o comentário de `paraCima` no
+   componente). É o que o `<select>` nativo fazia sozinho e se perdeu ao
+   substituí-lo: com o campo perto do rodapé, a lista abria cortada. */
+.lista[data-direcao="cima"] {
+  inset: auto 0 calc(100% + 2px) 0;
 }
 
 .lista[hidden] {
@@ -59,5 +98,14 @@
 }
 
 .opcao:hover {
+  color: var(--branco-202);
+}
+
+/* A opção já escolhida, quando não é a realçada: branca, sem barra. Marca a
+   escolha sem gastar o verde, que nesta página é o cursor e não o estado —
+   mesma regra que `.linha[data-marcada="true"]` segue nas listas de radio.
+   Chegou aqui em 02/09/2026, vinda de `SelectLista.module.css`: as duas listas
+   têm `aria-selected` na opção escolhida, e só uma a estava pintando. */
+.opcao[aria-selected="true"] {
   color: var(--branco-202);
 }

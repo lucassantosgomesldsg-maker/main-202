@@ -46,7 +46,7 @@ uma tela só" não é tocado: quem não recebeu o link nunca a encontra.
 | Rota | `/trilha/inscricao` | `/trilha` (fica reservada para a página da trilha); `/trilha/wishlist`; `/trilha/lista`; `/wishlist` |
 | Idioma | **Só PT** | PT+EN como o resto do site |
 | Público | Universitário **+ recém-formado** | Só universitário em curso; aberto a qualquer um; incluir ensino médio |
-| Formato | **Passo a passo, 5 blocos**, com progresso | Uma página só com scroll; uma pergunta por tela (Typeform) |
+| Formato | **Passo a passo, 6 blocos** (eram 5 até 01/09/2026, quando nasceu o §4.6), com progresso | Uma página só com scroll; uma pergunta por tela (Typeform) |
 | Tamanho | **~3 min, ~25 campos** | ~90s / 12–15 campos; ~5 min / 30–40 campos |
 | Texto livre | **3 campos, todos opcionais**, com limite | 2 obrigatórios; 1 só no fecho; zero |
 | Universidades | **Lista curta de 9 + "Outra"** | Lista curada de ~30 com busca; campo aberto; lista fechada sem "Outra" |
@@ -238,7 +238,7 @@ de 2026 continua legível em 2027.
 | Nível | radio, 5 degraus | sim | §5.4 |
 | Ferramentas que já usou | checkbox | sim (mín. 1) | §5.5. Inclui `Nenhuma dessas` |
 | AI nos estudos | select | sim | Nunca / às vezes / quase todo dia / é o meu principal jeito de estudar |
-| Sua história com AI | texto, 300 chars | **não** | Contador visível. Placeholder: `A coisa mais interessante que você já fez com AI.` |
+| Sua história com AI | texto, 500 chars | **não** | Contador visível. Placeholder: `A coisa mais interessante que você já fez com AI.` |
 
 **Por que a escala descreve comportamento e não adjetivo.** "Iniciante /
 intermediário / avançado" mede autoconfiança, não habilidade — e nota de 1 a 10
@@ -270,9 +270,40 @@ num lugar onde outra pessoa depende do resultado, é outro dado — e o degrau
 | Disponibilidade | select | sim | Até 5h / 5–10h / 10–20h / 20–30h / mais de 30h por semana |
 | Como conheceu a 202 | select | sim | §5.9 |
 | Quem te indicou | texto | condicional | Só se `Indicação de alguém` |
-| Detalhar como conheceu | texto, 300 chars | **não** | |
-| Algo que a gente deveria saber e não perguntou | texto, 300 chars | **não** | |
+| Detalhar como conheceu | texto, 500 chars | **não** | |
+| Algo que a gente deveria saber e não perguntou | texto, 500 chars | **não** | |
+
+### 4.6 Bloco 6 — Indicações *(01/09/2026)*
+
+| Campo | Tipo | Obrigatório | Notas |
+|---|---|---|---|
+| Indique até 3 pessoas excepcionais | 3 pares de (nome, LinkedIn) | **não — recomendado** | |
 | Aceite de dados | checkbox | **sim** | §8 |
+
+**"Recomendado", e não "Opcional".** É o único lugar do formulário onde a 202
+pede um favor, e pedir sem dizer que importa é o jeito mais rápido de não
+receber. Os outros campos opcionais continuam dizendo "Opcional." e continuam
+significando "tanto faz".
+
+**Três linhas fixas, sem `+` e sem `×`.** Ao contrário do repeater de prêmios
+(§4.2), que começa com uma linha e cresce. A pergunta pede três pessoas, e três
+caixas na tela dizem isso sem precisar de frase — um repeater que começa com
+uma linha comunicaria "quantas você quiser".
+
+**O par nome+LinkedIn nunca se separa**, da tela ao banco: um objeto, e não duas
+listas paralelas que um item a menos desalinharia. O LinkedIn passa pelo MESMO
+`normalizarLinkedin` do campo `linkedin` de quem se inscreve — quem indica cola
+o link do mesmo jeito que cola o seu.
+
+**A regra do par:** linha com os dois campos vazios é descartada em silêncio
+(rastro de quem começou e desistiu, como nos prêmios); linha com um só dos dois
+é **recusada**. Um nome sem link é uma pessoa que a 202 não consegue achar, e
+apagar em silêncio o que a pessoa acabou de escrever é pior do que pedir o que
+falta.
+
+**O aceite mudou de bloco e veio para cá.** Ele não pertence às indicações:
+pertence ao FIM. Um bloco novo depois dele significaria pedir consentimento e
+só então continuar perguntando — o oposto do que a §8 quer.
 
 **Não existe checkbox "confirmo que quero participar".** Decisão do Matheus:
 *"a pessoa se inscrever já confirma a participação"*. Ele está certo — pedir
@@ -318,15 +349,23 @@ cara de erro — a pessoa fez tudo certo duas vezes.
 
 Três campos, **todos opcionais**, todos com contador visível:
 
-1. **Sua história com AI** (bloco 3, 300 chars)
-2. **Detalhar como conheceu a 202** (bloco 5, 300 chars)
-3. **Algo que a gente deveria saber e não perguntou** (bloco 5, 300 chars)
+1. **Sua história com AI** (bloco 3, 500 chars)
+2. **Detalhar como conheceu a 202** (bloco 5, 500 chars)
+3. **Algo que a gente deveria saber e não perguntou** (bloco 5, 500 chars)
 
 Mais o repeater de prêmios, que é texto livre em blocos curtos (§4.2).
 
 **O limite é quem impede o textão, não o rótulo.** Pedir "seja breve" não
-funciona; um contador descendo de 300 funciona. E 300 caracteres é o suficiente
-para uma coisa boa e insuficiente para uma redação.
+funciona; um contador descendo funciona.
+
+**De 300 para 500 em 01/09/2026.** A versão anterior desta seção fechava em 300
+com o argumento de que bastava para uma coisa boa e não dava para uma redação.
+O número subiu por decisão de produto: o campo que mais sofria era "a sua
+história com AI", onde 300 obriga a cortar justamente o final — o resultado.
+O **mecanismo** não mudou: contador visível, acendendo perto do fim, e é ele
+quem segura, nunca um `maxLength`. Um único número (`LIMITES.textoLivre`)
+governa os três campos, e `lib/inscricao.test.ts` o prende para que a próxima
+mudança seja consciente.
 
 **Todos opcionais foi decisão consciente** contra a alternativa de obrigar. Um
 campo aberto obrigatório produz respostas vazias de quem só quer passar, e aí
@@ -641,9 +680,35 @@ progresso, o botão de avançar. É o único uso de cor forte.
 legível, nunca só cor: erro sempre tem texto junto.
 
 **Celular primeiro.** Alvos de toque grandes, teclado certo por campo
-(`inputmode="email"`, `inputmode="tel"`, `inputmode="numeric"`), select nativo
-onde ele é melhor que qualquer coisa customizada — e ele quase sempre é, no
-celular.
+(`inputmode="email"`, `inputmode="tel"`, `inputmode="numeric"`).
+
+**~~Select nativo onde ele é melhor que qualquer coisa customizada~~** — revisto
+em 01/09/2026, e a razão é específica.
+
+A regra existia porque no celular a roda do sistema é melhor do que qualquer
+lista que se desenhe, e isso continua verdade. O que ela não previu: **o popup
+de um `<select>` é desenhado pelo sistema operacional, e nenhum CSS o alcança.**
+Numa página preta e verde, a opção sob o cursor aparecia com a faixa AZUL do
+Windows e a barra de rolagem branca — o único lugar do site inteiro que não
+seguia a paleta.
+
+Houve uma tentativa intermediária que vale registrar porque quase resolveu:
+`appearance: base-select` (Chrome 135+) faz o navegador desenhar o popup como
+parte da página, e as cores obedeciam. Mas **só no Chrome recente** — em
+qualquer outro navegador a lista voltava a ser a do sistema. Uma correção que
+depende do navegador de quem olha não é correção.
+
+Os cinco campos de escolha (instituição, unidade da USP, ano atual, conclusão e
+origem — mais estado) passaram a usar `SelectLista`, um `listbox` próprio irmão
+do `ComboboxCurso` que a página já tinha, com o filtro de texto a menos.
+
+**O preço, escrito para quem for reverter:** no celular é uma lista que rola
+dentro da página, e não a roda nativa. O que **não** se perdeu: papéis ARIA de
+`listbox`, teclado inteiro (setas, Home/End, Enter, Esc, Tab) e busca por
+digitação — que num campo de 27 estados é o que separa usável de inutilizável.
+
+O realce da opção é a barra verde de `ComboboxCurso`, ao pixel: duas listas
+parecidas mas não iguais na mesma página leem como descuido.
 
 **Transição entre blocos:** um deslocamento curto, com `prefers-reduced-motion`
 respeitado. Nada elaborado. Cada bloco novo devolve o foco para o primeiro
@@ -693,8 +758,29 @@ dois — exatamente o que a separação de julho comprou.
 o que o Matheus disse: sem menção na home, link passado a dedo. Reversível numa
 linha.
 
-**Nenhum link para ela em lugar nenhum do site.** Nem home, nem tese, nem
-rodapé. A página existe para quem recebe o link.
+**~~Nenhum link para ela em lugar nenhum do site.~~** — revisto em 01/09/2026.
+
+A regra original era: *nem home, nem tese, nem rodapé; a página existe para quem
+recebe o link*. Por decisão de produto, a **home** passou a ter um link no topo
+direito (`INSCRIÇÃO` / `APPLY`), entre `A TESE` e `CONTATO`.
+
+O que **não** mudou:
+
+- **`noindex, nofollow` continua**, e não há contradição nisso: o `noindex` fala
+  com buscador, o link fala com quem já chegou à home. A página segue fora do
+  Google e fora do `sitemap.xml`.
+- **Nem tese, nem rodapé.** A revisão vale para a home e só para ela.
+- O link continua sendo colado a dedo no WhatsApp; o da home é um caminho a
+  mais, não o substituto.
+
+O rótulo é traduzido (`APPLY` em inglês) embora o destino seja monolíngue (§2):
+um item em português num topo em inglês parece defeito, e quem lê "APPLY"
+entende para onde vai antes de clicar. Quando existir `/en/trilha/inscricao`, é
+o `href` que muda.
+
+Guardado por `app/page.test.tsx` ("leva à inscrição da trilha, e traduz o
+rótulo"): reverter o link significa apagar aquele teste junto, de propósito —
+para que a reversão seja consciente e não um esquecimento.
 
 **Open Graph mínimo.** O link vai ser colado no WhatsApp e no LinkedIn, então
 título e descrição precisam existir e ser decentes. Sem imagem própria — a

@@ -6,8 +6,10 @@ import {
   AI_TRABALHO,
   CAMPO_HONEYPOT,
   COPY_INSCRICAO,
+  CURSOS,
   DISPONIBILIDADES,
   EMPREENDEDORISMO,
+  ESTADOS,
   NIVEIS_AI,
   SITUACOES,
   TOTAL_BLOCOS,
@@ -59,6 +61,31 @@ function grupo(nome: string): HTMLElement | null {
   return screen.queryByRole("group", { name: nome });
 }
 
+/**
+ * Escolhe num campo de lista, pelo VALOR de coluna — o que `selectOptions`
+ * fazia enquanto o campo era um `<select>` nativo.
+ *
+ * Desde 01/09/2026 esses campos são um `listbox` próprio (`SelectLista`),
+ * porque o popup de um `<select>` é desenhado pelo sistema operacional e não
+ * aceita as cores da página. O gesto do teste passou a ser o gesto de uma
+ * pessoa: abrir a lista e clicar na opção.
+ *
+ * A busca é por `data-valor`, e não pelo rótulo bonito, de propósito: os testes
+ * afirmam `"USP"`, `"SP"`, `"INDICACAO"` porque é esse `id` que vai para o
+ * banco — escrever o rótulo aqui deixaria o teste passar com a copy errada na
+ * tela.
+ */
+async function escolherNaLista(user: UserEvent, rotulo: string, chave: string): Promise<void> {
+  const botao = campo(rotulo);
+  await user.click(botao);
+  const lista = document.getElementById(botao.getAttribute("aria-controls") ?? "");
+  const opcao = lista?.querySelector<HTMLElement>(`[data-valor="${chave}"]`);
+  if (opcao === null || opcao === undefined) {
+    throw new Error(`opção "${chave}" não existe na lista de "${rotulo}"`);
+  }
+  await user.click(opcao);
+}
+
 /** Clica numa opção exposta, pelo rótulo — que é o que a pessoa lê. */
 async function escolher(user: UserEvent, rotulo: string): Promise<void> {
   await user.click(screen.getByRole("radio", { name: rotulo }));
@@ -97,7 +124,7 @@ async function preencherQuemEVoce(user: UserEvent): Promise<void> {
   await user.type(campo(C.campos.email.rotulo), "maria@exemplo.com");
   await user.type(campo(C.campos.whatsapp.rotulo), "11912345678");
   await user.type(campo(C.campos.idade.rotulo), "21");
-  await user.selectOptions(campo(C.campos.estado.rotulo), "SP");
+  await escolherNaLista(user, C.campos.estado.rotulo, "SP");
   await user.type(campo(C.campos.cidade.rotulo), "São Paulo");
 }
 
@@ -107,12 +134,12 @@ async function atravessar(user: UserEvent): Promise<void> {
   await preencherQuemEVoce(user);
   await avancar(user);
 
-  await user.selectOptions(campo(C.campos.instituicao.rotulo), "USP");
+  await escolherNaLista(user, C.campos.instituicao.rotulo, "USP");
   await escolher(user, rotuloDe(UNIDADES_USP, "POLI"));
   await user.type(screen.getByRole("combobox", { name: C.campos.curso.rotulo }), "eletrica");
   await user.keyboard("{Enter}");
-  await user.selectOptions(campo(C.campos.ano_atual.rotulo), "3");
-  await user.selectOptions(campo(C.campos.conclusao_prevista.rotulo), "2028");
+  await escolherNaLista(user, C.campos.ano_atual.rotulo, "3");
+  await escolherNaLista(user, C.campos.conclusao_prevista.rotulo, "2028");
   await avancar(user);
 
   await user.click(screen.getByRole("radio", { name: NIVEIS_AI[2].rotulo }));
@@ -126,7 +153,12 @@ async function atravessar(user: UserEvent): Promise<void> {
   await avancar(user);
 
   await escolher(user, rotuloDe(DISPONIBILIDADES, "DE_10_A_20H"));
-  await user.selectOptions(campo(C.campos.origem.rotulo), "LINKEDIN");
+  await escolherNaLista(user, C.campos.origem.rotulo, "LINKEDIN");
+  await avancar(user);
+
+  // O bloco 6 é só recomendado: atravessar sem indicar ninguém tem de chegar
+  // ao ENVIAR. Deixar as três linhas em branco aqui é de propósito — é este
+  // caminho que a maioria vai fazer, e é ele que não pode travar.
   await user.click(screen.getByRole("checkbox", { name: C.aceite.rotulo }));
 }
 
@@ -208,10 +240,19 @@ describe("a navegação entre blocos", () => {
 
     expect(titulo()).toBe(C.blocos[0].titulo);
     expect(campo(C.campos.nome.rotulo)).toHaveValue("Maria Clara de Souza Almeida");
-    expect(campo(C.campos.estado.rotulo)).toHaveValue("SP");
+    // `toHaveValue` era para o `<select>`; o campo agora é um botão de listbox
+    // (`SelectLista`), e o que se vê é o RÓTULO do estado. O nome vem de
+    // `ESTADOS` e não escrito à mão: assim o teste segue a lista se ela mudar.
+    //
+    // Comparação EXATA, e não `toHaveTextContent` com string solta: aquele
+    // matcher é substring, e com ele o botão podia mostrar "São Paulo LIXO" que
+    // o teste continuava verde — verificado.
+    expect(campo(C.campos.estado.rotulo).textContent?.trim()).toBe(
+      ESTADOS.find((e) => e.sigla === "SP")!.nome,
+    );
   });
 
-  it("conta os cinco blocos e deixa voltar pelo passo já cumprido", async () => {
+  it("mostra o passo atual e deixa voltar pelo passo já cumprido", async () => {
     const user = usuario();
     render(<Formulario />);
     await comecar(user);
@@ -247,10 +288,10 @@ describe("os campos condicionais", () => {
     await avancar(user);
 
     expect(grupo(C.campos.unidade_usp.rotulo)).not.toBeInTheDocument();
-    await user.selectOptions(campo(C.campos.instituicao.rotulo), "USP");
+    await escolherNaLista(user, C.campos.instituicao.rotulo, "USP");
     expect(grupo(C.campos.unidade_usp.rotulo)).toBeInTheDocument();
 
-    await user.selectOptions(campo(C.campos.instituicao.rotulo), "OUTRA");
+    await escolherNaLista(user, C.campos.instituicao.rotulo, "OUTRA");
     expect(grupo(C.campos.unidade_usp.rotulo)).not.toBeInTheDocument();
     expect(screen.getByLabelText(C.campos.instituicao_outra.rotulo)).toBeInTheDocument();
   });
@@ -266,7 +307,7 @@ describe("os campos condicionais", () => {
     await preencherQuemEVoce(user);
     await avancar(user);
 
-    await user.selectOptions(campo(C.campos.instituicao.rotulo), "USP");
+    await escolherNaLista(user, C.campos.instituicao.rotulo, "USP");
     expect(screen.queryByLabelText(C.campos.unidade_usp_outra.rotulo)).not.toBeInTheDocument();
     await escolher(user, rotuloDe(UNIDADES_USP, "OUTRA"));
     expect(screen.getByLabelText(C.campos.unidade_usp_outra.rotulo)).toBeInTheDocument();
@@ -279,13 +320,15 @@ describe("os campos condicionais", () => {
     const user = usuario();
     render(<Formulario />);
     await atravessar(user);
+    // A travessia para no bloco 6 (indicações). A origem mora no 5.
+    await user.click(screen.getByRole("button", { name: C.navegacao.voltar }));
 
-    // A travessia para no bloco 5, com a origem em LinkedIn: escolher "Outro"
-    // ali abre o campo, e escolher outra origem o fecha.
+    // Com a origem em LinkedIn: escolher "Outro" ali abre o campo, e escolher
+    // outra origem o fecha.
     expect(screen.queryByLabelText(C.campos.origem_outra.rotulo)).not.toBeInTheDocument();
-    await user.selectOptions(campo(C.campos.origem.rotulo), "OUTRO");
+    await escolherNaLista(user, C.campos.origem.rotulo, "OUTRO");
     expect(screen.getByLabelText(C.campos.origem_outra.rotulo)).toBeInTheDocument();
-    await user.selectOptions(campo(C.campos.origem.rotulo), "INSTAGRAM");
+    await escolherNaLista(user, C.campos.origem.rotulo, "INSTAGRAM");
     expect(screen.queryByLabelText(C.campos.origem_outra.rotulo)).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: C.navegacao.voltar }));
@@ -298,8 +341,12 @@ describe("os campos condicionais", () => {
     const user = usuario();
     render(<Formulario />);
     await atravessar(user);
-    await user.selectOptions(campo(C.campos.origem.rotulo), "OUTRO");
-    await user.click(screen.getByRole("button", { name: C.navegacao.enviar }));
+    await user.click(screen.getByRole("button", { name: C.navegacao.voltar }));
+    await escolherNaLista(user, C.campos.origem.rotulo, "OUTRO");
+    // AVANÇAR e não ENVIAR desde que a origem deixou de ser o último bloco. O
+    // que se testa é o mesmo: a validação do bloco barra a saída dele e põe o
+    // foco no campo que falta.
+    await user.click(screen.getByRole("button", { name: C.navegacao.avancar }));
 
     expect(screen.getByText(C.erros.origemOutra)).toBeInTheDocument();
     expect(campo(C.campos.origem_outra.rotulo)).toHaveFocus();
@@ -330,7 +377,7 @@ describe("a idade escrita", () => {
     await user.type(campo(C.campos.email.rotulo), "maria@exemplo.com");
     await user.type(campo(C.campos.whatsapp.rotulo), "11912345678");
     await user.type(campo(C.campos.idade.rotulo), "2004");
-    await user.selectOptions(campo(C.campos.estado.rotulo), "SP");
+    await escolherNaLista(user, C.campos.estado.rotulo, "SP");
     await user.type(campo(C.campos.cidade.rotulo), "São Paulo");
     await avancar(user);
 
@@ -350,11 +397,11 @@ describe("AI no que se entrega", () => {
     await comecar(user);
     await preencherQuemEVoce(user);
     await avancar(user);
-    await user.selectOptions(campo(C.campos.instituicao.rotulo), "Insper");
+    await escolherNaLista(user, C.campos.instituicao.rotulo, "Insper");
     await user.type(screen.getByRole("combobox", { name: C.campos.curso.rotulo }), "eletrica");
     await user.keyboard("{Enter}");
-    await user.selectOptions(campo(C.campos.ano_atual.rotulo), "3");
-    await user.selectOptions(campo(C.campos.conclusao_prevista.rotulo), "2028");
+    await escolherNaLista(user, C.campos.ano_atual.rotulo, "3");
+    await escolherNaLista(user, C.campos.conclusao_prevista.rotulo, "2028");
     await avancar(user);
     await user.click(screen.getByRole("radio", { name: NIVEIS_AI[2].rotulo }));
     await user.click(screen.getByRole("checkbox", { name: "Claude" }));
@@ -373,7 +420,11 @@ describe("AI no que se entrega", () => {
 
     await escolher(user, rotuloDe(AI_TRABALHO, "NAO_USO"));
     await avancar(user);
-    expect(screen.getByText(textoProgresso(TOTAL_BLOCOS))).toBeInTheDocument();
+    // Responder `ai_trabalho` deixa sair do bloco: a prova é ter chegado ao
+    // seguinte. Pelo RÓTULO do bloco e não por "é o último" — esta asserção
+    // quebrava toda vez que o formulário ganhava um bloco no fim, sem ter nada
+    // a ver com o que ela testa.
+    expect(screen.getByText(C.blocos[4].rotulo)).toBeInTheDocument();
   });
 });
 
@@ -429,7 +480,7 @@ describe("a máscara do WhatsApp", () => {
     await user.click(campo(C.campos.whatsapp.rotulo));
     await user.paste("+55 11 98765-4321");
     await user.type(campo(C.campos.idade.rotulo), "21");
-    await user.selectOptions(campo(C.campos.estado.rotulo), "SP");
+    await escolherNaLista(user, C.campos.estado.rotulo, "SP");
     await user.type(campo(C.campos.cidade.rotulo), "São Paulo");
     await avancar(user);
 
@@ -551,9 +602,84 @@ describe("o envio", () => {
 
     expect(screen.getByRole("alert")).toHaveTextContent(C.envio.rede);
     expect(screen.getByRole("button", { name: C.navegacao.enviar })).toBeEnabled();
+
+    // O preenchimento continua lá, inclusive o dos blocos anteriores — que é o
+    // que a pessoa perderia de mais caro. A disponibilidade mora no bloco 5.
+    await user.click(screen.getByRole("button", { name: C.navegacao.voltar }));
     expect(
       screen.getByRole("radio", { name: rotuloDe(DISPONIBILIDADES, "DE_10_A_20H") }),
     ).toBeChecked();
+  });
+
+  it("o ENVIAR confere tudo antes de gastar uma viagem ao servidor", async () => {
+    // Buraco de cobertura provado: apagando o `validarInscricao` que roda dentro
+    // de `enviar()`, a suíte inteira continuava verde. Ele é o gate rápido —
+    // sem ele um formulário inválido sai pela rede e volta como 400, gastando o
+    // tempo de quem preencheu para dizer o que já dava para ver na tela.
+    //
+    // O caminho que chega ao último bloco com um campo ANTERIOR inválido é o
+    // rascunho guardado: ele devolve a pessoa ao passo em que estava, e o seu
+    // conteúdo é editável (é `sessionStorage`) e sobrevive a um deploy que mudou
+    // as listas. Aqui o `estado` guardado não existe mais na lista.
+    const fetchFalso = vi.fn();
+    vi.stubGlobal("fetch", fetchFalso);
+
+    const rascunho: Record<string, unknown> = {
+      nome: "Maria Clara de Souza Almeida",
+      email: "maria@usp.br",
+      whatsapp: "11912345678",
+      idade: "21",
+      estado: "ZZ", // não existe na lista de estados
+      cidade: "São Paulo",
+      linkedin: "",
+      instituicao: "USP",
+      instituicao_outra: "",
+      unidade_usp: "POLI",
+      unidade_usp_outra: "",
+      curso: CURSOS[0].id,
+      curso_outro: "",
+      ano_atual: "3",
+      conclusao_prevista: "2028",
+      premios: [""],
+      nivel_ai: "2",
+      ferramentas_ai: ["CLAUDE"],
+      ai_estudos: "AS_VEZES",
+      historia_ai: "",
+      situacao: "ESTAGIO",
+      situacao_outra: "",
+      ai_trabalho: "ACEITO",
+      empreendedorismo: "1",
+      disponibilidade: "DE_10_A_20H",
+      origem: "LINKEDIN",
+      origem_quem_indicou: "",
+      origem_outra: "",
+      origem_detalhe: "",
+      algo_mais: "",
+      indicacoes: [
+        { nome: "", linkedin: "" },
+        { nome: "", linkedin: "" },
+        { nome: "", linkedin: "" },
+      ],
+      aceite_dados: true,
+    };
+    window.sessionStorage.setItem(
+      "202:inscricao",
+      JSON.stringify({ v: 2, passo: TOTAL_BLOCOS - 1, rascunho }),
+    );
+
+    const user = usuario();
+    render(<Formulario />);
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: C.navegacao.enviar })).toBeInTheDocument(),
+    );
+
+    await user.click(screen.getByRole("button", { name: C.navegacao.enviar }));
+
+    // Nada saiu pela rede: o gate local barrou antes.
+    expect(fetchFalso).not.toHaveBeenCalled();
+    // E a pessoa foi levada de volta ao bloco onde o campo mora, com o erro.
+    expect(titulo()).toBe(C.blocos[0].titulo);
+    expect(screen.getByText(C.erros.opcaoDesconhecida)).toBeInTheDocument();
   });
 
   it("um 400 do servidor devolve a pessoa ao bloco do campo, com o erro ao lado", async () => {
@@ -579,7 +705,15 @@ describe("o envio", () => {
     await waitFor(() => expect(campo(C.campos.email.rotulo)).toHaveFocus());
   });
 
-  it("traduz cada recusa do servidor numa frase diferente", async () => {
+  // Prazo próprio, e não o padrão de 5s: este é o único teste do arquivo que
+  // atravessa o formulário INTEIRO três vezes, uma por status. Quando o
+  // formulário ganhou o sexto bloco em 01/09/2026 cada travessia ficou um bloco
+  // mais longa, e o total passou de 5s por pouco — rodando sozinho ele cabia, na
+  // suíte inteira não. Um teste que passa isolado e falha em conjunto é pior do
+  // que um teste lento: some e volta conforme a máquina, e ninguém confia nele.
+  // 8s contra os ~2,4s medidos: folga para uma máquina carregada, sem virar um
+  // teto tão alto que uma regressão de quatro vezes no tempo passe despercebida.
+  it("traduz cada recusa do servidor numa frase diferente", { timeout: 8_000 }, async () => {
     const casos: [number, string][] = [
       [429, C.envio.limite],
       [409, C.envio.encerrado],
