@@ -75,7 +75,7 @@ create table if not exists public.inscricoes (
   instituicao text not null
     constraint inscricoes_instituicao_conhecida
       check (instituicao in ('FGV', 'IME', 'Insper', 'Inteli', 'ITA', 'Link',
-                             'Unicamp', 'Unifesp', 'USP', 'OUTRA')),
+                             'Mackenzie', 'Unicamp', 'Unifesp', 'USP', 'OUTRA')),
   instituicao_outra text,
 
   -- Token curto, e não o rótulo: "San Fran (Direito)" ainda pode mudar de

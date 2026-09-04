@@ -83,6 +83,7 @@ export const INSTITUICOES: readonly Opcao[] = [
   { id: "Inteli", rotulo: "Inteli" },
   { id: "ITA", rotulo: "ITA" },
   { id: "Link", rotulo: "Link" },
+  { id: "Mackenzie", rotulo: "Mackenzie" },
   { id: "Unicamp", rotulo: "Unicamp" },
   { id: "Unifesp", rotulo: "Unifesp" },
   { id: "USP", rotulo: "USP" },
