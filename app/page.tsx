@@ -89,9 +89,12 @@ export default function Home() {
       <header className="topo">
         <SeletorIdioma idioma={idioma} aoTrocar={trocarIdioma} />
 
-        {/* As duas âncoras da direita. O grupo existe porque `.topo` é um
-            `space-between`: com três filhos soltos, o link da tese cairia no
-            MEIO do topo em vez de ficar ao lado do contato.
+        {/* As três âncoras da direita. O grupo existe porque `.topo` é um
+            `space-between`: soltos, os links se espalhariam pela largura do
+            topo em vez de ficarem juntos à direita. É também o grupo, e não
+            cada link, que a abertura anima como um bloco só
+            (`app/abertura.module.css`) — por isso acrescentar um item aqui não
+            mexe na coreografia.
 
             `A TESE` vem antes, e sem seta. A `↗` do contato quer dizer uma
             coisa específica — "isto sai do site" —, e a ausência dela aqui diz
@@ -104,6 +107,25 @@ export default function Home() {
         <div className="topoDireita">
           <Link className="label tese" data-ima="tese" href="/tese">
             {t.tese}
+          </Link>
+
+          {/* A inscrição da trilha, desde 01/09/2026.
+
+              A spec §11 fechava o contrário — "nenhum link para ela em lugar
+              nenhum do site, nem home, nem tese, nem rodapé" — e a rota segue
+              `noindex, nofollow`. As duas coisas convivem sem contradição: o
+              `noindex` fala com buscador, este link fala com quem já está na
+              home. A página continua fora do Google.
+
+              Fica entre A TESE e CONTATO, e não depois do CONTATO, porque o
+              CONTATO é o único link que SAI do site (a `↗` diz isso): pôr um
+              destino interno depois dele quebraria a leitura de "primeiro o
+              site, por último a saída".
+
+              Sem `↗` pelo mesmo motivo que A TESE não tem: a seta significa
+              "isto abre fora", e aqui não abre. */}
+          <Link className="label inscricao" data-ima="inscricao" href="/trilha/inscricao">
+            {t.inscricao}
           </Link>
           <a
             className="label contato"

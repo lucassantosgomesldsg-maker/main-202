@@ -139,14 +139,39 @@ a:focus-visible, button:focus-visible {
 
 .base { align-items: flex-end; }
 
-/* As duas âncoras da direita do topo, num grupo só. Sem ele, `.topo` é um
-   `space-between` de três filhos e o link da tese cairia no meio da tela.
-   O `gap` encolhe junto com a margem da página: em 320px de largura, com
-   `PT / EN`, `THE THESIS` e `CONTACT ↗` na mesma linha, cada pixel conta. */
+/* As âncoras da direita do topo, num grupo só. Sem ele, `.topo` é um
+   `space-between` e os links se espalhariam pela largura em vez de ficarem
+   juntos à direita. O `gap` encolhe junto com a margem da página.
+
+   `flex-wrap: wrap` desde 01/09/2026, quando o topo ganhou o terceiro link
+   (`INSCRIÇÃO`). Até ali os três itens cabiam numa linha até em 320px — com
+   quatro não cabem mais: são 263px de rótulo mais os vãos, contra 272px úteis
+   (320 menos as duas margens de 1.5rem). Sem `wrap` o grupo simplesmente
+   transbordava a margem direita, e o `CONTATO ↗` saía pela borda da tela —
+   verificado em 320×568 antes desta regra.
+
+   `justify-content: flex-end` é o que faz a linha que sobra descer alinhada à
+   DIREITA, e não à esquerda: o grupo inteiro é uma âncora do canto direito, e
+   uma segunda linha começando na esquerda leria como outra coisa. */
 .topoDireita {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   align-items: flex-start;
   gap: 2rem;
+}
+
+/* Um rótulo DESTE grupo nunca se parte no meio: sem isto o topo apertado
+   quebrava "A TESE" em "A" / "TESE" e separava o `↗` do "CONTATO", e duas
+   palavras de um rótulo em linhas diferentes leem como dois rótulos. Quem
+   quebra é o grupo, entre um rótulo e outro (o `flex-wrap` acima).
+
+   Escopado aqui, e não em `.label`, porque `.label` é usada no site inteiro —
+   inclusive na /tese, onde há rótulos longos que PRECISAM quebrar. Posto em
+   `.label`, este `nowrap` fazia a /tese vazar 440px de largura numa tela de
+   390: e2e	ese.spec.ts pegou nos dois tamanhos de celular. */
+.topoDireita .label {
+  white-space: nowrap;
 }
 
 @media (max-width: 720px) {
@@ -169,9 +194,11 @@ a:focus-visible, button:focus-visible {
 }
 
 .contato,
-.tese { transition: color 0.25s; }
+.tese,
+.inscricao { transition: color 0.25s; }
 .contato:hover,
-.tese:hover { color: var(--branco-202); }
+.tese:hover,
+.inscricao:hover { color: var(--branco-202); }
 
 .oneliner {
   font-family: var(--fonte-display), Georgia, serif;

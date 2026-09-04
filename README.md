@@ -2,12 +2,21 @@
 
 O site da 202Lab, em português e inglês. Em produção: https://202lab.com.br
 
-Duas páginas, com regras opostas de propósito:
+Duas páginas públicas, com regras opostas de propósito:
 
 | Rota | O que é | Rola? |
 | --- | --- | --- |
 | `/` | A main page — **uma tela, sem scroll** | Nunca |
 | `/tese` | **A Tese** — dez telas de argumento, com instrumento por seção | Sim |
+
+Fora dessas duas há uma **porta operacional**, `/trilha/inscricao`, que não é
+linkada de lugar nenhum e não entra em buscador — quem não recebeu o link não a
+encontra.
+
+As duas são ligadas nos dois sentidos: `A TESE` no topo da home, ao lado do
+`CONTATO`, e o wordmark `202` no topo da tese de volta para `/`. O idioma
+atravessa junto — é a mesma chave de `localStorage`, lida por
+`lib/usaIdioma.ts`.
 
 As duas são ligadas nos dois sentidos: `A TESE` no topo da home, ao lado do
 `CONTATO`, e o wordmark `202` no topo da tese de volta para `/`. O idioma
@@ -46,6 +55,69 @@ desenho dirigido pela roda do mouse pode ser parado no meio, e um gráfico
 parado no meio é lido como resultado. O porquê inteiro está na §6.1 da spec.
 
 Especificação: `docs/superpowers/specs/2026-08-17-a-tese-design.md`.
+
+## A inscrição da trilha (`/trilha/inscricao`)
+
+A porta operacional da próxima trilha: a pessoa entrega contato, retrato de
+universidade, méritos, relação com AI e disponibilidade, e a 202 escolhe a dedo
+quem entra. **Ela não é linkada de lugar nenhum** — nem home, nem tese, nem
+rodapé — e é `noindex, nofollow`. O link é passado a dedo, no privado. Não é um
+formulário de captura de lead, e não existe para inflar número.
+
+Quase tudo é clique. Há três campos de texto livre, todos opcionais e todos com
+limite — a regra do Matheus é *"não quero que ela escreva textão"*.
+
+**As peças:**
+
+| O quê | Onde |
+| --- | --- |
+| Texto, listas, limites e validação | `lib/inscricao.ts` — a mesma validação roda no navegador e no servidor |
+| Escrita no Supabase | `lib/inscricao-banco.ts` |
+| E-mail de confirmação (Resend) | `lib/inscricao-email.ts` |
+| A rota que recebe o envio | `app/trilha/inscricao/api/route.ts` |
+| Schema do banco | `supabase/schema.sql` — colável no SQL Editor, idempotente |
+
+**Ligar o banco** (as variáveis moram no `.env.example`, com o porquê de cada
+uma):
+
+```powershell
+cp .env.example .env.local     # e cole a chave `service_role` do Supabase
+npm run supabase:conferir      # deduz a URL, e confere tabelas e função
+```
+
+`supabase:conferir` existe porque as três formas de errar isto respondem a
+mesma coisa inútil. `SUPABASE_URL` é a **raiz** (`https://xxx.supabase.co`) — o
+diálogo *Connect* do painel oferece o endpoint REST, que já termina em
+`/rest/v1`, e colar aquele faz o caminho virar `/rest/v1/rest/v1/…`, que o
+PostgREST recusa com um `PGRST125` que não menciona URL nenhuma. Rodar só metade
+do `schema.sql` cria as tabelas e deixa a função de gravação de fora, e aí o
+formulário só quebra no último clique de alguém de verdade.
+
+**Três coisas que não se mexe sem pensar:**
+
+- **A `service_role key` nunca é `NEXT_PUBLIC_`.** O navegador fala com
+  `POST /trilha/inscricao/api` e com mais nada. Essa chave passa por cima da
+  RLS, e a tabela guarda nome, telefone e idade de estudantes — parte deles
+  menor de idade.
+- **A RLS está ligada com zero policies, de propósito.** Acrescentar uma "só
+  para testar" abre a tabela inteira para a chave anônima.
+- **O `IP_SALT` não se troca.** O IP não é guardado; guarda-se
+  `sha256(ip + IP_SALT)`. Trocar o sal zera o histórico do limite por IP.
+
+O e-mail fica **desligado** até `EMAIL_CONFIRMACAO_ATIVO=true` **e**
+`RESEND_API_KEY` existirem — é o estado normal enquanto a verificação do domínio
+no Registro.br não termina. Sem ele a inscrição grava do mesmo jeito e a tela de
+confirmação simplesmente não promete e-mail nenhum. Falha de envio nunca derruba
+a gravação: uma inscrição perdida é irrecuperável, um e-mail não enviado é um
+aborrecimento.
+
+Reinscrever com o mesmo e-mail **atualiza** a linha e preserva `criado_em`,
+`status` e `nota` — quem já foi avaliado não perde a avaliação por reenviar o
+formulário.
+
+Especificação: `docs/superpowers/specs/2026-08-20-inscricao-trilha-design.md`.
+O admin e o painel de BI são a fase 2 e ainda não existem; por enquanto as
+inscrições se leem pelo Table Editor do Supabase.
 
 ## Rodar local
 
@@ -97,6 +169,7 @@ evita vazamento **visual**, e nada na suíte cobre isso.
 | Texto de marca da home | `lib/copy.ts` — **única** fonte; é copy aprovada, verbatim |
 | Escolha de idioma (as duas páginas) | `lib/usaIdioma.ts` — uma chave de `localStorage`, uma regra |
 | Texto da /tese | `lib/tese.ts` — as dez seções e os instrumentos, PT e EN |
+| Texto e listas da inscrição | `lib/inscricao.ts` — copy, opções, limites e a validação que roda dos dois lados |
 | Cor, espaçamento, tipografia | bloco `:root` no topo de `app/globals.css` |
 | Animação de entrada | `lib/abertura.ts` (tempos), `app/abertura.module.css` (coreografia do topo e da logo), `components/FraseDigitada.*` (digitação do rodapé) |
 | Física da lanterna e do ímã | `lib/usaLanterna.ts` (testada sem navegador) |

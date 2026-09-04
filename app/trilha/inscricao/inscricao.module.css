@@ -1,0 +1,81 @@
+/* ── A página ──────────────────────────────────────────────────────────────
+   **Sem a classe `.tela` do `globals.css`.** Ela é o interruptor de "a home não
+   rola" (`html:has(.tela) { overflow: hidden }`) e vale só para a home, que
+   cabe em 100dvh por construção. Esta página rola por decisão: o bloco 2 não
+   cabe em 667px de altura com o repeater de prêmios aberto, e cortar campo é
+   pior do que rolar.
+
+   Sem malha viva e sem lanterna, e não por economia: numa tela de preencher,
+   nada pode disputar atenção com o campo ativo (spec §10). O fundo é o
+   `--preto-202` que o `body` já pinta, e fica quieto. Não recriar nenhuma das
+   duas por outro caminho — gradiente animado, partícula, brilho que segue o
+   cursor.
+
+   `min-height: 100dvh` e nunca `height`: o conteúdo precisa poder crescer. */
+.pagina {
+  /* O vermelho de erro mora aqui, e não em `globals.css`, porque ele é o único
+     token que nasce nesta página: nem a home nem a /tese têm estado de erro. Os
+     componentes de campo o consomem com fallback literal, para continuarem
+     legíveis quando renderizados sozinhos nos testes. */
+  --vermelho-erro: #ff6b5e;
+
+  min-height: 100dvh;
+  display: flex;
+  justify-content: center;
+  padding: calc(var(--margem) * 1.25) var(--margem) calc(var(--margem) * 2);
+}
+
+/* A coluna do formulário. `34rem` não é gosto: linha de formulário mais larga
+   do que isso cansa o olho a voltar do fim de uma linha para o começo da
+   seguinte, e a maior parte dos campos aqui é curta. O `min()` faz a coluna
+   virar a largura inteira no celular sem nenhum breakpoint. */
+.coluna {
+  width: min(34rem, 100%);
+}
+
+/* ── A tela de inscrições encerradas ───────────────────────────────────────
+   Estas classes repetem as de `Formulario.module.css` de propósito: a tela de
+   encerrado é renderizada no servidor, sem o formulário no bundle, e importar o
+   CSS Module de um componente que esta página não monta arrastaria o resto
+   junto. São vinte linhas de tipografia; a alternativa custa mais. */
+.tela {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 2rem 0 0;
+}
+
+.rotuloTela {
+  margin-bottom: 0.5rem;
+}
+
+.titulo {
+  font-family: var(--fonte-display), Georgia, serif;
+  font-weight: 300;
+  font-variation-settings: "opsz" 144;
+  font-size: clamp(1.75rem, 5vw, 2.75rem);
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  color: var(--branco-202);
+}
+
+.linha {
+  font-family: var(--fonte-corpo), Georgia, serif;
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  color: var(--cinza-texto);
+  max-width: 34rem;
+}
+
+.saida {
+  margin-top: 1rem;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid var(--fio-estrutura);
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.saida:hover {
+  color: var(--branco-202);
+  border-bottom-color: var(--branco-202);
+}

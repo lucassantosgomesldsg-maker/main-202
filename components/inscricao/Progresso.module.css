@@ -1,0 +1,95 @@
+/* ── A faixa de progresso ──────────────────────────────────────────────────
+   Fica no topo da coluna, acima do título do bloco. Na abertura e na
+   confirmação o componente continua montado (é ele que carrega a região
+   `role="status"`) mas não ocupa espaço nenhum. */
+.progresso {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  margin-bottom: 2rem;
+}
+
+.progresso[data-vazio="true"] {
+  margin-bottom: 0;
+  gap: 0;
+}
+
+/* ── Os cinco segmentos ────────────────────────────────────────────────────
+   Colados, ocupando a largura inteira da coluna. O fio de 1px entre eles é o
+   mínimo para que dois passos cumpridos (ambos brancos) continuem contáveis —
+   sem ele os cinco viram uma barra só, e a pergunta "quanto falta" volta a não
+   ter resposta.
+
+   O alvo de clique tem 1,75rem de altura para um traço de 2px. Não são os 44px
+   da regra de toque, e é deliberado: voltar um bloco pelo segmento é um atalho,
+   não o caminho — o caminho é o botão VOLTAR, que tem os 44px inteiros. */
+.trilho {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 1px;
+  list-style: none;
+}
+
+.segmento {
+  display: flex;
+}
+
+.alvo {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 1.75rem;
+  padding: 0;
+  background: none;
+  border: 0;
+}
+
+.segmento[data-estado="cumprido"] .alvo {
+  cursor: pointer;
+}
+
+.barra {
+  width: 100%;
+  height: 2px;
+  background: var(--fio-estrutura);
+  transition: background-color 0.25s;
+}
+
+.segmento[data-estado="cumprido"] .barra {
+  background: var(--cinza-texto);
+}
+
+.segmento[data-estado="cumprido"] .alvo:hover .barra {
+  background: var(--branco-202);
+}
+
+/* O único verde da faixa: o passo atual. */
+.segmento[data-estado="atual"] .barra {
+  background: var(--verde-sinal);
+}
+
+/* ── O rótulo ──────────────────────────────────────────────────────────────
+   `3 DE 5` e o nome do bloco, em mono caixa-alta — a voz de etiqueta do site.
+   Esta é também a região que anuncia a troca de bloco. */
+.rotulo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 1rem;
+  font-family: var(--fonte-mono), ui-monospace, monospace;
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--cinza-texto);
+}
+
+.progresso[data-vazio="true"] .rotulo {
+  min-height: 0;
+}
+
+.fio {
+  width: 1.25rem;
+  height: 1px;
+  background: var(--fio-estrutura);
+}

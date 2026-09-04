@@ -1,0 +1,40 @@
+/* ── As três pessoas ───────────────────────────────────────────────────────
+   Coluna única, como todo o resto do formulário. Nome e LinkedIn lado a lado
+   caberiam nos 34rem da coluna, e foi a primeira tentativa — mas dois campos
+   de ~16rem deixam o endereço do LinkedIn rolando dentro da caixa enquanto se
+   digita, e a página inteira até aqui é uma pergunta embaixo da outra. Manter
+   a coluna é o que faz o bloco novo não parecer enxertado. */
+.lista {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  list-style: none;
+
+  /* Um respiro a mais do que os 0.5rem que a `.campo` dá entre a ajuda e o
+     controle. Nos outros campos o que vem depois da ajuda é a caixa em que se
+     digita; aqui é o "PESSOA 1", que é mais um título do que um controle — e
+     título colado no parágrafo acima lê como continuação dele. */
+  margin-top: 0.5rem;
+}
+
+/* O par é um grupo visual: os dois campos juntos (0.375rem) e as pessoas
+   separadas (o 1.5rem acima). Essa diferença de espaço é a única coisa que
+   diz "estes dois são da mesma pessoa" — e é suficiente, porque é a mesma
+   gramática de proximidade que separa os campos dos blocos anteriores. */
+.pessoa {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+/* O ordinal. Mono caixa-alta como todo rótulo do site, no cinza de texto: ele
+   numera, não chama. Se ficasse em `--branco-202` competiria com o próprio
+   rótulo do campo, que está acima e é quem faz a pergunta. */
+.ordem {
+  font-family: var(--fonte-mono), ui-monospace, monospace;
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--cinza-texto);
+  margin-bottom: 0.125rem;
+}

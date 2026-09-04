@@ -196,8 +196,8 @@ const pt = {
       definicao: "Não é ferramenta acessória no fim do processo. É o modo padrão de trabalhar.",
     },
     {
-      nome: "Fome",
-      definicao: "Currículo mostra o que a pessoa já fez. Fome mostra até onde ela ainda vai.",
+      nome: "Ambição",
+      definicao: "Currículo mostra o que a pessoa já fez. Ambição mostra até onde ela ainda vai.",
     },
   ],
 
@@ -343,8 +343,8 @@ const en = {
       definicao: "Not an accessory tool at the end of the process. It is the default way of working.",
     },
     {
-      nome: "Hunger",
-      definicao: "A résumé shows what someone has already done. Hunger shows how far they will still go.",
+      nome: "Ambition",
+      definicao: "A résumé shows what someone has already done. Ambition shows how far they will still go.",
     },
   ],
 

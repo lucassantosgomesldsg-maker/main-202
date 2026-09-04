@@ -1,0 +1,258 @@
+/* ── A moldura de um campo ─────────────────────────────────────────────────
+   Rótulo, ajuda, controle, contador e erro empilhados, com um respiro entre
+   campos maior do que o respiro dentro de um campo. Essa diferença é o que faz
+   a pessoa ver "sete perguntas" em vez de "uma parede": dentro de um campo o
+   espaço é de 0,5rem, entre campos é de 2rem, e o olho agrupa pelo menor.
+
+   `--vermelho-erro` tem fallback literal porque estes componentes também são
+   renderizados fora da página nos testes de componente, onde o token declarado
+   em `inscricao.module.css` não existe. Sem o fallback, `color` cairia para o
+   herdado e o erro apareceria branco — cor de erro que não parece erro é pior
+   do que nenhuma. */
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0 0 2rem;
+  border: 0;
+  min-width: 0;
+}
+
+/* Rótulo em corpo e não em mono caixa-alta, ao contrário do resto do site. Os
+   rótulos do site são etiquetas de duas palavras; aqui há "Algo que a gente
+   deveria saber e não perguntou", que em caixa-alta vira grito e ocupa três
+   linhas. A voz mono continua nos botões, no progresso e nos rótulos de tela. */
+.rotulo {
+  font-family: var(--fonte-corpo), Georgia, serif;
+  font-size: 0.9375rem;
+  line-height: 1.35;
+  color: var(--branco-202);
+  padding: 0;
+}
+
+.ajuda {
+  font-family: var(--fonte-corpo), Georgia, serif;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--cinza-texto);
+  margin-top: -0.25rem;
+}
+
+/* ── O controle ────────────────────────────────────────────────────────────
+   Fundo um passo acima do preto da página, e não cinza claro: a inversão de
+   luminância (campo claro sobre página escura) puxa o olho para todos os campos
+   ao mesmo tempo, que é o oposto do que uma tela de preencher precisa.
+
+   `font-size: 1rem` é requisito, não escolha: abaixo de 16px o Safari do iPhone
+   dá zoom ao focar o campo e a página inteira sai do lugar.
+
+   `min-height: 2.75rem` = 44px, o alvo de toque mínimo. */
+.controle {
+  font-family: var(--fonte-corpo), Georgia, serif;
+  font-size: 1rem;
+  line-height: 1.4;
+  color: var(--branco-202);
+  background: #101010;
+  border: 1px solid var(--fio-estrutura);
+  border-radius: 2px;
+  padding: 0.6875rem 0.75rem;
+  min-height: 2.75rem;
+  width: 100%;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.controle::placeholder {
+  color: #55554f;
+}
+
+/* O verde do foco. O `outline: none` só é aceitável porque a borda verde mais
+   o `box-shadow` interno fazem um traço de 2px em volta do campo inteiro — mais
+   visível do que o outline padrão, não menos. A regra global de
+   `:focus-visible` continua valendo para `a` e `button`, que é onde ela existe. */
+.controle:focus {
+  outline: none;
+  border-color: var(--verde-sinal);
+  box-shadow: inset 0 0 0 1px var(--verde-sinal);
+}
+
+.area {
+  resize: vertical;
+  min-height: 5.5rem;
+}
+
+/* ── Erro ──────────────────────────────────────────────────────────────────
+   A borda vermelha é redundante de propósito: quem não distingue a cor lê a
+   frase logo abaixo, e quem lê a frase reconhece o campo pela borda. */
+.campo[data-invalido="true"] .controle {
+  border-color: var(--vermelho-erro, #ff6b5e);
+}
+
+.campo[data-invalido="true"] .controle:focus {
+  border-color: var(--verde-sinal);
+}
+
+.erro {
+  font-family: var(--fonte-corpo), Georgia, serif;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--vermelho-erro, #ff6b5e);
+}
+
+/* ── Contador ──────────────────────────────────────────────────────────────
+   Discreto até faltar pouco: cinza durante 260 dos 300 caracteres, branco nos
+   últimos 40, vermelho quando passa. */
+.contador {
+  align-self: flex-end;
+  font-family: var(--fonte-mono), ui-monospace, monospace;
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  color: var(--cinza-texto);
+  font-variant-numeric: tabular-nums;
+}
+
+.contador[data-estado="perto"] {
+  color: var(--branco-202);
+}
+
+.contador[data-estado="passou"] {
+  color: var(--vermelho-erro, #ff6b5e);
+}
+
+/* ── O campo de lista ────────────────────────────────────────────
+   Ele não mora mais aqui: virou `SelectLista.module.css`, junto do componente
+   que o desenha. O que existia neste ponto — `.caixaSelect`, `.select`,
+   `.select option`, `.seta` e um bloco `@supports (appearance: base-select)` —
+   saiu em 01/09/2026 com o `<select>` nativo.
+
+   Fica o registro do porquê, para ninguém tentar de novo: o popup de um
+   `<select>` é desenhado pelo sistema operacional, e nenhum CSS o alcança. O
+   `appearance: base-select` do Chrome 135+ alcançava, e chegou a estar aqui —
+   mas só no Chrome recente, e em qualquer outro navegador a lista voltava a ser
+   azul. Ver o cabeçalho de `SelectLista.tsx`. */
+
+/* ── Listas de radio e de checkbox ─────────────────────────────────────────
+   Linhas, não bolinhas em fileira. O fio de 1px entre linhas é o mesmo fio de
+   estrutura do resto do site, e faz a lista ser lida como um instrumento
+   graduado em vez de um punhado de opções soltas. */
+.lista {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--fio-estrutura);
+}
+
+.linha {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem 0.25rem;
+  min-height: 2.75rem;
+  cursor: pointer;
+  border-bottom: 1px solid var(--fio-estrutura);
+  transition: background-color 0.15s;
+}
+
+.linha:hover {
+  background: #101010;
+}
+
+/* O input de verdade continua na árvore e recebe foco; ele só não é visto.
+   `opacity: 0` e não `display: none` nem `visibility: hidden`, que o tirariam
+   da ordem de tabulação e da árvore de acessibilidade. */
+.marcador {
+  position: absolute;
+  opacity: 0;
+  width: 1.125rem;
+  height: 1.125rem;
+  margin: 0;
+  left: 0.25rem;
+  top: 0.875rem;
+  pointer-events: none;
+}
+
+.desenho {
+  flex: none;
+  width: 1.125rem;
+  height: 1.125rem;
+  margin-top: 0.125rem;
+  border: 1px solid var(--fio-estrutura);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  transition: border-color 0.15s;
+}
+
+.quadrado {
+  border-radius: 2px;
+}
+
+/* Marcado é BRANCO, não verde. O verde desta página é o cursor — campo em foco,
+   passo atual, botão de avançar — e doze caixas marcadas de verde de uma vez
+   apagariam o único sinal que ele carrega. */
+.linha[data-marcada="true"] .desenho {
+  border-color: var(--branco-202);
+}
+
+.linha[data-marcada="true"] .desenho::after {
+  content: "";
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: inherit;
+  background: var(--branco-202);
+}
+
+/* ── O tique do checkbox ───────────────────────────────────────────────────
+   Ponto dentro de círculo é o idioma universal do radio, e ali o quadrado
+   branco menor acima está certo. Dentro de um QUADRADO, porém, o mesmo desenho
+   é o idioma universal de **indeterminado** — meio marcado, nem sim nem não. O
+   único checkbox obrigatório desta página é o aceite de LGPD, e é o pior lugar
+   possível para essa ambiguidade: a pessoa marca, olha, e não sabe se marcou.
+   Então o checkbox marcado vira caixa cheia com um tique, desenhado por duas
+   bordas de um retângulo girado — sem SVG, sem fonte de ícone, sem gastar o
+   verde, que continua sendo o cursor da página e não o estado das caixas. */
+.linha[data-marcada="true"] .quadrado {
+  background: var(--branco-202);
+}
+
+.linha[data-marcada="true"] .quadrado::after {
+  width: 0.5rem;
+  height: 0.25rem;
+  background: none;
+  border: solid var(--preto-202);
+  border-width: 0 0 2px 2px;
+  border-radius: 0;
+  transform: translateY(-2px) rotate(-45deg);
+}
+
+.marcador:focus-visible + .desenho {
+  outline: 1px solid var(--verde-sinal);
+  outline-offset: 3px;
+}
+
+.textoLinha {
+  font-family: var(--fonte-corpo), Georgia, serif;
+  font-size: 0.9375rem;
+  line-height: 1.45;
+  color: var(--branco-202);
+}
+
+.campo[data-invalido="true"] .lista {
+  border-top-color: var(--vermelho-erro, #ff6b5e);
+}
+
+/* ── Aceite de dados ───────────────────────────────────────────────────────
+   O texto do aceite é apoio: cinza, menor, e acima da caixa. A linha da caixa
+   perde o fio de baixo porque ela é a única da "lista" — um fio sozinho embaixo
+   pareceria um separador para um item que não existe. */
+.aceiteTexto {
+  font-family: var(--fonte-corpo), Georgia, serif;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: var(--cinza-texto);
+}
+
+.linhaAceite {
+  border-top: 1px solid var(--fio-estrutura);
+  border-bottom: 0;
+  margin-top: 0.25rem;
+}

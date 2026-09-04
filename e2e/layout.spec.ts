@@ -288,8 +288,12 @@ test.describe("o ímã da lanterna", () => {
     await page.waitForTimeout(400);
     expect((await luz(page)).escala).toBeGreaterThan(1.9);
 
+    // O limite é uma folga, não a contagem exata de paradas: o que se testa é
+    // "dá para chegar ao CONTATO pelo teclado com o ímã aceso", e não quantos
+    // Tabs isso custa. Era 4 até 01/09/2026; o topo ganhou o link INSCRIÇÃO e o
+    // CONTATO virou a quinta parada (PT, EN, A TESE, INSCRIÇÃO, CONTATO).
     const contato = page.locator(".contato");
-    for (let i = 0; i < 4 && !(await contato.evaluate((el) => el === document.activeElement)); i++) {
+    for (let i = 0; i < 8 && !(await contato.evaluate((el) => el === document.activeElement)); i++) {
       await page.keyboard.press("Tab");
     }
 
