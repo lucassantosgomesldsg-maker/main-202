@@ -775,7 +775,17 @@ const copy = {
     // responde. Este par também fecha o percurso: o bloco 1 pergunta "QUEM É
     // VOCÊ" e o último pergunta "QUEM VOCÊ CONHECE", que é exatamente o arco do
     // formulário.
-    { rotulo: "QUEM VOCÊ CONHECE", titulo: "Quem mais deveria estar aqui" },
+    //
+    // O título era "Quem mais deveria estar aqui" e foi trocado em 05/09/2026:
+    // ele pedia para INDICAR alguém para a trilha — "quem mais deveria estar
+    // AQUI", nesta lista, neste programa —, e isso põe quem responde no papel
+    // de quem faz campanha por um terceiro. Não é o que este bloco coleta. Ele
+    // coleta o entorno de quem se inscreve, que é informação sobre ELA: com
+    // quem anda, quem considera bom. "As pessoas ao seu redor" descreve o que
+    // está sendo perguntado sem pedir favor nenhum, e o pedido de fato — as
+    // três pessoas e o LinkedIn — continua onde sempre esteve, no rótulo do
+    // campo logo abaixo.
+    { rotulo: "QUEM VOCÊ CONHECE", titulo: "As pessoas ao seu redor" },
   ],
 
   progresso: {
