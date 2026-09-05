@@ -781,11 +781,19 @@ const copy = {
     // AQUI", nesta lista, neste programa —, e isso põe quem responde no papel
     // de quem faz campanha por um terceiro. Não é o que este bloco coleta. Ele
     // coleta o entorno de quem se inscreve, que é informação sobre ELA: com
-    // quem anda, quem considera bom. "As pessoas ao seu redor" descreve o que
-    // está sendo perguntado sem pedir favor nenhum, e o pedido de fato — as
-    // três pessoas e o LinkedIn — continua onde sempre esteve, no rótulo do
-    // campo logo abaixo.
-    { rotulo: "QUEM VOCÊ CONHECE", titulo: "As pessoas ao seu redor" },
+    // quem anda, quem considera bom.
+    //
+    // O título agora diz por que a pergunta existe, em vez de fazer o pedido:
+    // se você é a média de quem está por perto, as três pessoas abaixo dizem
+    // algo sobre QUEM RESPONDE — e responder deixa de ser favor e passa a ser
+    // parte da própria inscrição. É o único título do formulário que afirma em
+    // vez de nomear um assunto, e é de propósito: ele é a premissa da pergunta
+    // que vem logo abaixo. O pedido de fato — as três pessoas e o LinkedIn —
+    // continua onde sempre esteve, no rótulo do campo.
+    //
+    // "com quem convive" e não "com quem você convive": o "você" já abre a
+    // frase, e repeti-lo emperra a leitura sem acrescentar nada.
+    { rotulo: "QUEM VOCÊ CONHECE", titulo: "Você é a média das pessoas com quem convive" },
   ],
 
   progresso: {
