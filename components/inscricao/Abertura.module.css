@@ -1,0 +1,296 @@
+/* ── A tela de abertura ─────────────────────────────────────────────────────
+   `position: fixed` porque esta é a única tela da página que é um cartaz: ela
+   precisa da viewport inteira, e vive dentro da coluna de 34rem que o resto do
+   formulário usa. Sair do fluxo a liberta sem tocar no layout da página.
+
+   `overflow: auto` e não `hidden`: numa janela muito baixa — um celular
+   deitado, um notebook com a barra de favoritos aberta — o conteúdo tem de
+   poder rolar. Cortar o botão COMEÇAR seria transformar a tela de entrada num
+   beco sem saída.
+
+   O fundo é o `--preto-202` que o `body` já pinta. Ele é declarado aqui mesmo
+   assim porque esta tela cobre a página inteira: sem a cor própria, qualquer
+   coisa que passasse a existir atrás dela apareceria por baixo. */
+.abertura {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  overflow: auto;
+  background: var(--preto-202);
+  display: flex;
+  flex-direction: column;
+  padding: var(--margem);
+}
+
+/* ── O logo, no canto superior esquerdo ─────────────────────────────────────
+   A marca é um arquivo (`/202-marca.svg`), gerado dos mesmos glifos que o
+   componente `Logo202` da home usa — ver `scripts/gerar-logo-marca.mjs`. O
+   ponto verde já vem dentro dele, então aqui basta dar a largura. */
+.marcaTopo {
+  align-self: flex-start;
+  display: block;
+  flex: none;
+  line-height: 0;
+  border-radius: 2px;
+}
+
+.marcaTopo img {
+  display: block;
+  width: clamp(3.75rem, 6vw, 5.5rem);
+  height: auto;
+}
+
+.marcaTopo:focus-visible {
+  outline: 1px solid var(--verde-sinal);
+  outline-offset: 6px;
+}
+
+/* ── O texto ────────────────────────────────────────────────────────────────
+   `z-index` acima da arte: no desktop a montanha chega perto da coluna de
+   texto, e o texto nunca pode ficar por baixo dela.
+
+   `max-width` com dois limites: `52vw` porque no desktop a coluna divide a tela
+   com a arte e não pode invadi-la, e `40rem` porque numa tela muito larga uma
+   linha de texto de 52vw ficaria longa demais para o olho voltar ao começo.
+   Medido: com uma medida mais estreita o título quebrava em duas linhas, e na
+   referência de desktop ele é uma só. */
+.conteudo {
+  position: relative;
+  z-index: 1;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 1.25rem;
+  max-width: min(40rem, 52vw);
+  padding: 2rem 0;
+
+  /* Um respiro a mais na esquerda, só no desktop. A `--margem` da página
+     bastava quando a coluna dividia a tela com nada; com a arte à direita, o
+     texto encostado na borda faz a tela pender para um lado. O `clamp` mantém o
+     recuo proporcional — e some no celular, onde a largura é toda do texto (ver
+     o `@media` abaixo). */
+  margin-left: clamp(0rem, 7vw, 10rem);
+}
+
+.rotulo {
+  color: var(--verde-sinal);
+  margin: 0;
+}
+
+.titulo {
+  margin: 0;
+  font-family: var(--fonte-display), Georgia, serif;
+  font-weight: 300;
+  font-variation-settings: "opsz" 144;
+  /* No desktop a escala mede a LARGURA. O teto de 3.5rem sai da proporção da
+     referência (lá o título mede ~3,7% da largura) e é o que o mantém numa linha
+     só. O celular usa outra fórmula — ver o `@media` no fim do arquivo. */
+  font-size: clamp(2.1rem, 4.4vw, 3.5rem);
+  line-height: 1.05;
+  letter-spacing: -0.015em;
+  color: var(--branco-202);
+  text-wrap: balance;
+}
+
+/* O "202" do título. É o mesmo verde do resto do site — ver o cabeçalho de
+   `Abertura.tsx` para por que os pixels da referência não viraram token. */
+.marcaNoTitulo {
+  color: var(--verde-sinal);
+}
+
+/* As duas frases são um grupo: o espaço ENTRE elas é menor que o espaço que as
+   separa do título e do botão. Sem isto elas flutuam soltas, cada uma parecendo
+   um parágrafo próprio. */
+.linhas {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.linha {
+  margin: 0;
+  font-family: var(--fonte-corpo), Georgia, serif;
+  font-size: clamp(0.9375rem, 1.5vw, 1.0625rem);
+  line-height: 1.55;
+  color: var(--cinza-texto);
+}
+
+/* ── O botão ────────────────────────────────────────────────────────────────
+   Mesma cor, mesma fonte e mesma altura mínima do `.primario` do formulário —
+   é o mesmo objeto, e a pessoa vai encontrá-lo de novo no fim de cada bloco.
+   O que muda é só o que a referência mostra: a seta e o brilho.
+
+   O brilho é `box-shadow` e não `filter: drop-shadow` porque `filter` cria
+   contexto de empilhamento e custa composição a cada repintura — aqui não
+   compensa, o efeito é estático. */
+.comecar {
+  margin-top: 0.75rem;
+  min-height: 3.25rem;
+  padding: 0 1.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 2.5rem;
+  background: var(--verde-sinal);
+  color: var(--preto-202);
+  border: 1px solid var(--verde-sinal);
+  border-radius: 3px;
+  cursor: pointer;
+  font-family: var(--fonte-mono), ui-monospace, monospace;
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  box-shadow: 0 0 2.5rem -0.25rem rgb(198 255 62 / 45%);
+  transition: background-color 0.2s, color 0.2s, box-shadow 0.2s;
+}
+
+.comecar:hover {
+  background: transparent;
+  color: var(--verde-sinal);
+  box-shadow: 0 0 2.5rem -0.5rem rgb(198 255 62 / 30%);
+}
+
+.comecar:focus-visible {
+  outline: 1px solid var(--verde-sinal);
+  outline-offset: 3px;
+}
+
+.seta {
+  width: 1.05rem;
+  height: 1.05rem;
+  flex: none;
+}
+
+/* ── A arte ─────────────────────────────────────────────────────────
+   O enquadramento vem da referência, medido: o recorte começa a 33% da largura
+   e a 36% da altura dela, e sangra até as bordas direita e inferior. Reproduzir
+   essa proporção é o que põe o brilho da trilha entre 62% e 88% da largura e
+   entre 49% e 87% da altura — os números que medi na imagem original. É daí que
+   vem a folga dos cantos: ela não é um recuo inventado, é a proporção da arte.
+
+   `mix-blend-mode: screen` é o que faz a arte viver sobre o fundo da página em
+   vez de por cima dele: preto não soma nada no `screen`, então o retângulo do
+   arquivo desaparece e sobra o brilho. Sem ele a imagem pintaria um bloco `#000`
+   contra o `#0a0a0a` da página — um retângulo mais escuro, com a moldura à
+   mostra. */
+.arte {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 67%;
+  max-width: 62rem;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  z-index: 0;
+}
+
+.arte img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+
+/* ── Celular e telas estreitas ──────────────────────────────────────────────
+   A referência de celular empilha: marca, texto, arte, marca. O texto sobe para
+   o topo e a arte ocupa a metade de baixo, em vez de ficar ao lado.
+
+   O corte em 900px é o ponto em que a coluna de texto e a arte deixam de caber
+   lado a lado sem uma comer a outra. */
+@media (max-width: 899px) {
+  .conteudo {
+    flex: none;
+    justify-content: flex-start;
+    padding: 2.5rem 0 0;
+    max-width: 100%;
+    margin-left: 0;
+  }
+
+  /* Aqui a escala passa a medir `vmin` — a MENOR das duas dimensões — e não a
+     largura. `vw` enxerga só a horizontal: num telefone estreito a conta dá um
+     número minúsculo, o `clamp` cai no piso, e o título trava grande demais para
+     a altura disponível. Com `vmin`, uma tela BAIXA encolhe o texto do mesmo
+     jeito que uma estreita — que é o que faz esta tela caber inteira num
+     celular deitado ou num aparelho curto.
+
+     A fórmula fica só aqui de propósito: no desktop `vmin` mediria a ALTURA da
+     janela, e uma janela de 1280x720 encolheria o título de 56px para 45px sem
+     nenhum motivo — sobra largura de sobra ali. */
+  .titulo {
+    font-size: clamp(1.6rem, 6vmin, 2.4rem);
+  }
+
+  .linha {
+    /* O piso do corpo é proporcionalmente mais alto que o do título: texto
+       corrido tem um tamanho mínimo de leitura que um título não tem. */
+    font-size: clamp(0.875rem, 1.9vmin, 1rem);
+  }
+
+  /* O botão encolhe um pouco. O vão de 2.5rem entre o rótulo e a seta é gesto de
+     tela larga; num celular ele abre um buraco no meio do botão.
+
+     3rem de altura é o piso, e não um número solto: são 48px, acima dos 44px de
+     alvo mínimo de toque. Abaixo disso o botão fica bonito e difícil de acertar
+     com o dedo. */
+  .comecar {
+    gap: 1.5rem;
+    min-height: 3rem;
+    padding: 0 1.25rem;
+  }
+
+  /* No celular a cena deixa de ficar ao lado do texto e passa a ocupar a
+     metade de baixo, CENTRADA — na referência de celular o centro dela cai em
+     56% da largura, praticamente no meio, e não encostada num dos lados. */
+  /* No celular a arte deixa de ficar ao lado do texto e ocupa a metade de
+     baixo, CENTRADA — na referência o centro dela cai em 56% da largura,
+     praticamente no meio, e não encostada num dos lados. Ela sangra um pouco
+     para fora da margem da página, como lá. */
+
+
+  /* Fora do fluxo, como no desktop — é isto que faz a tela caber em 100dvh sem
+     rolagem: a arte deixa de somar altura à página. Antes ela era um item do
+     flex e empurrava tudo para baixo, criando um scroll que o desktop nunca
+     teve. Centrada e sangrando para fora da margem, como na referência. */
+  .arte {
+    left: 50%;
+    right: auto;
+    bottom: 0;
+    transform: translateX(-50%);
+    width: 86%;
+    max-width: none;
+  }
+
+}
+
+/* Telas de celular BAIXAS (o iPhone SE é o caso: 568px de altura). A arte
+   encolhe mais um pouco — com pouca altura, o texto e a montanha disputam o
+   mesmo espaço, e quem tem de ceder é a decoração. */
+@media (max-width: 899px) and (max-height: 640px) {
+  .arte {
+    width: 72%;
+  }
+}
+
+/* ── Telas muito baixas ─────────────────────────────────────────────────────
+   Celular deitado, ou janela de desktop achatada. A arte é a primeira coisa a
+   sair: ela é decoração, e o que precisa caber é o caminho até o COMEÇAR. */
+@media (max-height: 480px) {
+  .arte {
+    display: none;
+  }
+
+  .conteudo {
+    justify-content: flex-start;
+    padding-top: 1.5rem;
+  }
+}
+
+/* Quem pediu menos movimento não ganha menos página: aqui não há animação
+   nenhuma para desligar. A regra existe para que a próxima pessoa que
+   acrescentar uma lembre de considerá-la. */
+@media (prefers-reduced-motion: reduce) {
+  .comecar {
+    transition: none;
+  }
+}

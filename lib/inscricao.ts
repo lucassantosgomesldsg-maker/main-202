@@ -355,7 +355,7 @@ export const EMPREENDEDORISMO: readonly OpcaoNumerica[] = [
   { valor: 1, rotulo: "Já pensei, nunca tirei do papel" },
   { valor: 2, rotulo: "Já tentei algo que não foi para a frente" },
   { valor: 3, rotulo: "Tenho algo rodando hoje, ainda sem receita" },
-  { valor: 4, rotulo: "Já tive receita, com cliente pagante" },
+  { valor: 4, rotulo: "Já tenho receita, com cliente pagante" },
   { valor: 5, rotulo: "Já levantei investimento" },
 ] as const;
 
@@ -609,6 +609,7 @@ export type CopyInscricao = {
   readonly abertura: {
     readonly rotulo: string;
     readonly titulo: string;
+    readonly voltarAoSite: string;
     readonly linhas: readonly string[];
     readonly botao: string;
   };
@@ -747,9 +748,17 @@ const copy = {
   abertura: {
     rotulo: "A TRILHA · INSCRIÇÃO",
     titulo: "A próxima trilha da 202",
+    /**
+     * O nome do link do logo, no canto superior esquerdo.
+     *
+     * O `Logo202` já se anuncia como "202Lab", mas isso descreve a MARCA, não o
+     * destino — e quem ouve "202Lab, link" não sabe para onde vai. Esta frase
+     * diz as duas coisas.
+     */
+    voltarAoSite: "202Lab — voltar ao site",
     linhas: [
       "Retornaremos com mais informações em um futuro breve.",
-      "Inscreva-se early.",
+      "Inscreva-se antecipadamente.",
     ],
     botao: "COMEÇAR",
   },

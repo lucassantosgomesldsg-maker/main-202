@@ -1215,7 +1215,12 @@ test.describe("o teclado", () => {
     const servidor = await fingirServidor(page, OK_NOVA_SEM_EMAIL);
     await page.goto(ROTA);
 
-    // Abertura: um alvo só, alcançado por Tab e acionado por Enter.
+    // Abertura: DOIS alvos, nesta ordem. O logo vem primeiro porque está no
+    // canto superior esquerdo, e a ordem de tabulação segue o DOM — que aqui
+    // segue a leitura. Ele entrou em 04/09/2026 com o redesenho; antes disso o
+    // COMEÇAR era a primeira parada.
+    await page.keyboard.press("Tab");
+    await expect(page.getByRole("link", { name: COPY.abertura.voltarAoSite })).toBeFocused();
     await page.keyboard.press("Tab");
     await expect(botao(page, COPY.abertura.botao)).toBeFocused();
     await page.keyboard.press("Enter");
@@ -1516,6 +1521,24 @@ test.describe("as inscrições encerradas", () => {
           // Valor de mentira, e que não se parece com uma chave: este servidor
           // só fala com o `createServer` acima.
           SUPABASE_SERVICE_ROLE_KEY: "chave-de-mentira-do-teste",
+          /*
+           * O CRM, desligado à força — e não por descuido de quem escreveu isto.
+           *
+           * `repositorioConfigurado()` escolhe o CRM **antes** do Supabase
+           * sempre que `CRM_INTEREST_URL` existe. Quem trabalha nesta página tem
+           * essa variável no `.env.local`, o `next start` a carrega, e então o
+           * servidor de mentira aqui em cima nunca é consultado: o CRM de
+           * verdade responde "abertas" e o teste falha dizendo que a tela de
+           * encerrado não apareceu — sem uma linha sobre o porquê. No CI passa,
+           * porque lá não existe `.env.local`; falha só na máquina de quem
+           * mexeu, que é o pior lugar para um teste mentir.
+           *
+           * String vazia e não `delete`: o `next start` recarrega os `.env` e
+           * repõe o que estiver **ausente** do ambiente. Vazio já está presente,
+           * e `ambienteCrm()` trata vazio como não configurado.
+           */
+          CRM_INTEREST_URL: "",
+          CRM_INTEREST_FORM_TOKEN: "",
         },
         stdio: ["ignore", "pipe", "pipe"],
       },
