@@ -17,6 +17,7 @@ import {
   confirmacaoDe,
   textoProgresso,
 } from "@/lib/inscricao";
+import { URL_SITE } from "@/lib/site";
 import Formulario from "./Formulario";
 
 /**
@@ -166,13 +167,41 @@ describe("a abertura", () => {
   it("oferece uma porta só, e ela leva ao primeiro bloco", async () => {
     render(<Formulario />);
     expect(titulo()).toBe(C.abertura.titulo);
-    // "Sem link para a home, sem link para a tese, sem troca de idioma. A
-    // página tem uma função."
+
+    // Um botão só. A regra original era "sem link para a home, sem link para a
+    // tese, sem troca de idioma — a página tem uma função", e a parte do BOTÃO
+    // segue valendo: nada compete com o COMEÇAR.
     expect(screen.getAllByRole("button")).toHaveLength(1);
-    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+
+    // O link do logo entrou em 04/09/2026, com o redesenho da abertura, e é a
+    // única exceção àquela regra. Ele existe porque esta página é `noindex` e
+    // ninguém chega nela navegando: sem ele, quem abre o link sem contexto não
+    // tem como descobrir de quem ele é. É UM link, e ele leva ao site — não à
+    // tese, não a uma troca de idioma.
+    const links = screen.getAllByRole("link");
+    expect(links).toHaveLength(1);
+    expect(links[0]).toHaveAttribute("href", URL_SITE);
+    expect(links[0]).toHaveAccessibleName(C.abertura.voltarAoSite);
 
     await comecar(usuario());
     expect(titulo()).toBe(C.blocos[0].titulo);
+  });
+
+  it("devolve o foco ao COMEÇAR quando alguém volta do primeiro bloco", async () => {
+    // VOLTAR no bloco 1 leva de volta à abertura, e é o único caminho de volta
+    // que existe: a barra de progresso só pula entre blocos. Quando a abertura
+    // deixou de ser JSX solto dentro do `Formulario` e virou o componente
+    // `Abertura`, o `ref` que o efeito de foco usa ficou para trás — o efeito
+    // procurava o primeiro campo focável DENTRO da tela e não achava tela
+    // nenhuma. O foco caía no `body`: quem usa teclado voltava e tinha de
+    // atravessar a página inteira de novo para chegar ao COMEÇAR.
+    const user = usuario();
+    render(<Formulario />);
+    await comecar(user);
+    await user.click(screen.getByRole("button", { name: C.navegacao.voltar }));
+
+    expect(titulo()).toBe(C.abertura.titulo);
+    expect(screen.getByRole("button", { name: C.abertura.botao })).toHaveFocus();
   });
 
   it("não mostra progresso enquanto não há passo", () => {

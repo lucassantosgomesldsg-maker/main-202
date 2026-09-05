@@ -42,6 +42,7 @@ import {
 import ComboboxCurso from "./ComboboxCurso";
 import Indicacoes from "./Indicacoes";
 import Premios from "./Premios";
+import Abertura from "./Abertura";
 import Progresso from "./Progresso";
 import estilos from "./Formulario.module.css";
 
@@ -749,22 +750,15 @@ export default function Formulario() {
   }
 
   if (passo === ABERTURA) {
-    const a = COPY_INSCRICAO.abertura;
     return (
       <>
+        {/* O `Progresso` continua aqui, vazio, e isso não é sobra: é ele que
+            desenha a região `role="status"` que anuncia a troca de bloco. Ela
+            precisa EXISTIR desde a abertura — uma região viva que nasce junto
+            com o primeiro anúncio costuma não ser lida. Guardado por
+            `Progresso.test.tsx`. */}
         <Progresso atual={null} aoVoltarPara={irPara} />
-        <section className={estilos.tela} data-tela="abertura" ref={telaRef}>
-          <p className={`label ${estilos.rotuloTela}`}>{a.rotulo}</p>
-          <h1 className={estilos.titulo}>{a.titulo}</h1>
-          {a.linhas.map((linha) => (
-            <p key={linha} className={estilos.linha}>
-              {linha}
-            </p>
-          ))}
-          <button type="button" className={estilos.primario} onClick={() => irPara(0)}>
-            {a.botao}
-          </button>
-        </section>
+        <Abertura ref={telaRef} aoComecar={() => irPara(0)} />
       </>
     );
   }
