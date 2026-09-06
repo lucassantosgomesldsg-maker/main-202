@@ -39,6 +39,12 @@
   letter-spacing: -0.01em;
   color: var(--branco-202);
   margin-bottom: 2rem;
+
+  /* Cinco dos seis títulos cabem numa linha e não sentem esta regra. O sexto —
+     "Você é a média das pessoas com quem convive" — quebra em duas, e sem
+     `balance` a segunda linha ficava com a palavra "convive" sozinha. É a mesma
+     propriedade que a abertura já usa. */
+  text-wrap: balance;
 }
 
 .linha {
