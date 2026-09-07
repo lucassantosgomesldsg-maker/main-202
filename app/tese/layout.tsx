@@ -29,7 +29,18 @@ export const metadata: Metadata = {
     // inteiro, e a imagem que o pai tinha vai junto. Apontar de volta para a
     // rota da raiz reaproveita o mesmo card (logo + oneliner), que é
     // institucional e serve às duas páginas — não é imagem provisória.
-    images: ["/opengraph-image"],
+    //
+    // As DIMENSÕES não são decoração. Apontar a imagem por string crua, como
+    // esta linha fazia, emite só `og:image` — sem `og:image:width`/`height`,
+    // que a raiz ganha de graça por usar o arquivo de convenção. E é por essas
+    // duas tags que o WhatsApp decide entre o card GRANDE e o thumbnail
+    // QUADRADO; sem elas ele apara o 1200x630 pelo centro e corta justamente o
+    // "202" da esquerda e o oneliner de baixo, deixando um retângulo preto
+    // quase vazio. Conferido no HTML servido: a raiz emitia as duas, a /tese
+    // não emitia nenhuma.
+    images: [
+      { url: "/opengraph-image", width: 1200, height: 630, type: "image/png", alt: "202Lab" },
+    ],
   },
   twitter: {
     card: "summary_large_image",
@@ -39,6 +50,7 @@ export const metadata: Metadata = {
     // `summary_large_image` sem imagem é a única combinação que degrada para
     // pior que o card simples — a rede mostra a moldura grande vazia.
     images: ["/opengraph-image"],
+    // (twitter:image não tem par de tags de dimensão; aqui a string basta.)
   },
 };
 

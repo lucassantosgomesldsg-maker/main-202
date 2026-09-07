@@ -27,9 +27,20 @@ const descricao = COPY_INSCRICAO.abertura.linhas[1];
  * abaixo dela (spec §11). A página existe para quem recebe o link a dedo; não
  * há link para ela em lugar nenhum do site. É reversível numa linha.
  *
- * Open Graph mínimo, sem imagem própria: o link vai ser colado no WhatsApp e no
- * LinkedIn, onde título e descrição são o que aparece — a `opengraph-image` do
- * site serve para o resto.
+ * Open Graph SEM `images` aqui, e isso agora é deliberado em vez de um furo.
+ * O comentário anterior dizia que "a `opengraph-image` do site serve para o
+ * resto" — não servia. Declarar este objeto `openGraph` substitui o do layout
+ * pai inteiro, e a imagem da raiz ia junto: conferido no HTML servido, esta
+ * rota saía com og:image NENHUM, e ainda pedindo `twitter:card` grande, que é
+ * a combinação que a /tese documenta como a pior possível. No WhatsApp o
+ * resultado era o crawler catando sozinho alguma <img> da página.
+ *
+ * Quem repõe a imagem agora é `opengraph-image.tsx` neste mesmo segmento: o
+ * arquivo de convenção tem precedência sobre o `metadata` do segmento e emite
+ * og:image, og:image:width/height/type/alt e o par twitter:image completo —
+ * conferido no HTML servido. Por isso não há `images` escrito à mão nem aqui
+ * nem no `twitter` abaixo: escrever a string de novo duplicaria as tags e,
+ * pior, a versão à mão sairia sem as dimensões.
  */
 export const metadata: Metadata = {
   title: COPY_INSCRICAO.tituloAba,
