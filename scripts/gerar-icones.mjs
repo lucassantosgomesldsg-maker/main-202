@@ -5,26 +5,39 @@
  *   node scripts/gerar-icones.mjs
  *
  * Produz:
- *   app/icon.svg        quadrado, "202" branco sobre o preto da marca
- *   app/apple-icon.png  180x180 (rel="apple-touch-icon")
+ *   app/icon.svg        "202" SEM fundo, cor conforme o tema do navegador
+ *   app/apple-icon.png  180x180 — este mantém o preto (ver abaixo)
  *   app/favicon.ico     16/32/48 — o fallback de quem não lê favicon SVG,
  *                       e o que atende o /favicon.ico que todo cliente pede
  *                       sozinho, sem <link> nenhum
  *   .superpowers/sdd/2026-07-28-main-page-202/frames/icone-*.png  provas
  *
- * POR QUE QUADRADO: a marca "202" é 2.15:1. O ícone antigo usava esse
- * viewBox largo direto, então num slot 16x16 o preto virava uma FAIXA de
- * 16x7.5 boiando em transparência — em aba clara, um borrão sem contorno.
- * O quadrado dá o ladrilho preto inteiro em qualquer slot.
+ * POR QUE O QUADRADO PRETO SAIU (troca pedida em 07/09/2026).
+ * A versão anterior assentava a marca num ladrilho preto sólido, e a razão
+ * registrada aqui era boa: usar o viewBox largo (2.15:1) direto fazia o preto
+ * virar "uma FAIXA de 16x7.5 boiando em transparência — em aba clara, um
+ * borrão sem contorno". A objeção valia para AQUELE desenho, cujo fundo era
+ * preto OPACO. Some o fundo e ela deixa de se aplicar: o que sobra na tela é
+ * só a tinta dos glifos, e a cor dela agora segue `prefers-color-scheme`
+ * (#0a0a0a em tema claro, #ffffff em tema escuro). Não há mais faixa para
+ * boiar nem contorno a perder — em qualquer um dos dois temas a marca cai
+ * sobre um fundo que a contrasta.
  *
- * O TETO DE LEGIBILIDADE (medido, não estimado): com os três glifos inteiros
- * dentro de um quadrado, a altura do glifo num ícone de 16px é
- * 16 * 303.5/653 ≈ 7.4px, ~5px por dígito. A caixa de tinta do logo já é
- * justa (0.2% de folga horizontal — conferido rasterizando e medindo os
- * pixels), então NÃO existe recorte a recuperar: 7.4px é o teto geométrico,
- * não um defeito de rasterização. Passar disso exigiria cortar a marca ou
- * mostrar menos glifos — decisão de marca, do fundador, não do build.
- * O `TRACO` abaixo é a compensação óptica possível sem tocar na forma.
+ * O TETO DE LEGIBILIDADE do comentário antigo continua verdadeiro e continua
+ * medido: com os três glifos dentro do slot, a altura do glifo num ícone de
+ * 16px é ~7.4px, ~5px por dígito, e isso é geometria, não rasterização ruim.
+ * Duas coisas o empurram sem cortar a marca nem tirar glifo:
+ *   - TRACO subiu de 5 para 16 (engorda óptica; o hairline do didone é o que
+ *     evapora primeiro no downsample);
+ *   - sem o ladrilho, a marca usa a largura inteira do slot em vez de dividir
+ *     espaço com uma moldura.
+ * E o teto morde menos do que parece: em tela Retina a aba de 16px CSS é
+ * rasterizada em 32px REAIS, que é onde o desenho de fato é lido.
+ *
+ * A EXCEÇÃO é o apple-icon: o iOS achata transparência em PRETO e aplica a
+ * própria máscara arredondada por cima. Glifo escuro sobre transparente
+ * sumiria na tela de início, então ali o fundo preto FICA — e está certo que
+ * fique, porque naquele contexto o ícone é um ladrilho de verdade.
  *
  * Requer `sharp`, que já vem no node_modules como dependência do next. É
  * script de autoria (roda à mão quando o logo muda), não entra no build.
@@ -43,8 +56,11 @@ const BRANCO = "#ffffff";
 const LARGURA = 0.96;
 /** Engorda óptica, em unidades do viewBox (a marca tem 653 de largura).
  *  Some no tamanho grande e é o que faz o hairline do didone sobreviver
- *  ao downsample para 16/32px. Comparado a olho em 0, 3, 6 e 10. */
-const TRACO = 5;
+ *  ao downsample para 16/32px. Comparado a olho em 0, 3, 6 e 10 — e depois
+ *  em 16 e 24, quando o ladrilho preto saiu: sem a moldura para dar contorno,
+ *  o traço precisa carregar sozinho a presença do glifo. 24 já engrossa a
+ *  ponto de descaracterizar o didone; 16 é o limite que ainda parece a marca. */
+const TRACO = 16;
 
 /** Lê os glifos do arquivo gerado, sem depender de transpilar TS. */
 function lerGlifos() {
@@ -56,14 +72,29 @@ function lerGlifos() {
 }
 
 /** `janela` é o retângulo do viewBox em unidades do logo: {x, y, lado}. */
-function montarSvg({ grupo, glifos }, janela, { traco = TRACO, px } = {}) {
+function montarSvg(
+  { grupo, glifos },
+  janela,
+  { traco = TRACO, px, fundo = null, cor = BRANCO, corEscura = null } = {},
+) {
   const { x, y, lado } = janela;
   const dim = px ? ` width="${px}" height="${px}"` : "";
-  const pincel = traco > 0 ? ` stroke="${BRANCO}" stroke-width="${traco}"` : "";
+  const rect = fundo
+    ? `<rect x="${x}" y="${y}" width="${lado}" height="${lado}" fill="${fundo}"/>`
+    : "";
+  // `corEscura` só existe no SVG da aba. Os arquivos rasterizados (.ico, apple)
+  // recebem cor fixa: um PNG não tem como consultar o tema de quem olha.
+  const estilo = corEscura
+    ? `<style>.marca{fill:${cor};stroke:${cor}}` +
+      `@media(prefers-color-scheme:dark){.marca{fill:${corEscura};stroke:${corEscura}}}</style>`
+    : "";
+  const pinta = corEscura ? ` class="marca"` : ` fill="${cor}"${traco > 0 ? ` stroke="${cor}"` : ""}`;
+  const pincel = traco > 0 ? ` stroke-width="${traco}"` : "";
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${x} ${y} ${lado} ${lado}"${dim}>` +
-    `<rect x="${x}" y="${y}" width="${lado}" height="${lado}" fill="${PRETO}"/>` +
-    `<g transform="${grupo}" fill="${BRANCO}"${pincel}>` +
+    estilo +
+    rect +
+    `<g transform="${grupo}"${pinta}${pincel}>` +
     glifos.map((g) => `<g transform="${g.transform}"><path d="${g.d}"/></g>`).join("") +
     `</g></svg>`
   );
@@ -78,7 +109,7 @@ function montarSvg({ grupo, glifos }, janela, { traco = TRACO, px } = {}) {
 async function medirTinta(logo) {
   const janela = { x: -200, y: 300, lado: 1200 };
   const px = 1200;
-  const cru = montarSvg(logo, janela, { traco: 0, px });
+  const cru = montarSvg(logo, janela, { traco: 0, px, fundo: PRETO, cor: BRANCO });
   const { data, info } = await sharp(Buffer.from(cru), { density: 300 })
     .raw()
     .toBuffer({ resolveWithObject: true });
@@ -138,24 +169,28 @@ function montarIco(imagens) {
 const logo = lerGlifos();
 const tinta = await medirTinta(logo);
 const lado = tinta.largura / LARGURA;
-const svg = montarSvg(logo, {
-  x: tinta.cx - lado / 2,
-  y: tinta.cy - lado / 2,
-  lado,
-});
+const janela = { x: tinta.cx - lado / 2, y: tinta.cy - lado / 2, lado };
 
-writeFileSync(join(RAIZ, "app/icon.svg"), svg + "\n");
-writeFileSync(join(RAIZ, "app/apple-icon.png"), await png(svg, 180));
+/** A aba: sem fundo, e a tinta troca de cor junto com o tema do navegador. */
+const svgAba = montarSvg(logo, janela, { cor: PRETO, corEscura: BRANCO });
+/** O .ico é raster e não consulta tema: fica na cor que serve ao caso comum
+ *  (barra clara). Só o alcançam clientes que não leem favicon SVG. */
+const svgIco = montarSvg(logo, janela, { cor: PRETO });
+/** iOS achata transparência em preto — ver o cabeçalho. */
+const svgApple = montarSvg(logo, janela, { fundo: PRETO, cor: BRANCO });
+
+writeFileSync(join(RAIZ, "app/icon.svg"), svgAba + "\n");
+writeFileSync(join(RAIZ, "app/apple-icon.png"), await png(svgApple, 180));
 writeFileSync(
   join(RAIZ, "app/favicon.ico"),
   montarIco(
-    await Promise.all([16, 32, 48].map(async (size) => ({ size, buf: await png(svg, size) }))),
+    await Promise.all([16, 32, 48].map(async (size) => ({ size, buf: await png(svgIco, size) }))),
   ),
 );
 
 mkdirSync(FRAMES, { recursive: true });
 for (const size of [16, 32, 64, 180]) {
-  const buf = await png(svg, size);
+  const buf = await png(svgApple, size);
   writeFileSync(join(FRAMES, `icone-${size}.png`), buf);
   // ampliação nearest: é assim que dá para OLHAR um ícone de 16px
   writeFileSync(
