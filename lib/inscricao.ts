@@ -762,13 +762,26 @@ export type CopyInscricao = {
  * CopyCampo>` de `campos` é o que garante, em tempo de compilação, que nenhum
  * campo do formulário chegue à tela sem rótulo.
  *
- * **Sobre a abertura (§4.0).** Ela teve três formas. Nasceu descrevendo a
+ * **Sobre a abertura (§4.0).** Ela teve quatro formas. Nasceu descrevendo a
  * trilha em quatro linhas; em 24/08/2026 o Matheus a cortou para duas que não
  * descreviam nada ("Retornaremos com mais informações em um futuro breve");
  * em 19/09/2026, com a trilha desenhada, o Pedro pediu o contrário: que a tela
- * explique como a trilha funciona. O texto de origem é dele, em seis
- * parágrafos; o que está aqui é esse texto condensado na voz do site, sem
- * acrescentar fato nenhum.
+ * explique como a trilha funciona, e escreveu seis parágrafos. No mesmo dia o
+ * Matheus revisou essa copy em três direções, e é a forma que está aqui:
+ *
+ * - **Voz de startup, e não de mercado corporativo.** A primeira condensação
+ *   falava em "liderar projetos", "posições de destaque", "ferramentas
+ *   modernas de forma estratégica". A trilha forma builders AI-native para
+ *   startups, produtos e tecnologia, e a página diz isso com as palavras da
+ *   tese do site.
+ * - **A prática descrita como ela é.** Não há "demandas reais de empresas
+ *   parceiras": as práticas são fixas e iguais para todo mundo, feitas numa
+ *   pasta da própria pessoa, corrigidas por um agente do Claude contra
+ *   critérios definidos antes, com feedback ponto a ponto. A fonte é o
+ *   repositório da trilha (`~/orca/trilha`, `MAPA-DE-CONTEUDO.md` e o
+ *   `README.md` que o aluno recebe), não o texto do Pedro.
+ * - **Menos travessão e menos frase de AI.** Nenhum travessão dentro da copy,
+ *   e o padrão "não é X, é Y" saiu da cadeia de títulos.
  *
  * Para quem for mexer:
  *
@@ -777,22 +790,20 @@ export type CopyInscricao = {
  * - **A modalidade segue em aberto.** Ninguém disse se há encontro presencial,
  *   então a página não diz "remoto" nem "presencial" — o teste de palavras
  *   proibidas continua lá, só mais curto.
- * - **As ressalvas do texto de origem ficam.** "A proposta é selecionar… e
- *   conectá-las", "a equipe pode acompanhar", "pode ser convidado", "pode
- *   apresentar", "capaz de acelerar", "não é só aprender sobre AI". A primeira
- *   versão desta copy trocou várias delas por indicativo seco ("conectamos",
- *   "acompanha", "não é aprender") — lê melhor e promete o que ninguém
- *   prometeu. Uma revisão apontou, e elas voltaram. Quem encurtar uma frase
- *   daqui confere se não cortou justamente o "pode".
- * - **Presente, e não futuro.** O texto de origem está todo no futuro ("será",
- *   "terão"), porque a trilha ainda não começou. A página usa o presente, que é
- *   a voz do site — e quem diz que ainda não começou é o rótulo "início
- *   previsto", no cartaz.
- * - **"AI", e não "IA".** O texto de origem usa "IA"; o site inteiro (a tese, o
- *   bloco 3 deste formulário) usa "AI", e uma página não troca de grafia no meio.
+ * - **As ressalvas do que vem depois ficam.** "Pode ser convidado", "pode
+ *   apresentar". Ninguém prometeu vaga nem contratação, e a página também não.
+ *   Quem encurtar uma frase daqui confere se não cortou justamente o "pode".
+ * - **O que a página afirma sobre o funcionamento** (o Claude é o professor,
+ *   uma aula por conversa de cerca de uma hora, prática corrigida por outro
+ *   Claude com critérios prévios, a oficina que acumula, a 202 acompanha) está
+ *   no `README.md` da trilha, que é público. A lista das práticas segue o mapa
+ *   de conteúdo de 19/09; se o mapa mudar, ela muda junto.
+ * - **"AI", e não "IA".** O site inteiro (a tese, o bloco 3 deste formulário)
+ *   usa "AI", e uma página não troca de grafia no meio.
  *
  * A gratuidade, que a primeira forma afirmava, **não voltou**: ninguém a
- * reafirmou.
+ * reafirmou. Carga horária diária e critério de seleção também não estão na
+ * página: existem no planejamento, mas ninguém os fechou para o público.
  */
 const copy = {
   rotuloPagina: "A TRILHA · INSCRIÇÃO",
@@ -815,53 +826,53 @@ const copy = {
      * fazer sentido sozinha, embaixo de um link no WhatsApp.
      */
     linhas: [
-      "Um percurso de desenvolvimento em duas frentes: teoria no seu ritmo, com a AI como ferramenta de trabalho, e prática em demandas reais de empresas parceiras.",
-      "Para quem está nas universidades de São Paulo e quer chegar a posições de destaque e liderança no mercado.",
+      "Seis semanas para virar builder AI-native: você aprende dentro do Claude Code, com o Claude como professor, e constrói algo de verdade a cada módulo.",
+      "Para quem está nas universidades de São Paulo e quer construir startups, produtos e tecnologia, não só estudar sobre isso.",
     ],
     dados: [
       { rotulo: "INÍCIO PREVISTO", valor: "Começo de outubro" },
       { rotulo: "DURAÇÃO", valor: "Cerca de 6 semanas" },
-      { rotulo: "FRENTES", valor: "Teoria e prática" },
+      { rotulo: "A SALA DE AULA", valor: "O Claude Code" },
     ],
     botao: "COMEÇAR",
     convite: "COMO FUNCIONA",
 
     porQue: {
       rotulo: "POR QUE EXISTE",
-      titulo: "Não falta tecnologia. Falta quem saiba usá-la.",
+      titulo: "Construir com AI virou a vantagem que nenhum diploma dá.",
       texto: [
-        "O que o mercado procura hoje são pessoas capazes de usar ferramentas modernas de forma estratégica, liderar projetos e transformar conhecimento em resultado concreto.",
-        "A trilha é o percurso que a 202 criou para identificar, preparar e acompanhar quem tem esse potencial. A proposta é selecionar pessoas promissoras nas universidades de São Paulo, formar para o que o mercado pede agora e, depois, conectá-las às empresas parceiras que procuram esse perfil.",
+        "A fronteira da tecnologia se renova mais rápido do que qualquer grade curricular. Quem sabe construir com AI tira uma ideia do papel em dias, testa com gente de verdade e aprende com o que volta. Isso hoje vale mais do que repertório.",
+        "A trilha é o percurso que a 202 criou para encontrar, formar e acompanhar quem tem esse potencial nas universidades de São Paulo. A proposta é formar builders AI-native e, depois, conectar quem se destacar às startups e empresas parceiras que procuram exatamente esse perfil.",
       ],
     },
 
     frentes: {
       rotulo: "COMO FUNCIONA",
-      titulo: "Duas frentes, e uma alimenta a outra",
+      titulo: "Aula e oficina, na mesma ferramenta",
       itens: [
         {
           tag: "TEORIA",
-          titulo: "No seu ritmo, pela sua própria AI",
+          titulo: "Aula com o Claude, no seu ritmo",
           texto:
-            "O material chega pela sua AI — o Claude Code, por exemplo: trechos de livros, vídeos, podcasts e outros conteúdos selecionados pela equipe. Você estuda no próprio ritmo ao longo da trilha e desenvolve a técnica junto com uma visão mais ampla de negócios, tecnologia, liderança e mercado.",
+            "A sala de aula é o Claude Code, na sua máquina. O Claude é o professor: conduz cada aula numa conversa de cerca de uma hora, explica sem assumir que você já sabe, cita a grande referência de cada tema e só avança quando você mostra que entendeu. Fechou o computador, ele retoma de onde parou.",
         },
         {
           tag: "PRÁTICA",
-          titulo: "Entregas para demandas reais",
+          titulo: "Entregas fixas, corrigidas uma a uma",
           texto:
-            "Os entregáveis partem de demandas reais dos parceiros da 202, e não de exercícios simulados. Se uma empresa parceira precisa de um plano de negócios e o tema está na trilha, você estuda o assunto e usa o que aprendeu para entregar algo ligado a essa necessidade.",
+            "Cada módulo termina com uma prática igual para todo mundo: uma página no ar, um sistema pequeno com dado público, uma feature com AI, um plano de negócio, um produto que cobra. Você constrói numa pasta sua, entrega, e um agente do Claude corrige contra critérios definidos antes. O feedback volta para você, ponto a ponto, e as aulas seguintes partem do que você fez.",
         },
       ],
       ligacao:
-        "É assim que você entende como o mercado funciona: enfrentando desafios parecidos com os de um ambiente profissional e aprendendo a gerar resultado que uma empresa de verdade pode usar.",
+        "A oficina acumula: o que você constrói numa aula continua na seguinte. No fim da trilha, o que você tem é um portfólio de coisas no ar, feitas por você.",
     },
 
     ai: {
-      rotulo: "AI NO CENTRO",
-      titulo: "O objetivo não é só aprender sobre AI. É trabalhar com ela.",
+      rotulo: "A AI COMO MÉTODO",
+      titulo: "O que a trilha ensina é dirigir a AI.",
       texto: [
-        "A 202 trata a AI como ferramenta de trabalho, capaz de acelerar projetos, aumentar a produtividade e viabilizar soluções que seriam muito demoradas ou complexas se fossem construídas só à mão.",
-        "Por isso a trilha também ensina a usá-la de forma estratégica — acompanhando as mudanças do mercado e aproveitando tecnologia de última geração para desenvolver sistemas, automatizar atividades e melhorar o resultado dos projetos.",
+        "Você não precisa saber programar para começar. O que se aprende é conduzir um agente: descrever bem o problema, dar contexto, pedir evidência em vez de acreditar, testar, revisar. É assim que a 202 constrói para os clientes dela, e é assim que uma pessoa sozinha faz hoje o que antes pedia um time.",
+        "Por isso a trilha mistura engenharia, produto e startup desde a primeira semana: como um software roda, como saber se você está no problema certo, quanto custa conquistar um cliente e o que separa uma startup de um negócio pequeno.",
       ],
     },
 
@@ -871,39 +882,39 @@ const copy = {
      * quatro colunas (`ComoFunciona.module.css`) — o teste de copy confere.
      *
      * Repare nos verbos das duas últimas: "pode ser convidado", "pode
-     * apresentar". O texto de origem não promete vaga nem contratação, e esta
-     * página também não.
+     * apresentar". Ninguém promete vaga nem contratação, e esta página também
+     * não.
      */
     percurso: {
       rotulo: "O PERCURSO",
-      titulo: "Da inscrição às empresas parceiras",
+      titulo: "Da inscrição ao que vem depois",
       etapas: [
         {
           titulo: "Inscrição e seleção",
           texto:
-            "Começa por este formulário. A 202 busca pessoas promissoras nas universidades de São Paulo.",
+            "Começa por este formulário. A 202 procura gente de alto potencial nas universidades de São Paulo, com ou sem código.",
         },
         {
           titulo: "A trilha",
           texto:
-            "Cerca de seis semanas de teoria e prática. Nesse período a equipe pode acompanhar o desempenho, os interesses e o potencial de cada participante.",
+            "Cerca de seis semanas de aulas e práticas dentro do Claude Code. A 202 acompanha o ritmo, as entregas e o jeito de pensar de cada pessoa ao longo do caminho.",
         },
         {
           titulo: "O time da 202",
           texto:
-            "Quem demonstrar alinhamento com a proposta pode ser convidado a continuar no time, em projetos para clientes e parceiros. A atuação é flexível: negócios e contato com clientes, hardware, desenvolvimento de sistemas, AI.",
+            "Quem se destacar pode ser convidado a continuar no time, construindo produto, AI e negócio para clientes, parceiros e para as apostas da própria 202.",
         },
         {
-          titulo: "As empresas parceiras",
+          titulo: "Startups e empresas parceiras",
           texto:
-            "Quando a equipe identifica em alguém o perfil que uma empresa parceira procura, pode apresentar essa pessoa — em hardware, software, negócios, atendimento a clientes ou posições de liderança.",
+            "Quando a equipe enxerga em alguém o perfil que uma startup ou empresa parceira procura, pode apresentar essa pessoa: para construir, para liderar ou para fundar a próxima.",
         },
       ],
     },
 
     fecho: {
       texto:
-        "A trilha é, ao mesmo tempo, aprendizado, experiência prática, acompanhamento e avaliação. A proposta é formar profissionais completos: que usam a tecnologia de forma estratégica, entendem demandas reais, entregam soluções relevantes e crescem até posições de maior responsabilidade.",
+        "A trilha é aula, oficina, correção e acompanhamento ao mesmo tempo. O que sai dela é gente que constrói: entende o problema, dirige a AI e coloca no ar.",
       botao: "COMEÇAR A INSCRIÇÃO",
     },
   },

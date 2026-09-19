@@ -172,11 +172,29 @@ sobreviver a fechar o navegador e ressuscitar semanas depois.
 >    empresas parceiras, desenhado como uma subida que termina numa bandeira; e
 >    um fecho com a segunda porta para o formulário, `COMEÇAR A INSCRIÇÃO`.
 >
-> **De onde vem o texto.** Seis parágrafos escritos pelo Pedro. A copy
-> (`COPY_INSCRICAO.abertura`) é esse texto condensado na voz do site, **sem
-> acrescentar fato nenhum** — inclusive nos verbos: "pode ser convidado", "pode
-> apresentar". O texto de origem não promete vaga nem contratação, e a página
-> também não.
+> **De onde vem o texto.** Seis parágrafos escritos pelo Pedro, condensados na
+> voz do site — e, no mesmo dia, revisados pelo Matheus em três direções:
+>
+> 1. *Voz de startup.* A condensação falava em "liderar projetos", "posições de
+>    destaque e liderança", "ferramentas modernas de forma estratégica": a voz
+>    do mercado corporativo. A trilha forma builders AI-native para startups,
+>    produtos e tecnologia, e a página passou a dizer isso com as palavras da
+>    tese do site ("a fronteira se renova mais rápido do que a grade").
+> 2. *A prática como ela é.* Não há "demandas reais de empresas parceiras". As
+>    práticas são fixas e iguais para todo mundo, feitas numa pasta da própria
+>    pessoa, corrigidas por um agente do Claude contra critérios definidos
+>    antes, com feedback ponto a ponto; e a sala de aula é o Claude Code, com o
+>    Claude como professor. A fonte é o repositório da trilha (`~/orca/trilha`,
+>    `MAPA-DE-CONTEUDO.md`, e o `README.md` público que o aluno recebe).
+> 3. *Menos travessão, menos frase de AI.* Nenhum travessão dentro da copy, e o
+>    padrão "não é X, é Y" saiu da cadeia de títulos.
+>
+> O que ficou do texto do Pedro: os fatos (início, duração, universidades de
+> São Paulo) e os verbos das duas últimas etapas — "pode ser convidado", "pode
+> apresentar". Ninguém promete vaga nem contratação, e a página também não.
+> O terceiro fato do cartaz trocou de "frentes: teoria e prática" para "a sala
+> de aula: o Claude Code", que é a informação que mais diferencia a trilha de
+> um curso.
 >
 > **O que fechou, e o que segue aberto.**
 >
