@@ -152,6 +152,93 @@ sobreviver a fechar o navegador e ressuscitar semanas depois.
 
 ### 4.0 Abertura
 
+> **Revisto em 19/09/2026, a pedido do Pedro — e esta é a forma em vigor.** A
+> abertura voltou a descrever a trilha, e bem mais do que o desenho original
+> descrevia. O aviso de 24/08 ("retornaremos com mais informações") cumpriu o
+> que prometia: a informação chegou. O que está abaixo desta nota, até o fim da
+> §4.0, é o histórico das duas formas anteriores — guardado pelo mesmo motivo de
+> sempre, que é explicar o que se trocou de propósito.
+>
+> **O que a tela é agora.** Duas partes numa tela só, que rola:
+>
+> 1. **O cartaz**, na primeira dobra — marca, título, duas frases (o que é a
+>    trilha; para quem é), três fatos em pares rótulo–valor (início previsto,
+>    duração, frentes), o `COMEÇAR` e a arte da bandeira, no mesmo
+>    enquadramento de 04/09. No pé, um botão de texto, `COMO FUNCIONA`, que rola
+>    até a explicação.
+> 2. **A explicação** (`components/inscricao/ComoFunciona.tsx`) — por que a
+>    trilha existe; as duas frentes, teoria e prática, lado a lado; a AI como
+>    ferramenta de trabalho; o percurso em quatro etapas, da inscrição às
+>    empresas parceiras, desenhado como uma subida que termina numa bandeira; e
+>    um fecho com a segunda porta para o formulário, `COMEÇAR A INSCRIÇÃO`.
+>
+> **De onde vem o texto.** Seis parágrafos escritos pelo Pedro, condensados na
+> voz do site — e, no mesmo dia, revisados pelo Matheus em três direções:
+>
+> 1. *Voz de startup.* A condensação falava em "liderar projetos", "posições de
+>    destaque e liderança", "ferramentas modernas de forma estratégica": a voz
+>    do mercado corporativo. A trilha forma builders AI-native para startups,
+>    produtos e tecnologia, e a página passou a dizer isso com as palavras da
+>    tese do site ("a fronteira se renova mais rápido do que a grade").
+> 2. *A prática como ela é.* Não há "demandas reais de empresas parceiras". As
+>    práticas são fixas e iguais para todo mundo, feitas numa pasta da própria
+>    pessoa, corrigidas por um agente do Claude contra critérios definidos
+>    antes, com feedback ponto a ponto; e a sala de aula é o Claude Code, com o
+>    Claude como professor. A fonte é o repositório da trilha (`~/orca/trilha`,
+>    `MAPA-DE-CONTEUDO.md`, e o `README.md` público que o aluno recebe).
+> 3. *Menos travessão, menos frase de AI.* Nenhum travessão dentro da copy, e o
+>    padrão "não é X, é Y" saiu da cadeia de títulos.
+>
+> No mesmo dia, mais duas trocas do Matheus: saiu o eixo geográfico ("universidades
+> de São Paulo" virou "dentro das universidades"), e entrou a ponta de venture
+> building da 202, no "por que existe", na última etapa do percurso e no fecho:
+> além de apresentar gente a startups e parceiras, a 202 ajuda quem quer
+> construir o próprio negócio a tirar a ideia do papel, e às vezes dá a ideia.
+>
+> O que ficou do texto do Pedro: os fatos (início, duração) e os verbos das duas últimas etapas — "pode ser convidado", "pode
+> apresentar". Ninguém promete vaga nem contratação, e a página também não.
+> O terceiro fato do cartaz trocou de "frentes: teoria e prática" para "a sala
+> de aula: o Claude Code", que é a informação que mais diferencia a trilha de
+> um curso.
+>
+> **O que fechou, e o que segue aberto.**
+>
+> | | Estado | O que a página diz |
+> | --- | --- | --- |
+> | Duração | fechada, como previsão | "cerca de 6 semanas" |
+> | Início | fechado, como previsão | "começo de outubro", sob o rótulo "início previsto" |
+> | Modalidade (remoto, presencial) | **aberta** | nada |
+> | Gratuidade | **ninguém reafirmou** | nada |
+> | Vagas, critério e data da seleção | **abertos** | nada |
+>
+> O teste de palavras proibidas em `lib/inscricao.test.ts` encolheu para a
+> modalidade, e ganhou um irmão: a duração e o início precisam continuar com a
+> ressalva ("cerca de", "previsto"). Tirar a ressalva numa revisão de copy
+> transforma previsão em promessa — que é o que esta seção sempre quis evitar.
+>
+> **O que isto revoga, e o que custa.**
+>
+> - *"Um botão só"* (abaixo). Agora são três, e a regra segue valendo no que
+>   importava: **nenhum leva para fora**. Dois abrem o formulário; o do meio só
+>   rola a tela. Uma tela cinco vezes mais alta com o único botão no topo
+>   obrigaria quem leu tudo a rolar de volta para se inscrever. Os dois botões
+>   que abrem o formulário têm nomes **diferentes** de propósito — a suíte, e
+>   qualquer leitor de tela listando botões, acham o `COMEÇAR` pelo nome exato.
+> - *A tela cabe em 100dvh sem rolar.* Não cabe mais, e não é para caber. O que
+>   continua garantido, e medido em `e2e/inscricao.spec.ts`, é que o `COMEÇAR`
+>   está à vista sem rolar até em 320×568.
+> - *No celular a arte fica fora do fluxo* (decisão de 05/09). Voltou para
+>   dentro: com o cartaz mais alto, fora do fluxo o texto passaria por cima dela.
+> - **A triagem voltou.** A forma de 24/08 aceitou perder a triagem que a
+>   abertura fazia — "mais inscrições, e uma parte maior delas fora do alvo".
+>   Com a trilha explicada, a pessoa errada volta a poder desistir sozinha antes
+>   de gastar os minutos do formulário.
+>
+> `linhas[1]` — "Para quem está nas universidades de São Paulo…" — é também a
+> `description` e a `og:description` da rota (`layout.tsx`). Entre 24/08 e 19/09
+> esse texto foi "Inscreva-se antecipadamente.", embaixo de todo link
+> compartilhado.
+
 > **Revisto em 24/08/2026, por decisão do Matheus.** A abertura passou a ser
 > duas linhas — *"Retornaremos com mais informações em um futuro breve.
 > Inscreva-se early."* — e deixou de descrever a trilha. O que está riscado

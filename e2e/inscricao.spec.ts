@@ -432,6 +432,80 @@ function rascunhoGuardado(page: Page): Promise<string | null> {
   return page.evaluate((chave) => window.sessionStorage.getItem(chave), CHAVE_RASCUNHO);
 }
 
+/* ══ A abertura ═══════════════════════════════════════════════════════════ */
+
+/**
+ * Desde 19/09/2026 a abertura explica a trilha, e ficou mais alta que a tela.
+ * O que só um navegador de verdade prova — o jsdom não tem layout nem rolagem —
+ * é o que a mudança pôs em risco: o COMEÇAR continuar à vista quando a pessoa
+ * chega, a tela não ganhar rolagem horizontal, e o "COMO FUNCIONA" de fato
+ * levar à explicação.
+ */
+test.describe("a abertura", () => {
+  const TELAS = [
+    { nome: "notebook", width: 1366, height: 680 },
+    { nome: "celular", width: 390, height: 844 },
+    // O iPhone SE de primeira geração: a menor tela que o site se propõe a
+    // atender, e a primeira em que o cartaz deixa de caber.
+    { nome: "celular baixo", width: 320, height: 568 },
+  ] as const;
+
+  for (const tela of TELAS) {
+    test(`o COMEÇAR está à vista sem rolar, e nada vaza para o lado — ${tela.nome}`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width: tela.width, height: tela.height });
+      await page.goto(ROTA);
+
+      const caixa = await botao(page, COPY.abertura.botao).boundingBox();
+      expect(caixa, "o COMEÇAR não foi desenhado").not.toBeNull();
+      expect(
+        caixa!.y + caixa!.height,
+        "o COMEÇAR caiu abaixo da primeira dobra",
+      ).toBeLessThanOrEqual(tela.height);
+
+      // Quem rola é `[data-tela="abertura"]`, não o documento: mede-se os dois.
+      const larguras = await page.locator('[data-tela="abertura"]').evaluate((el) => ({
+        tela: el.scrollWidth - el.clientWidth,
+        documento: document.documentElement.scrollWidth - window.innerWidth,
+      }));
+      expect(larguras).toEqual({ tela: 0, documento: 0 });
+    });
+  }
+
+  test("o COMO FUNCIONA rola até a explicação, leva o foco e não mexe no histórico", async ({
+    page,
+  }) => {
+    await page.goto(ROTA);
+    const tela = page.locator('[data-tela="abertura"]');
+    const entradas = await page.evaluate(() => window.history.length);
+
+    await botao(page, COPY.abertura.convite).click();
+
+    // A rolagem é suave, então o que se espera é o ESTADO final, e não um tempo.
+    // "No máximo 1px do topo" e "a tela rolou" são duas perguntas separadas de
+    // propósito: se um dia a explicação ficar mais baixa que a janela, ela não
+    // TEM como chegar ao topo, e a falha precisa dizer isso em vez de mandar
+    // alguém depurar o código de rolagem.
+    await expect
+      .poll(() => tela.evaluate((el) => Math.round(el.lastElementChild!.getBoundingClientRect().top)))
+      .toBeLessThanOrEqual(1);
+    expect(await tela.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
+    expect(await tela.evaluate((el) => document.activeElement === el.lastElementChild)).toBe(true);
+
+    // Uma âncora teria empilhado uma entrada, e o VOLTAR do navegador deixaria
+    // de sair da página — que é a regra desta rota.
+    expect(await page.evaluate(() => window.history.length)).toBe(entradas);
+    expect(new URL(page.url()).hash).toBe("");
+
+    // Dali, o próximo Tab é a segunda porta, e ela abre o mesmo bloco 1.
+    await page.keyboard.press("Tab");
+    await expect(botao(page, COPY.abertura.fecho.botao)).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(page.locator('[data-bloco="0"]')).toBeVisible();
+  });
+});
+
 /* ══ O percurso ═══════════════════════════════════════════════════════════ */
 
 test.describe("o percurso completo", () => {
