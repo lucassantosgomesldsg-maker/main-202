@@ -164,14 +164,21 @@ async function atravessar(user: UserEvent): Promise<void> {
 }
 
 describe("a abertura", () => {
-  it("oferece uma porta só, e ela leva ao primeiro bloco", async () => {
+  it("só oferece portas para o formulário, e o COMEÇAR leva ao primeiro bloco", async () => {
     render(<Formulario />);
     expect(titulo()).toBe(C.abertura.titulo);
 
-    // Um botão só. A regra original era "sem link para a home, sem link para a
-    // tese, sem troca de idioma — a página tem uma função", e a parte do BOTÃO
-    // segue valendo: nada compete com o COMEÇAR.
-    expect(screen.getAllByRole("button")).toHaveLength(1);
+    // A regra original era "um botão só: sem link para a home, sem link para a
+    // tese, sem troca de idioma — a página tem uma função". Em 19/09/2026 a
+    // abertura passou a explicar a trilha e ficou mais alta que a tela, e um
+    // botão só, no topo, obrigaria quem leu tudo a rolar de volta para se
+    // inscrever. Hoje são três, e a regra segue valendo no que importa: NENHUM
+    // deles leva para fora. Dois abrem o formulário; o do meio só rola a tela.
+    expect(screen.getAllByRole("button").map((b) => b.textContent)).toEqual([
+      C.abertura.botao,
+      C.abertura.convite,
+      C.abertura.fecho.botao,
+    ]);
 
     // O link do logo entrou em 04/09/2026, com o redesenho da abertura, e é a
     // única exceção àquela regra. Ele existe porque esta página é `noindex` e
@@ -185,6 +192,39 @@ describe("a abertura", () => {
 
     await comecar(usuario());
     expect(titulo()).toBe(C.blocos[0].titulo);
+  });
+
+  it("a porta do fim da explicação leva ao mesmo lugar que o COMEÇAR", async () => {
+    // Quem leu até o fim não rola de volta: o botão do fecho abre o mesmo bloco
+    // 1, pelo mesmo caminho.
+    render(<Formulario />);
+    await usuario().click(screen.getByRole("button", { name: C.abertura.fecho.botao }));
+    expect(titulo()).toBe(C.blocos[0].titulo);
+  });
+
+  it("o convite rola a tela e não tira ninguém da abertura", async () => {
+    // "COMO FUNCIONA" é o único botão da abertura que não abre o formulário. Se
+    // um dia ele for ligado por engano ao mesmo `aoComecar` dos outros dois, a
+    // pessoa que só queria ler cai no bloco 1 — e é isso que este teste pega.
+    render(<Formulario />);
+    await usuario().click(screen.getByRole("button", { name: C.abertura.convite }));
+    expect(titulo()).toBe(C.abertura.titulo);
+  });
+
+  it("explica a trilha com um título por seção, e nenhum deles disputa o h1", () => {
+    // `titulo()` — e o leitor de tela — acham a tela pelo h1. As seções da
+    // explicação são h2; os itens dentro delas, h3.
+    render(<Formulario />);
+    expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
+    expect(screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent)).toEqual([
+      C.abertura.porQue.titulo,
+      C.abertura.frentes.titulo,
+      C.abertura.ai.titulo,
+      C.abertura.percurso.titulo,
+    ]);
+    for (const etapa of C.abertura.percurso.etapas) {
+      expect(screen.getByRole("heading", { level: 3, name: etapa.titulo })).toBeInTheDocument();
+    }
   });
 
   it("devolve o foco ao COMEÇAR quando alguém volta do primeiro bloco", async () => {

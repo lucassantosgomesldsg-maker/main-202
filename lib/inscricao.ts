@@ -602,6 +602,13 @@ export type TelaCopy = {
   readonly linhas: readonly string[];
 };
 
+/** Uma seção de texto corrido da abertura: rótulo, título e parágrafos. */
+export type SecaoAbertura = {
+  readonly rotulo: string;
+  readonly titulo: string;
+  readonly texto: readonly string[];
+};
+
 /** Tudo que a página /trilha/inscricao diz. */
 export type CopyInscricao = {
   readonly rotuloPagina: string;
@@ -610,8 +617,34 @@ export type CopyInscricao = {
     readonly rotulo: string;
     readonly titulo: string;
     readonly voltarAoSite: string;
+    /** O que se lê no cartaz, ao lado do COMEÇAR. `linhas[1]` é a descrição da página. */
     readonly linhas: readonly string[];
+    /** Os fatos do cartaz: o que cabe num par rótulo–valor. */
+    readonly dados: readonly { readonly rotulo: string; readonly valor: string }[];
     readonly botao: string;
+    /** O botão do pé do cartaz, que rola até a explicação. */
+    readonly convite: string;
+    readonly porQue: SecaoAbertura;
+    readonly frentes: {
+      readonly rotulo: string;
+      readonly titulo: string;
+      readonly itens: readonly {
+        readonly tag: string;
+        readonly titulo: string;
+        readonly texto: string;
+      }[];
+      readonly ligacao: string;
+    };
+    readonly ai: SecaoAbertura;
+    readonly percurso: {
+      readonly rotulo: string;
+      readonly titulo: string;
+      readonly etapas: readonly { readonly titulo: string; readonly texto: string }[];
+    };
+    readonly fecho: {
+      readonly texto: string;
+      readonly botao: string;
+    };
   };
   readonly blocos: readonly {
     readonly rotulo: string;
@@ -729,17 +762,37 @@ export type CopyInscricao = {
  * CopyCampo>` de `campos` é o que garante, em tempo de compilação, que nenhum
  * campo do formulário chegue à tela sem rótulo.
  *
- * **Sobre a abertura (§4.0).** Ela ficou de duas linhas em 24/08/2026, por
- * decisão do Matheus: a página não descreve mais a trilha nem diz que é
- * gratuita — avisa que a informação vem depois e pede a inscrição agora. Quem
- * recebe o link já tem o contexto por fora dele.
+ * **Sobre a abertura (§4.0).** Ela teve três formas. Nasceu descrevendo a
+ * trilha em quatro linhas; em 24/08/2026 o Matheus a cortou para duas que não
+ * descreviam nada ("Retornaremos com mais informações em um futuro breve");
+ * em 19/09/2026, com a trilha desenhada, o Pedro pediu o contrário: que a tela
+ * explique como a trilha funciona. O texto de origem é dele, em seis
+ * parágrafos; o que está aqui é esse texto condensado na voz do site, sem
+ * acrescentar fato nenhum.
  *
- * O que **não** mudou: ela continua sem afirmar *nada* sobre o formato — nem
- * remoto, nem presencial, nem duração, nem calendário. Isso nunca foi
- * esquecimento, é que o formato não está fechado e nada nesta página pode ser
- * desmentido depois. `lib/inscricao.test.ts` guarda essa decisão com um teste
- * que procura as palavras proibidas, porque a tentação de "só acrescentar um
- * detalhezinho" volta toda semana.
+ * Para quem for mexer:
+ *
+ * - **Duração e início são previsão, e a copy diz isso** ("cerca de", "previsto").
+ *   É como o Pedro os passou. `lib/inscricao.test.ts` guarda a ressalva.
+ * - **A modalidade segue em aberto.** Ninguém disse se há encontro presencial,
+ *   então a página não diz "remoto" nem "presencial" — o teste de palavras
+ *   proibidas continua lá, só mais curto.
+ * - **As ressalvas do texto de origem ficam.** "A proposta é selecionar… e
+ *   conectá-las", "a equipe pode acompanhar", "pode ser convidado", "pode
+ *   apresentar", "capaz de acelerar", "não é só aprender sobre AI". A primeira
+ *   versão desta copy trocou várias delas por indicativo seco ("conectamos",
+ *   "acompanha", "não é aprender") — lê melhor e promete o que ninguém
+ *   prometeu. Uma revisão apontou, e elas voltaram. Quem encurtar uma frase
+ *   daqui confere se não cortou justamente o "pode".
+ * - **Presente, e não futuro.** O texto de origem está todo no futuro ("será",
+ *   "terão"), porque a trilha ainda não começou. A página usa o presente, que é
+ *   a voz do site — e quem diz que ainda não começou é o rótulo "início
+ *   previsto", no cartaz.
+ * - **"AI", e não "IA".** O texto de origem usa "IA"; o site inteiro (a tese, o
+ *   bloco 3 deste formulário) usa "AI", e uma página não troca de grafia no meio.
+ *
+ * A gratuidade, que a primeira forma afirmava, **não voltou**: ninguém a
+ * reafirmou.
  */
 const copy = {
   rotuloPagina: "A TRILHA · INSCRIÇÃO",
@@ -756,11 +809,103 @@ const copy = {
      * diz as duas coisas.
      */
     voltarAoSite: "202Lab — voltar ao site",
+    /**
+     * O cartaz. A segunda linha é também a `description` da página
+     * (`app/trilha/inscricao/layout.tsx` lê `linhas[1]`), então ela precisa
+     * fazer sentido sozinha, embaixo de um link no WhatsApp.
+     */
     linhas: [
-      "Retornaremos com mais informações em um futuro breve.",
-      "Inscreva-se antecipadamente.",
+      "Um percurso de desenvolvimento em duas frentes: teoria no seu ritmo, com a AI como ferramenta de trabalho, e prática em demandas reais de empresas parceiras.",
+      "Para quem está nas universidades de São Paulo e quer chegar a posições de destaque e liderança no mercado.",
+    ],
+    dados: [
+      { rotulo: "INÍCIO PREVISTO", valor: "Começo de outubro" },
+      { rotulo: "DURAÇÃO", valor: "Cerca de 6 semanas" },
+      { rotulo: "FRENTES", valor: "Teoria e prática" },
     ],
     botao: "COMEÇAR",
+    convite: "COMO FUNCIONA",
+
+    porQue: {
+      rotulo: "POR QUE EXISTE",
+      titulo: "Não falta tecnologia. Falta quem saiba usá-la.",
+      texto: [
+        "O que o mercado procura hoje são pessoas capazes de usar ferramentas modernas de forma estratégica, liderar projetos e transformar conhecimento em resultado concreto.",
+        "A trilha é o percurso que a 202 criou para identificar, preparar e acompanhar quem tem esse potencial. A proposta é selecionar pessoas promissoras nas universidades de São Paulo, formar para o que o mercado pede agora e, depois, conectá-las às empresas parceiras que procuram esse perfil.",
+      ],
+    },
+
+    frentes: {
+      rotulo: "COMO FUNCIONA",
+      titulo: "Duas frentes, e uma alimenta a outra",
+      itens: [
+        {
+          tag: "TEORIA",
+          titulo: "No seu ritmo, pela sua própria AI",
+          texto:
+            "O material chega pela sua AI — o Claude Code, por exemplo: trechos de livros, vídeos, podcasts e outros conteúdos selecionados pela equipe. Você estuda no próprio ritmo ao longo da trilha e desenvolve a técnica junto com uma visão mais ampla de negócios, tecnologia, liderança e mercado.",
+        },
+        {
+          tag: "PRÁTICA",
+          titulo: "Entregas para demandas reais",
+          texto:
+            "Os entregáveis partem de demandas reais dos parceiros da 202, e não de exercícios simulados. Se uma empresa parceira precisa de um plano de negócios e o tema está na trilha, você estuda o assunto e usa o que aprendeu para entregar algo ligado a essa necessidade.",
+        },
+      ],
+      ligacao:
+        "É assim que você entende como o mercado funciona: enfrentando desafios parecidos com os de um ambiente profissional e aprendendo a gerar resultado que uma empresa de verdade pode usar.",
+    },
+
+    ai: {
+      rotulo: "AI NO CENTRO",
+      titulo: "O objetivo não é só aprender sobre AI. É trabalhar com ela.",
+      texto: [
+        "A 202 trata a AI como ferramenta de trabalho, capaz de acelerar projetos, aumentar a produtividade e viabilizar soluções que seriam muito demoradas ou complexas se fossem construídas só à mão.",
+        "Por isso a trilha também ensina a usá-la de forma estratégica — acompanhando as mudanças do mercado e aproveitando tecnologia de última geração para desenvolver sistemas, automatizar atividades e melhorar o resultado dos projetos.",
+      ],
+    },
+
+    /**
+     * As etapas são uma SEQUÊNCIA de verdade, e é só por isso que a tela as
+     * numera e as desenha como subida. São quatro porque a grade do CSS tem
+     * quatro colunas (`ComoFunciona.module.css`) — o teste de copy confere.
+     *
+     * Repare nos verbos das duas últimas: "pode ser convidado", "pode
+     * apresentar". O texto de origem não promete vaga nem contratação, e esta
+     * página também não.
+     */
+    percurso: {
+      rotulo: "O PERCURSO",
+      titulo: "Da inscrição às empresas parceiras",
+      etapas: [
+        {
+          titulo: "Inscrição e seleção",
+          texto:
+            "Começa por este formulário. A 202 busca pessoas promissoras nas universidades de São Paulo.",
+        },
+        {
+          titulo: "A trilha",
+          texto:
+            "Cerca de seis semanas de teoria e prática. Nesse período a equipe pode acompanhar o desempenho, os interesses e o potencial de cada participante.",
+        },
+        {
+          titulo: "O time da 202",
+          texto:
+            "Quem demonstrar alinhamento com a proposta pode ser convidado a continuar no time, em projetos para clientes e parceiros. A atuação é flexível: negócios e contato com clientes, hardware, desenvolvimento de sistemas, AI.",
+        },
+        {
+          titulo: "As empresas parceiras",
+          texto:
+            "Quando a equipe identifica em alguém o perfil que uma empresa parceira procura, pode apresentar essa pessoa — em hardware, software, negócios, atendimento a clientes ou posições de liderança.",
+        },
+      ],
+    },
+
+    fecho: {
+      texto:
+        "A trilha é, ao mesmo tempo, aprendizado, experiência prática, acompanhamento e avaliação. A proposta é formar profissionais completos: que usam a tecnologia de forma estratégica, entendem demandas reais, entregam soluções relevantes e crescem até posições de maior responsabilidade.",
+      botao: "COMEÇAR A INSCRIÇÃO",
+    },
   },
 
   blocos: [

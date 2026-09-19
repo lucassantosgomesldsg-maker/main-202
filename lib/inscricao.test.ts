@@ -279,29 +279,43 @@ describe("a copy da inscrição", () => {
     }
   });
 
-  it("não afirma o formato da trilha na abertura", () => {
-    // Este teste guarda a decisão da §4.0: o formato (remoto, presencial,
-    // duração, calendário) NÃO está fechado, e nada nesta página pode ser
-    // desmentido depois. A tentação de "só acrescentar um detalhezinho" volta
-    // toda semana, e é aqui que ela para.
-    const abertura = todasAsStrings(COPY_INSCRICAO.abertura, "abertura")
+  /** Tudo o que a abertura diz, numa string só e em minúsculas. */
+  function tudoDaAbertura(): string {
+    return todasAsStrings(COPY_INSCRICAO.abertura, "abertura")
       .map(([, texto]) => texto)
       .join(" ")
       .toLowerCase();
-    for (const proibida of [
-      "remoto",
-      "presencial",
-      "híbrido",
-      "hibrido",
-      "semanas",
-      "meses",
-      "duração",
-      "duracao",
-    ]) {
-      expect(abertura, `a abertura afirma o formato ao dizer "${proibida}"`).not.toContain(
+  }
+
+  it("não afirma a modalidade da trilha na abertura", () => {
+    // Este teste guardava a §4.0 inteira: formato, duração e calendário em
+    // aberto, e nada nesta página podendo ser desmentido depois. Em 19/09/2026 o
+    // Pedro fechou DUAS dessas coisas — a duração (cerca de seis semanas) e o
+    // início (começo de outubro) — e a abertura passou a dizê-las. Por isso
+    // "semanas", "meses" e "duração" saíram desta lista.
+    //
+    // O que continua em aberto é a MODALIDADE: ninguém disse se há encontro
+    // presencial. A tentação de "só acrescentar um detalhezinho" volta toda
+    // semana, e é aqui que ela para.
+    const abertura = tudoDaAbertura();
+    for (const proibida of ["remoto", "remota", "presencial", "híbrido", "hibrido", "híbrida"]) {
+      expect(abertura, `a abertura afirma a modalidade ao dizer "${proibida}"`).not.toContain(
         proibida,
       );
     }
+  });
+
+  it("diz quanto dura e quando começa, e diz que é previsão", () => {
+    // A duração e o início entraram na página como o Pedro os passou: "duração
+    // aproximada" e "início previsto". O que este teste guarda é a ressalva. Uma
+    // revisão de copy que troque "cerca de seis semanas" por "seis semanas" e
+    // "previsto" por nada deixa a página mais bonita e transforma uma previsão
+    // numa promessa — que é exatamente o que a §4.0 sempre quis evitar.
+    const abertura = tudoDaAbertura();
+    expect(abertura).toContain("semanas");
+    expect(abertura).toContain("outubro");
+    expect(abertura, "a duração perdeu a ressalva").toContain("cerca de");
+    expect(abertura, "o início perdeu a ressalva").toContain("previsto");
   });
 
   // O teste "diz que é gratuita, e diz cedo" viveu aqui até 24/08/2026. Ele
@@ -312,20 +326,70 @@ describe("a copy da inscrição", () => {
   // decisão revogada. Guardar decisão revogada é pior do que não guardar nada:
   // ele quebraria a suíte até alguém apagá-lo sem entender o que ele protegia.
   //
-  // O que segue guardado é o que continua valendo: a abertura não afirma o
-  // formato (o teste acima) e não fica vazia (o teste de strings, mais acima).
+  // O que segue guardado é o que continua valendo: a abertura não afirma a
+  // modalidade (o teste acima) e não fica vazia (o teste de strings, mais acima).
+  //
+  // Em 19/09/2026 a abertura voltou a descrever a trilha, a pedido do Pedro — e
+  // bem mais do que a §4.0 original descrevia. A gratuidade NÃO voltou junto:
+  // ninguém a reafirmou, então a página segue sem dizê-la.
 
-  it("mantém a abertura curta o bastante para ser lida antes do primeiro campo", () => {
+  it("mantém o CARTAZ curto o bastante para ser lido antes do primeiro campo", () => {
     // A abertura existe para a segunda pessoa que abre o link — o encaminhado,
-    // que não tem contexto nenhum (§4.0). Ela pode ser curta; o que ela não pode
-    // é sumir, porque aí a pessoa cai num formulário de dados pessoais sem uma
-    // palavra de enquadramento.
+    // que não tem contexto nenhum (§4.0). Desde 19/09/2026 ela explica a trilha
+    // inteira, mas a explicação mora ABAIXO da primeira dobra. O cartaz — o que
+    // se lê sem rolar, ao lado do COMEÇAR — continua sendo `linhas`, e continua
+    // curto: quem já decidiu se inscrever não pode ter de atravessar um texto
+    // para achar o botão.
     const { linhas } = COPY_INSCRICAO.abertura;
-    expect(linhas.length, "a abertura ficou sem linha nenhuma").toBeGreaterThan(0);
-    expect(linhas.length, "a abertura virou texto longo").toBeLessThanOrEqual(5);
+    expect(linhas.length, "o cartaz ficou sem linha nenhuma").toBeGreaterThan(0);
+    expect(linhas.length, "o cartaz virou texto longo").toBeLessThanOrEqual(3);
     for (const linha of linhas) {
-      expect(linha.trim(), "linha vazia na abertura").not.toBe("");
+      expect(linha.trim(), "linha vazia no cartaz").not.toBe("");
     }
+  });
+
+  it("a segunda linha do cartaz serve de descrição da página", () => {
+    // `app/trilha/inscricao/layout.tsx` usa `linhas[1]` como `description` e
+    // como `og:description` — é o texto que aparece embaixo do link no WhatsApp.
+    // Entre 24/08 e 19/09/2026 essa linha foi "Inscreva-se antecipadamente.",
+    // que não descreve nada. O que dá para conferir por máquina é que ela existe
+    // e cabe no que os cartões de link mostram sem cortar; que ela diga PARA QUEM
+    // a trilha é fica por conta de quem revisa a copy — prender aqui uma redação
+    // ("para quem…") recusaria uma reescrita boa por um motivo que ninguém
+    // entenderia lendo a falha.
+    const descricao = COPY_INSCRICAO.abertura.linhas[1];
+    expect(descricao, "o cartaz perdeu a linha que o layout usa").toBeDefined();
+    expect(descricao.length).toBeGreaterThan(40);
+    expect(descricao.length).toBeLessThanOrEqual(160);
+  });
+
+  it("explica a trilha em duas frentes e num percurso com começo e fim", () => {
+    const { frentes, percurso, dados } = COPY_INSCRICAO.abertura;
+
+    // Teoria e prática: são duas, e a tela as desenha lado a lado. Uma terceira
+    // frente pede outro desenho, não uma terceira coluna espremida.
+    expect(frentes.itens.map((f) => f.tag)).toEqual(["TEORIA", "PRÁTICA"]);
+
+    // O percurso é desenhado como uma subida de quatro degraus até a bandeira —
+    // o número de colunas da grade mora no CSS (`ComoFunciona.module.css`), e
+    // mudar a contagem aqui sem mexer lá quebra o desenho em silêncio.
+    expect(percurso.etapas).toHaveLength(4);
+
+    // Os fatos do cartaz: rótulo e valor, nenhum pela metade.
+    expect(dados.length).toBeGreaterThan(0);
+    for (const dado of dados) {
+      expect(dado.rotulo.trim()).not.toBe("");
+      expect(dado.valor.trim()).not.toBe("");
+    }
+  });
+
+  it("dá nomes diferentes às portas da abertura", () => {
+    // A abertura tem dois botões que levam ao formulário — um no cartaz, um no
+    // fim da explicação. Os nomes precisam ser DIFERENTES: a suíte inteira, e
+    // qualquer leitor de tela listando os botões, acha o COMEÇAR pelo nome
+    // exato, e dois controles com o mesmo nome viram uma ambiguidade.
+    const { botao, fecho, convite } = COPY_INSCRICAO.abertura;
+    expect(new Set([botao, fecho.botao, convite]).size).toBe(3);
   });
 
   it("dá rótulo a todos os campos do formulário", () => {

@@ -1,0 +1,363 @@
+/* ── A explicação da trilha, abaixo do cartaz ───────────────────────────────
+   Tudo aqui vive DENTRO de `.abertura` (`Abertura.module.css`), que é quem rola.
+   Duas variáveis vêm de lá por herança e não são redeclaradas:
+
+   - `--margem`, a margem da página (`globals.css`);
+   - `--recuo`, o respiro a mais na esquerda que o texto do cartaz usa. As
+     seções começam na MESMA vertical do título do cartaz — é isso que faz a
+     página ler como uma coluna só que continua, e não como um cartaz com um
+     artigo colado embaixo.
+
+   As cores são os tokens do site e nenhuma outra: preto, branco, o cinza de
+   texto, o `--fio-estrutura` (que a /tese já usa para fio que precisa ser
+   visto) e o verde. */
+.explicacao {
+  position: relative;
+  z-index: 1;
+  padding: 0 var(--margem) calc(var(--margem) * 1.5);
+  /* Alvo de foco programado (`tabIndex={-1}`), não um controle: o contorno de
+     foco numa região que ocupa a tela inteira seria uma moldura sem sentido. O
+     foco dos BOTÕES daqui continua visível — ver `.comecar`. */
+  outline: none;
+}
+
+/* ── Uma seção ──────────────────────────────────────────────────────────────
+   Rótulo na margem, conteúdo à direita, fio em cima. É a página de um livro
+   com título corrente, e não um cartão: nada aqui tem fundo, borda em volta ou
+   sombra. */
+.secao {
+  display: grid;
+  grid-template-columns: minmax(8rem, 12rem) minmax(0, 1fr);
+  column-gap: clamp(1.5rem, 4vw, 4rem);
+  /* O recuo vale dos DOIS lados, e a seção não tem `max-width`: o fio de cima
+     atravessa a tela inteira, como a arte atravessa o cartaz. Quem tem medida é
+     o texto (`.titulo`, `.paragrafo`), não a caixa. A primeira versão prendia a
+     caixa em 68rem, e numa tela de 1920 tudo abaixo do cartaz ficava espremido
+     nos dois terços da esquerda, com o terço direito vazio até o fim. */
+  margin: 0 var(--recuo);
+  padding: clamp(3.5rem, 7vw, 6rem) 0;
+  border-top: 1px solid var(--fio-estrutura);
+}
+
+/* O percurso: uma coluna só, o rótulo sobe para cima do título. */
+.secao[data-forma="larga"] {
+  grid-template-columns: minmax(0, 1fr);
+  row-gap: 1.25rem;
+}
+
+.rotulo {
+  margin: 0;
+  color: var(--verde-sinal);
+  /* Alinha a linha de base do rótulo com a altura-x da primeira linha do
+     título, que é muito maior: sem isto o rótulo parece pendurado acima dele. */
+  padding-top: 0.7em;
+}
+
+.secao[data-forma="larga"] .rotulo {
+  padding-top: 0;
+}
+
+.titulo {
+  margin: 0;
+  font-family: var(--fonte-display), Georgia, serif;
+  font-weight: 300;
+  font-variation-settings: "opsz" 144;
+  font-size: clamp(1.75rem, 3.1vw, 2.625rem);
+  line-height: 1.1;
+  letter-spacing: -0.012em;
+  color: var(--branco-202);
+  max-width: 22ch;
+  text-wrap: balance;
+}
+
+.texto {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  margin-top: clamp(1.5rem, 2.5vw, 2.25rem);
+}
+
+/* O mesmo corpo do `.apoio` da /tese: mesma fonte, mesma escala, mesmo cinza. */
+.paragrafo {
+  margin: 0;
+  font-family: var(--fonte-corpo), system-ui, sans-serif;
+  font-size: clamp(0.9375rem, 1.05vw, 1.0625rem);
+  line-height: 1.65;
+  color: var(--cinza-texto);
+  max-width: 58ch;
+}
+
+.subtitulo {
+  margin: 0 0 0.6rem;
+  font-family: var(--fonte-display), Georgia, serif;
+  font-weight: 300;
+  font-variation-settings: "opsz" 72;
+  font-size: clamp(1.25rem, 1.7vw, 1.5rem);
+  line-height: 1.2;
+  color: var(--branco-202);
+  text-wrap: balance;
+}
+
+/* ── As duas frentes ────────────────────────────────────────────────────────
+   Lado a lado, com um fio entre elas — porque são duas coisas que acontecem AO
+   MESMO TEMPO, e não uma depois da outra. (O percurso, mais abaixo, é o
+   contrário, e por isso é desenhado como sequência.) */
+.frentes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  /* Duas colunas de ~58ch e o respiro entre elas. Sem teto, numa tela larga o
+     fio do meio ficaria a um palmo do fim do texto da esquerda. */
+  max-width: 72rem;
+  margin-top: clamp(2rem, 3.5vw, 3rem);
+}
+
+.frente {
+  padding: 0.25rem clamp(1.25rem, 3vw, 2.5rem);
+  border-left: 1px solid var(--fio-estrutura);
+}
+
+.frente:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.tag {
+  margin: 0 0 0.9rem;
+}
+
+/* A frase que amarra as duas: branca, para ler como conclusão e não como um
+   terceiro parágrafo de uma das colunas. */
+.ligacao {
+  composes: paragrafo;
+  margin-top: clamp(2rem, 3.5vw, 3rem);
+  color: var(--branco-202);
+}
+
+/* ── O percurso ─────────────────────────────────────────────────────────────
+   Quatro degraus que sobem da esquerda para a direita, como a trilha da arte
+   sobe até a bandeira. Cada degrau é um item da grade empurrado para baixo por
+   `margin-top`: o primeiro desce três alturas de degrau, o último nenhuma.
+
+   A linha é desenhada em duas peças por item: o PISO (`::after`, horizontal, no
+   topo do item) e o ESPELHO (`::before`, vertical, na esquerda, descendo até o
+   piso do degrau anterior). Juntas fazem uma linha contínua em escada.
+
+   `--luz` é o quanto a linha acende: 0,28 no primeiro degrau, 1 no último. A
+   trilha da arte faz o mesmo — quase apagada lá embaixo, acesa na bandeira.
+
+   O `margin-top` da lista abre espaço para a bandeira, que fica EM CIMA do
+   último piso e portanto acima da caixa da lista. */
+.percurso {
+  --degrau: clamp(1.75rem, 3.2vw, 3rem);
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: start;
+  margin: calc(4.5rem + clamp(1rem, 2vw, 2rem)) 0 0;
+  padding: 0;
+}
+
+/* `var(--i, 0)`, com o zero de reserva: sem ele, um item que chegue aqui sem a
+   variável (um refactor, um render isolado) deixa `--luz` inválida, toda cor
+   que depende dela cai para `unset`, e a escada inteira some — sem erro em
+   lugar nenhum. Com ele, o pior caso é quatro degraus apagados e desenhados. */
+.etapa {
+  --luz: calc(0.28 + var(--i, 0) * 0.24);
+  position: relative;
+  margin-top: calc((3 - var(--i, 0)) * var(--degrau));
+  padding: 1.2rem 1.5rem 0 1.25rem;
+}
+
+.etapa:first-child {
+  padding-left: 0;
+}
+
+/* O piso. */
+.etapa::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: rgb(198 255 62 / var(--luz));
+  box-shadow: 0 0 0.75rem rgb(198 255 62 / calc(var(--luz) * 0.45));
+}
+
+/* O espelho: do piso deste degrau até o piso do anterior, um `--degrau` abaixo.
+   O gradiente faz a luz cair de um degrau para o outro em vez de dar um salto
+   de brilho na quina. */
+.etapa:not(:first-child)::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: calc(var(--degrau) + 1px);
+  background: linear-gradient(
+    to bottom,
+    rgb(198 255 62 / var(--luz)),
+    rgb(198 255 62 / calc(var(--luz) - 0.24))
+  );
+}
+
+.numero {
+  display: block;
+  margin-bottom: 0.6rem;
+  color: var(--verde-sinal);
+}
+
+.etapa .paragrafo {
+  font-size: 0.9375rem;
+}
+
+/* A bandeira: em pé sobre o último piso, na ponta direita dele.
+   `bottom: 100%` é a borda de cima do item — o mesmo lugar do piso.
+   `drop-shadow` e não `box-shadow`: a sombra precisa seguir o TRAÇO, e
+   `box-shadow` desenharia o retângulo do SVG. É estática, então o custo de
+   composição que fez o botão do cartaz evitar `filter` não se repete a cada
+   quadro. */
+.bandeira {
+  position: absolute;
+  right: 1.5rem;
+  bottom: 100%;
+  width: 3rem;
+  height: auto;
+  color: var(--verde-sinal);
+  filter: drop-shadow(0 0 0.4rem rgb(198 255 62 / 55%));
+  pointer-events: none;
+}
+
+/* ── O fecho ────────────────────────────────────────────────────────────────
+   A última coisa que a página diz, e a segunda porta para o formulário. */
+.fecho {
+  margin: 0 var(--recuo);
+  padding: clamp(3.5rem, 7vw, 6rem) 0 clamp(1rem, 3vw, 2.5rem);
+  border-top: 1px solid var(--fio-estrutura);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: clamp(2rem, 3.5vw, 3rem);
+}
+
+.fechoTexto {
+  margin: 0;
+  font-family: var(--fonte-display), Georgia, serif;
+  font-weight: 300;
+  font-variation-settings: "opsz" 72;
+  font-size: clamp(1.25rem, 2vw, 1.75rem);
+  line-height: 1.35;
+  letter-spacing: -0.005em;
+  color: var(--branco-202);
+  max-width: 44ch;
+  text-wrap: pretty;
+}
+
+/* O mesmo botão do cartaz — mesmo objeto, mesmo lugar para onde leva. `composes`
+   em vez de copiar as regras: se o COMEÇAR mudar, este muda junto.
+
+   Nenhuma propriedade é sobrescrita aqui, de propósito: as duas classes têm a
+   mesma especificidade e vivem em arquivos diferentes, então quem venceria uma
+   disputa seria a ordem em que o bundler emite os dois CSS — que não é contrato
+   de ninguém. O espaço acima do botão é o `gap` do `.fecho`. */
+.comecar {
+  composes: comecar from "./Abertura.module.css";
+}
+
+.seta {
+  composes: seta from "./Abertura.module.css";
+}
+
+/* ── Celular e telas estreitas ──────────────────────────────────────────────
+   Mesmo corte de 900px do cartaz. O rótulo sai da margem e sobe para cima do
+   título; as frentes empilham; e a escada deita — quatro colunas de 5rem não
+   são colunas, são tiras. */
+@media (max-width: 899px) {
+  .secao,
+  .fecho {
+    margin: 0;
+  }
+
+  .secao {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 1.1rem;
+  }
+
+  .rotulo {
+    padding-top: 0;
+  }
+
+  .frentes {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 2.25rem;
+  }
+
+  .frente {
+    padding: 2.25rem 0 0;
+    border-left: 0;
+    border-top: 1px solid var(--fio-estrutura);
+  }
+
+  .frente:first-child {
+    padding-top: 0;
+    border-top: 0;
+  }
+
+  /* No celular a trilha desce em vez de subir: uma linha vertical na esquerda,
+     as etapas penduradas nela, e a bandeira no fim — com o mastro exatamente em
+     cima da linha, para que a linha TERMINE na bandeira. */
+  .percurso {
+    grid-template-columns: minmax(0, 1fr);
+    margin-top: 2.25rem;
+  }
+
+  .etapa {
+    margin-top: 0;
+    padding: 0 0 2.25rem 1.5rem;
+  }
+
+  .etapa:first-child {
+    padding-left: 1.5rem;
+  }
+
+  /* O piso vira a linha vertical. */
+  .etapa::after {
+    top: 0.35rem;
+    right: auto;
+    bottom: 0;
+    width: 1px;
+    height: auto;
+    background: linear-gradient(
+      to bottom,
+      rgb(198 255 62 / var(--luz)),
+      rgb(198 255 62 / calc(var(--luz) + 0.24))
+    );
+    box-shadow: none;
+  }
+
+  .etapa:not(:first-child)::after {
+    top: 0;
+  }
+
+  .etapa:not(:first-child)::before {
+    display: none;
+  }
+
+  /* A última etapa termina na bandeira: a linha para onde o mastro começa, e o
+     mastro — que fica a 8/40 da largura do desenho — é puxado para cima dela. */
+  .etapa[data-ultima] {
+    padding-bottom: 0;
+  }
+
+  .etapa[data-ultima]::after {
+    bottom: 3.5rem;
+    background: rgb(198 255 62 / var(--luz));
+  }
+
+  .bandeira {
+    position: static;
+    display: block;
+    width: 2.5rem;
+    margin: 1.25rem 0 0 calc(-1.5rem - 0.5rem + 0.5px);
+  }
+}
