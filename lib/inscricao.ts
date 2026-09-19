@@ -914,7 +914,7 @@ const copy = {
         {
           titulo: "Startups, parceiras ou a sua",
           texto:
-            "Quando a equipe enxerga em alguém o perfil que uma startup ou parceira procura, pode apresentar essa pessoa. E quem quer construir o próprio negócio tem na 202 uma ponta de venture building: ajuda para tirar a ideia do papel, e às vezes a própria ideia.",
+            "Quando a equipe enxerga em alguém o perfil que uma startup ou parceira procura, pode apresentar essa pessoa. E se o que você quer é fundar a sua, a 202 entra junto: tira a ideia do papel com você e, se ela ainda não existe, tem algumas guardadas esperando quem as construa.",
         },
       ],
     },
