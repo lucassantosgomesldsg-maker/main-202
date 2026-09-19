@@ -793,6 +793,13 @@ export type CopyInscricao = {
  * - **As ressalvas do que vem depois ficam.** "Pode ser convidado", "pode
  *   apresentar". Ninguém prometeu vaga nem contratação, e a página também não.
  *   Quem encurtar uma frase daqui confere se não cortou justamente o "pode".
+ * - **As universidades não têm nome.** A primeira revisão dizia "universidades
+ *   de São Paulo", como no texto do Pedro; o Matheus tirou o eixo geográfico
+ *   da página no mesmo dia. O formulário continua perguntando a universidade.
+ * - **A ponta de venture building está dita.** Além de apresentar gente a
+ *   startups e parceiras, a 202 ajuda quem quer construir o próprio negócio a
+ *   tirar a ideia do papel, e às vezes dá a ideia. Está no "por que existe",
+ *   na última etapa do percurso e no fecho.
  * - **O que a página afirma sobre o funcionamento** (o Claude é o professor,
  *   uma aula por conversa de cerca de uma hora, prática corrigida por outro
  *   Claude com critérios prévios, a oficina que acumula, a 202 acompanha) está
@@ -827,7 +834,7 @@ const copy = {
      */
     linhas: [
       "Seis semanas para virar builder AI-native: você aprende dentro do Claude Code, com o Claude como professor, e constrói algo de verdade a cada módulo.",
-      "Para quem está nas universidades de São Paulo e quer construir startups, produtos e tecnologia, não só estudar sobre isso.",
+      "Para quem está na universidade e quer construir startups, produtos e tecnologia, não só estudar sobre isso.",
     ],
     dados: [
       { rotulo: "INÍCIO PREVISTO", valor: "Começo de outubro" },
@@ -842,7 +849,7 @@ const copy = {
       titulo: "Construir com AI virou a vantagem que nenhum diploma dá.",
       texto: [
         "A fronteira da tecnologia se renova mais rápido do que qualquer grade curricular. Quem sabe construir com AI tira uma ideia do papel em dias, testa com gente de verdade e aprende com o que volta. Isso hoje vale mais do que repertório.",
-        "A trilha é o percurso que a 202 criou para encontrar, formar e acompanhar quem tem esse potencial nas universidades de São Paulo. A proposta é formar builders AI-native e, depois, conectar quem se destacar às startups e empresas parceiras que procuram exatamente esse perfil.",
+        "A trilha é o percurso que a 202 criou para encontrar, formar e acompanhar quem tem esse potencial dentro das universidades. A proposta é formar builders AI-native e, depois, abrir dois caminhos: conectar quem se destacar a startups e empresas parceiras que procuram esse perfil, ou ajudar a construir o próprio negócio.",
       ],
     },
 
@@ -892,7 +899,7 @@ const copy = {
         {
           titulo: "Inscrição e seleção",
           texto:
-            "Começa por este formulário. A 202 procura gente de alto potencial nas universidades de São Paulo, com ou sem código.",
+            "Começa por este formulário. A 202 procura gente de alto potencial dentro das universidades, com ou sem código.",
         },
         {
           titulo: "A trilha",
@@ -905,16 +912,16 @@ const copy = {
             "Quem se destacar pode ser convidado a continuar no time, construindo produto, AI e negócio para clientes, parceiros e para as apostas da própria 202.",
         },
         {
-          titulo: "Startups e empresas parceiras",
+          titulo: "Startups, parceiras ou a sua",
           texto:
-            "Quando a equipe enxerga em alguém o perfil que uma startup ou empresa parceira procura, pode apresentar essa pessoa: para construir, para liderar ou para fundar a próxima.",
+            "Quando a equipe enxerga em alguém o perfil que uma startup ou parceira procura, pode apresentar essa pessoa. E quem quer construir o próprio negócio tem na 202 uma ponta de venture building: ajuda para tirar a ideia do papel, e às vezes a própria ideia.",
         },
       ],
     },
 
     fecho: {
       texto:
-        "A trilha é aula, oficina, correção e acompanhamento ao mesmo tempo. O que sai dela é gente que constrói: entende o problema, dirige a AI e coloca no ar.",
+        "A trilha é aula, oficina, correção e acompanhamento ao mesmo tempo. O que sai dela é gente que constrói: entende o problema, dirige a AI e coloca no ar, num time, numa startup ou no próprio negócio.",
       botao: "COMEÇAR A INSCRIÇÃO",
     },
   },

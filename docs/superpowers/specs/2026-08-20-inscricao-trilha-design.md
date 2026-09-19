@@ -189,8 +189,13 @@ sobreviver a fechar o navegador e ressuscitar semanas depois.
 > 3. *Menos travessão, menos frase de AI.* Nenhum travessão dentro da copy, e o
 >    padrão "não é X, é Y" saiu da cadeia de títulos.
 >
-> O que ficou do texto do Pedro: os fatos (início, duração, universidades de
-> São Paulo) e os verbos das duas últimas etapas — "pode ser convidado", "pode
+> No mesmo dia, mais duas trocas do Matheus: saiu o eixo geográfico ("universidades
+> de São Paulo" virou "dentro das universidades"), e entrou a ponta de venture
+> building da 202, no "por que existe", na última etapa do percurso e no fecho:
+> além de apresentar gente a startups e parceiras, a 202 ajuda quem quer
+> construir o próprio negócio a tirar a ideia do papel, e às vezes dá a ideia.
+>
+> O que ficou do texto do Pedro: os fatos (início, duração) e os verbos das duas últimas etapas — "pode ser convidado", "pode
 > apresentar". Ninguém promete vaga nem contratação, e a página também não.
 > O terceiro fato do cartaz trocou de "frentes: teoria e prática" para "a sala
 > de aula: o Claude Code", que é a informação que mais diferencia a trilha de
