@@ -878,7 +878,7 @@ const copy = {
       rotulo: "A AI COMO MÉTODO",
       titulo: "O que a trilha ensina é dirigir a AI.",
       texto: [
-        "Você não precisa saber programar para começar. O que se aprende é conduzir um agente: descrever bem o problema, dar contexto, pedir evidência em vez de acreditar, testar, revisar. É assim que a 202 constrói para os clientes dela, e é assim que uma pessoa sozinha faz hoje o que antes pedia um time.",
+        "Você não precisa saber programar para começar. O que se aprende é conduzir um agente: descrever bem o problema, dar contexto, pedir evidência em vez de acreditar, testar, revisar. É assim que a 202 constrói, e é assim que uma pessoa sozinha faz hoje o que antes pedia um time.",
         "Por isso a trilha mistura engenharia, produto e startup desde a primeira semana: como um software roda, como saber se você está no problema certo, quanto custa conquistar um cliente e o que separa uma startup de um negócio pequeno.",
       ],
     },
