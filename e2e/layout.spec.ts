@@ -48,8 +48,9 @@ const IDIOMAS = ["pt", "en"] as const;
 
 // `.tese` entrou em 17/08/2026: o topo passou de dois para três elementos na
 // mesma linha, e em 320px com `THE THESIS` + `CONTACT ↗` a folga ficou em
-// poucos pixels. É exatamente o caso que este teste existe para pegar.
-const SELETORES_CANTOS = ["[data-logo]", ".oneliner", ".contato", ".tese"];
+// poucos pixels. É exatamente o caso que este teste existe para pegar. O
+// `CONTACT ↗` virou `LOGIN` em 11/10/2026.
+const SELETORES_CANTOS = ["[data-logo]", ".oneliner", ".login", ".tese"];
 
 /** Semeia o idioma ANTES de qualquer script da página rodar — precisa
  *  existir já na primeira leitura de localStorage em app/page.tsx. */
@@ -213,7 +214,7 @@ async function centro(page: Page, seletor: string) {
  */
 test.describe("o ímã da lanterna", () => {
   const ALVOS = [
-    { nome: "CONTATO", seletor: ".contato" },
+    { nome: "LOGIN", seletor: ".login" },
     { nome: "seletor de idioma", seletor: "[data-ima='idioma']" },
     { nome: "oneliner", seletor: ".oneliner" },
   ];
@@ -238,7 +239,7 @@ test.describe("o ímã da lanterna", () => {
   }
 
   test("mexer o cursor dentro do alvo não solta a luz", async ({ page }) => {
-    const c = await centro(page, ".contato");
+    const c = await centro(page, ".login");
     await page.mouse.move(c.pagina.x, c.pagina.y, { steps: 20 });
     await page.waitForTimeout(500);
 
@@ -253,7 +254,7 @@ test.describe("o ímã da lanterna", () => {
   });
 
   test("puxar o cursor para longe solta a luz e devolve o raio", async ({ page }) => {
-    const c = await centro(page, ".contato");
+    const c = await centro(page, ".login");
     await page.mouse.move(c.pagina.x, c.pagina.y, { steps: 20 });
     await page.waitForTimeout(500);
     expect((await luz(page)).escala).toBeGreaterThan(1.9);
@@ -282,23 +283,23 @@ test.describe("o ímã da lanterna", () => {
     await expect(page.getByText("We amplify talent.")).toBeVisible();
   });
 
-  test("com o ímã ativo o CONTATO continua focável pelo teclado", async ({ page }) => {
-    const c = await centro(page, ".contato");
+  test("com o ímã ativo o LOGIN continua focável pelo teclado", async ({ page }) => {
+    const c = await centro(page, ".login");
     await page.mouse.move(c.pagina.x, c.pagina.y, { steps: 20 });
     await page.waitForTimeout(400);
     expect((await luz(page)).escala).toBeGreaterThan(1.9);
 
     // O limite é uma folga, não a contagem exata de paradas: o que se testa é
-    // "dá para chegar ao CONTATO pelo teclado com o ímã aceso", e não quantos
+    // "dá para chegar ao LOGIN pelo teclado com o ímã aceso", e não quantos
     // Tabs isso custa. Era 4 até 01/09/2026; o topo ganhou o link INSCRIÇÃO e o
-    // CONTATO virou a quinta parada (PT, EN, A TESE, INSCRIÇÃO, CONTATO).
-    const contato = page.locator(".contato");
-    for (let i = 0; i < 8 && !(await contato.evaluate((el) => el === document.activeElement)); i++) {
+    // último link virou a quinta parada (PT, EN, A TESE, INSCRIÇÃO, LOGIN).
+    const login = page.locator(".login");
+    for (let i = 0; i < 8 && !(await login.evaluate((el) => el === document.activeElement)); i++) {
       await page.keyboard.press("Tab");
     }
 
-    await expect(contato).toBeFocused();
-    const anel = await contato.evaluate((el) => {
+    await expect(login).toBeFocused();
+    const anel = await login.evaluate((el) => {
       const s = getComputedStyle(el);
       return { cor: s.outlineColor, estilo: s.outlineStyle, largura: s.outlineWidth };
     });
@@ -327,7 +328,7 @@ test.describe("o ímã da lanterna", () => {
 
 /**
  * Finding 2 do review final (2026-08-02): a entrada transladada
- * `[data-ima="idioma"]` e `[data-ima="contato"]` para fora da tela e os traz
+ * `[data-ima="idioma"]` e `[data-ima="login"]` para fora da tela e os traz
  * de volta — um movimento que ResizeObserver não vê (ele reporta TAMANHO;
  * `translateX` não muda tamanho nenhum) e que `getBoundingClientRect` mede
  * incluindo transform. Se o visitante mexe o mouse a qualquer momento antes
@@ -341,14 +342,14 @@ test.describe("o ímã da lanterna", () => {
  * quebrava a medição, com a asserção bem depois do fim real.
  */
 test.describe("o ímã sobrevive a mexer o mouse durante a entrada", () => {
-  test("depois de mexer o mouse na entrada, o ímã do CONTATO ainda gruda no centro certo", async ({
+  test("depois de mexer o mouse na entrada, o ímã do LOGIN ainda gruda no centro certo", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/");
 
     // O gesto que congelava a medição antes da correção: mexer o mouse
-    // enquanto [data-ima='contato'] ainda está translatado para fora da
+    // enquanto [data-ima='login'] ainda está translatado para fora da
     // tela — a entrada só termina em DURACAO_TOTAL_MAXIMA_MS.
     await page.mouse.move(200, 120, { steps: 5 });
     await page.waitForTimeout(300);
@@ -358,7 +359,7 @@ test.describe("o ímã sobrevive a mexer o mouse durante a entrada", () => {
     // sintético que reafirma a medição (ver o useEffect em app/page.tsx).
     await page.waitForTimeout(DEPOIS_DA_ENTRADA);
 
-    const c = await centro(page, "[data-ima='contato']");
+    const c = await centro(page, "[data-ima='login']");
     await page.mouse.move(c.pagina.x, c.pagina.y, { steps: 20 });
     await page.waitForTimeout(500);
 
@@ -830,7 +831,7 @@ test.describe("a abertura com movimento reduzido", () => {
   test("o topo já está no lugar, sem ter entrado de lado", async ({ page }) => {
     await page.goto("/");
 
-    for (const seletor of ["[data-ima='idioma']", "[data-ima='contato']"]) {
+    for (const seletor of ["[data-ima='idioma']", "[data-ima='login']"]) {
       const t = await page
         .locator(seletor)
         .evaluate((el) => getComputedStyle(el).transform);
