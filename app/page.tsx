@@ -14,7 +14,7 @@ import { usaMotionUmaVez as useMotionUmaVez } from "@/lib/usaMotionUmaVez";
 // Mesmo motivo do alias acima.
 import { usaIdioma as useIdioma } from "@/lib/usaIdioma";
 import { DURACAO_TOTAL_MAXIMA_MS, TEMPOS } from "@/lib/abertura";
-import { COPY, INSTAGRAM, titulo } from "@/lib/copy";
+import { COPY, LOGIN_TRILHA, titulo } from "@/lib/copy";
 import FraseDigitada from "@/components/FraseDigitada";
 import estilos from "./abertura.module.css";
 
@@ -52,7 +52,7 @@ export default function Home() {
     const fim = setTimeout(() => {
       setAberturaTerminou(true);
 
-      // O layout não mudou — mas [data-ima="idioma"] e [data-ima="contato"]
+      // O layout não mudou — mas [data-ima="idioma"] e [data-ima="login"]
       // passaram a entrada inteira TRANSLATADOS para fora da tela, e
       // getBoundingClientRect (que lib/usaLanterna.ts usa para medir os
       // alvos do ímã) INCLUI transform. Se o visitante mexeu o mouse durante
@@ -96,10 +96,11 @@ export default function Home() {
             (`app/abertura.module.css`) — por isso acrescentar um item aqui não
             mexe na coreografia.
 
-            `A TESE` vem antes, e sem seta. A `↗` do contato quer dizer uma
-            coisa específica — "isto sai do site" —, e a ausência dela aqui diz
-            a oposta, que é verdade. Duas setas lado a lado ainda leriam como
-            uma sequência ("A TESE → CONTATO"), que não é o que são.
+            Nenhum dos três leva `↗`. A seta queria dizer "isto sai do site
+            e abre em outra aba", e era do CONTATO (Instagram), que saiu da
+            home em 11/10/2026 para dar lugar ao LOGIN. O LOGIN vai para outro
+            subdomínio, mas é a mesma 202 e abre na MESMA aba — login em aba
+            nova deixa a home órfã atrás —, então a seta mentiria.
 
             data-ima: a lanterna gruda em cada um. É só uma marca lida por
             lib/usaLanterna — nada de pointer-events, nada de listener — então
@@ -117,24 +118,18 @@ export default function Home() {
               `noindex` fala com buscador, este link fala com quem já está na
               home. A página continua fora do Google.
 
-              Fica entre A TESE e CONTATO, e não depois do CONTATO, porque o
-              CONTATO é o único link que SAI do site (a `↗` diz isso): pôr um
-              destino interno depois dele quebraria a leitura de "primeiro o
-              site, por último a saída".
+              Fica entre A TESE e LOGIN, e não depois do LOGIN, porque o LOGIN
+              é o único link que SAI deste site (vai para a plataforma da
+              trilha): pôr um destino interno depois dele quebraria a leitura
+              de "primeiro o site, por último a saída".
 
               Sem `↗` pelo mesmo motivo que A TESE não tem: a seta significa
               "isto abre fora", e aqui não abre. */}
           <Link className="label inscricao" data-ima="inscricao" href="/trilha/inscricao">
             {t.inscricao}
           </Link>
-          <a
-            className="label contato"
-            data-ima="contato"
-            href={INSTAGRAM}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            {t.contato} ↗
+          <a className="label login" data-ima="login" href={LOGIN_TRILHA}>
+            {t.login}
           </a>
         </div>
       </header>

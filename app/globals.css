@@ -193,10 +193,10 @@ a:focus-visible, button:focus-visible {
   line-height: 1.7;
 }
 
-.contato,
+.login,
 .tese,
 .inscricao { transition: color 0.25s; }
-.contato:hover,
+.login:hover,
 .tese:hover,
 .inscricao:hover { color: var(--branco-202); }
 

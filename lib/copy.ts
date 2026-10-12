@@ -8,6 +8,7 @@ export const COPY = {
     contato: "CONTATO",
     tese: "A TESE",
     inscricao: "INSCRIÇÃO",
+    login: "LOGIN",
   },
   en: {
     onelinerLinhas: ["We amplify talent.", "We build the future."],
@@ -16,6 +17,7 @@ export const COPY = {
     // "APPLY" e não "SIGN UP": a trilha é seletiva (há triagem depois do
     // formulário), e "sign up" promete entrada automática.
     inscricao: "APPLY",
+    login: "LOGIN",
   },
 } as const satisfies Record<
   Idioma,
@@ -44,10 +46,16 @@ export const COPY = {
      * é o `href` que muda, não esta linha.
      */
     inscricao: string;
+    /** O rótulo do link de login no topo da home, que leva para a plataforma
+     *  da trilha (`LOGIN_TRILHA`). "LOGIN" nos dois idiomas: é a palavra que
+     *  o visitante brasileiro também procura num canto de site. */
+    login: string;
   }
 >;
 
 export const INSTAGRAM = "https://www.instagram.com/202lab.br/";
+
+export const LOGIN_TRILHA = "https://trilha.202lab.com.br/login";
 
 export function oneliner(idioma: Idioma): string {
   return COPY[idioma].onelinerLinhas.join(" ");

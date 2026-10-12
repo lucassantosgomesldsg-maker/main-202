@@ -140,7 +140,7 @@
    da página. O recorte é do `html, body { overflow: hidden }` que já existe
    em globals.css — nada aqui precisa recortar.
 
-   Um artefato conhecido, e é medição, não defeito: enquanto o CONTATO está
+   Um artefato conhecido, e é medição, não defeito: enquanto o LOGIN está
    deslocado para a direita, `document.body.scrollWidth` reporta a extensão
    real do conteúdo mesmo escondida pelo overflow. Ninguém consegue rolar; o
    e2e é que precisa medir depois do fim da entrada (ver e2e/layout.spec.ts). */
@@ -158,7 +158,7 @@
 /* A direita inteira sai como UM bloco (`.topoDireita`), e não cada link por
    conta própria. Não é gosto, é geometria: `translateX(100%)` é 100% da
    largura do PRÓPRIO elemento, e o `A TESE`, que não encosta na borda,
-   deslizaria por trás do CONTATO em vez de sair da tela. Animar o grupo põe a
+   deslizaria por trás do LOGIN em vez de sair da tela. Animar o grupo põe a
    borda direita dele exatamente fora da margem, que é o que o gesto sempre
    quis dizer.
 

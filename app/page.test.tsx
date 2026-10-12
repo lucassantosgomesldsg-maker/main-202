@@ -43,12 +43,18 @@ describe("a tela", () => {
     expect(screen.queryByText(/SÃO JOSÉ DOS CAMPOS/)).not.toBeInTheDocument();
   });
 
-  it("leva ao Instagram da 202, em aba nova e sem vazar referência", () => {
+  it("leva ao login da plataforma da trilha, na mesma aba", () => {
     render(<Home />);
-    const link = screen.getByRole("link", { name: /CONTATO/ });
-    expect(link).toHaveAttribute("href", "https://www.instagram.com/202lab.br/");
-    expect(link).toHaveAttribute("target", "_blank");
-    expect(link).toHaveAttribute("rel", "noopener noreferrer");
+    const link = screen.getByRole("link", { name: "LOGIN" });
+    expect(link).toHaveAttribute("href", "https://trilha.202lab.com.br/login");
+    expect(link).not.toHaveAttribute("target");
+  });
+
+  it("não tem mais o CONTATO", () => {
+    // Saiu da home em 11/10/2026 para dar lugar ao LOGIN. Continua na /tese.
+    render(<Home />);
+    expect(screen.queryByRole("link", { name: /CONTATO/ })).not.toBeInTheDocument();
+    expect(document.querySelector("a[href*='instagram.com']")).toBeNull();
   });
 
   it("mostra a logo", () => {
@@ -58,12 +64,15 @@ describe("a tela", () => {
 });
 
 describe("troca de idioma", () => {
-  it("troca o oneliner e o rótulo de contato para inglês", async () => {
+  it("troca o oneliner para inglês e mantém o LOGIN", async () => {
     const { container } = render(<Home />);
     await userEvent.click(screen.getByRole("button", { name: "EN" }));
     expect(linhas(container)[0]).toHaveTextContent("We amplify talent.");
     expect(linhas(container)[1]).toHaveTextContent("We build the future.");
-    expect(screen.getByRole("link", { name: /CONTACT/ })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "LOGIN" })).toHaveAttribute(
+      "href",
+      "https://trilha.202lab.com.br/login",
+    );
   });
 
   it("leva à inscrição da trilha, e traduz o rótulo", async () => {
@@ -75,8 +84,7 @@ describe("troca de idioma", () => {
 
     const pt = screen.getByRole("link", { name: COPY.pt.inscricao });
     expect(pt).toHaveAttribute("href", "/trilha/inscricao");
-    // Sem `target="_blank"`: o destino é do próprio site. A `↗` e a aba nova
-    // são do CONTATO, que sai para o Instagram.
+    // Sem `target="_blank"`: o destino é do próprio site.
     expect(pt).not.toHaveAttribute("target");
 
     await userEvent.click(screen.getByRole("button", { name: "EN" }));
